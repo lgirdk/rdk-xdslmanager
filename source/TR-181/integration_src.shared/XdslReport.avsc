@@ -1,0 +1,321 @@
+{
+    "namespace": "com.comcast.kestrel.odp.event",
+        "name": "VDSLTelemetryDiagnostics",
+        "type": "record",
+        "doc": "Real time diagnostics and telemetry periodic report to assess degradation in vDSL performace",
+        "fields": [{
+            "name": "header",
+            "type": {
+                "namespace": "com.comcast.kestrel",
+                "name": "CoreHeader",
+                "type": "record",
+                "doc": "Common information related to the event which MUST be included in any kestrel event. It allows some common processing at the system level, and some consistency for processing events.",
+                "fields": [{
+                    "name": "timestamp",
+                    "type": [
+                        "null",
+                    {
+                        "logicalType": "timestamp-millis",
+                        "type": "long"
+                    }
+                    ],
+                    "doc": "The UTC time stamp in milliseconds since Unix epoch (January 1, 1970 midnight) when the event is generated.",
+                    "default": null
+                },
+                {
+                    "name": "uuid",
+                    "type": [
+                        "null",
+                    {
+                        "name": "UUID",
+                        "namespace": "com.comcast.kestrel.datatype",
+                        "size": 16,
+                        "type": "fixed"
+                    }
+                    ],
+                    "doc": "Unique identifier for the event used for event de-duplication and tracing.",
+                    "default": null
+                },
+                {
+                    "name": "source",
+                    "type": [
+                        "null",
+                    "string"
+                    ],
+                    "doc": "Source of this report - generally the application or process generating the event",
+                    "default": null
+                }
+                ]
+            }
+        },
+        {
+            "name": "cpe_id",
+            "type": {
+                "namespace": "com.comcast.kestrel.odp",
+                "name": "CPEIdentifier",
+                "type": "record",
+                "doc": "Unique identifying fields for a CPE device. All fields are optional, but at least one field should be populated with a non null value",
+                "fields": [{
+                    "name": "mac_address",
+                    "type": [
+                        "null",
+                    {
+                        "name": "MacAddress",
+                        "namespace": "com.comcast.kestrel.datatype",
+                        "size": 6,
+                        "type": "fixed"
+                    }
+                    ],
+                    "doc": "Canonical (Identifying) MAC address for the gateway. (Eg, may be CM Mac for cable modems)",
+                    "default": null
+                },
+                {
+                    "name": "cpe_type",
+                    "type": [
+                        "null",
+                    "string"
+                    ],
+                    "doc": "Contains the cpe type e.g. Extender or Gateway",
+                    "default": null
+                }
+                ]
+            }
+        },
+        {
+            "name": "data",
+            "type": {
+                "namespace": "com.comcast.kestrel.odp",
+                "name": "VDSLTelemetryData",
+                "type": "record",
+                "doc": "Contains VDSL diagnostic data related to a specific connected device at a point in time",
+                "fields": [{
+                    "name": "XTSUsed",
+                    "type": [
+                        "null",
+                    "string"
+                    ],
+                    "doc": "This parameter indicates which DSL standard and recommendation are currently in use by the Line instance. Enumeration: ADSL, VDSL, WANoE, G.Fast",
+                    "default": null
+                },
+                {
+                    "name": "DownstreamCurrRate",
+                    "type": [
+                        "null", "long"
+                    ],
+                    "doc": "The current physical layer aggregate data rate (expressed in Kbps) of the downstream DSL connection",
+                    "default": null
+                },
+                {
+                    "name": "UpstreamCurrRate",
+                    "type": [
+                        "null", "long"
+                    ],
+                    "doc": "The current physical layer aggregate data rate (expressed in Kbps) of the upstream DSL connection",
+                    "default": null
+                },
+                {
+                    "name": "CurrentDayStart",
+                    "type": [
+                        "null", "long"
+                    ],
+                    "doc": "The Number of seconds since the beginning of the period used for collection of CurrentDay statistic",
+                    "default": null
+                },
+                {
+                    "name": "QuarterHourXTUCCRCErrors",
+                    "type": [
+                        "null", "int"
+                    ],
+                    "doc": "Total number of CRC errors detected by the ATU-C during the current quarter hour",
+                    "default": null
+                },
+                {
+                    "name": "CurrentDayXTURCRCErrors",
+                    "type": [
+                        "null", "int"
+                    ],
+                    "doc": "Number of CRC errors detected during the current day",
+                    "default": null
+                },
+                {
+                    "name": "QuarterHourXTURCRCErrors",
+                    "type": [
+                        "null", "int"
+                    ],
+                    "doc": "Number of CRC errors detected during the current quarter hour",
+                    "default": null
+                },
+                {
+                    "name": "StandardUsed",
+                    "type": [
+                        "null", "string"
+                    ],
+                    "doc": "Indicates the standard that the Line instance is using for the connection",
+                    "default": null
+                },
+                {
+                    "name": "DownstreamAttenuation",
+                    "type": [
+                        "null", "double"
+                    ],
+                    "doc": "The current downstream signal loss (expressed in 0.1dB)",
+                    "default": null
+                },
+                {
+                    "name": "DownstreamMaxBitRate",
+                    "type": [
+                        "null", "long"
+                    ],
+                    "doc": "The current maximum attainable data rate downstream (expressed in Kbps)",
+                    "default": null
+                },
+                {
+                    "name": "DownstreamNoiseMargin",
+                    "type": [
+                        "null", "double"
+                    ],
+                    "doc": "The current signal-to-noise ratio margin (expressed in 0.1dB) in the downstream direction",
+                    "default": null
+                },
+                {
+                    "name": "DownstreamPower",
+                    "type": [
+                        "null", "double"
+                    ],
+                    "doc": "The current received power at the CPE's DSL line (expressed in 0.1dBmV)",
+                    "default": null
+                },
+                {
+                    "name": "CurrentDayXTUCCRCErrors",
+                    "type": [
+                        "null", "int"
+                    ],
+                    "doc": "Number of CRC errors detected by the ATU-C during the current day",
+                    "default": null
+                },
+                {
+                    "name": "CurrentDayXTUCFECErrors",
+                    "type": [
+                        "null", "int"
+                    ],
+                    "doc": "Number of FEC errors detected by the ATU-C during the current day",
+                    "default": null
+                },
+                {
+                    "name": "CurrentDayXTUCHECErrors",
+                    "type": [
+                        "null", "int"
+                    ],
+                    "doc": "Number of HEC errors detected by the ATU-C during the current day",
+                    "default": null
+                },
+                {
+                    "name": "CurrentDayErroredSecs",
+                    "type": [
+                        "null", "int"
+                    ],
+                    "doc": "Number of errored seconds during the current day",
+                    "default": null
+                },
+                {
+                    "name": "CurrentDayXTURFECErrors",
+                    "type": [
+                        "null", "int"
+                    ],
+                    "doc": "Number of FEC errors detected during the current day",
+                    "default": null
+                },
+                {
+                    "name": "CurrentDayXTURHECErrors",
+                    "type": [
+                        "null", "int"
+                    ],
+                    "doc": "Number of HEC errors detected during the current day",
+                    "default": null
+                },
+                {
+                    "name": "CurrentDaySeverelyErroredSecs",
+                    "type": [
+                        "null", "int"
+                    ],
+                    "doc": "Number of severely errored seconds during the current day",
+                    "default": null
+                },
+                {
+                    "name": "UpstreamAttenuation",
+                    "type": [
+                        "null", "double"
+                    ],
+                    "doc": "The current upstream signal loss (expressed in 0.1dB)",
+                    "default": null
+                },
+                {
+                    "name": "UpstreamMaxBitRate",
+                    "type": [
+                        "null", "long"
+                    ],
+                    "doc": "The current maximum attainable data rate upstream (expressed in Kbps)",
+                    "default": null
+                },
+                {
+                    "name": "UpstreamNoiseMargin",
+                    "type": [
+                        "null", "double"
+                    ],
+                    "doc": "The current signal-to-noise ratio margin (expressed in 0.1dB) in the upstream direction",
+                    "default": null
+                },
+                {
+                    "name": "UpstreamPower",
+                    "type": [
+                        "null", "double"
+                    ],
+                    "doc": "The current output power at the CPE's DSL line (expressed in 0.1dBmV)",
+                    "default": null
+                },
+                {
+                    "name": "Upstream",
+                    "type": [
+                        "null", "boolean"
+                    ],
+                    "doc": "Indicates whether the interface points towards the Internet (true) or towards End Devices (false). Based on Default Connection Service (XTSUsed): ADSL, VDSL, WANoE, G.Fast ",
+                    "default": null
+                },
+                {
+                    "name": "TotalStart",
+                    "type": [
+                        "null", "long"
+                    ],
+                    "doc": "The Number of seconds since the beginning of the period used for collection of Total statistics",
+                    "default": null
+                },
+                {
+                    "name": "QuarterHourStart",
+                    "type": [
+                        "null", "long"
+                    ],
+                    "doc": "The Number of seconds since the beginning of the period used for collection of QuarterHour statistics",
+                    "default": null
+                },
+                {
+                    "name": "AllowedProfiles",
+                    "type": [
+                        "null","string"
+                    ],
+                    "doc": "Comma-separated list of strings. List items indicate which VDSL2 profiles are allowed on the line. Each list item is an enumeration of: 8a, 8b, 8c, 8d, 12a, 12b, 17a, 17b, 30a",
+                    "default": null
+                },
+                {
+                    "name": "CurrentProfile",
+                    "type": [
+                        "null", "string"
+                    ],
+                    "doc": "Indicates which VDSL2 profile is currently in use on the line. The value will be a member of the list reported by the AllowedProfiles parameter, or else be an empty string",
+                    "default": null
+                }
+                ]
+            }
+        }
+    ]
+}
+
