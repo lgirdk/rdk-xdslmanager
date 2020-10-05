@@ -39,31 +39,52 @@
 /***********************************
     Actual definition declaration
 ************************************/
-#define  IREP_FOLDER_NAME_XTM                       "XTM"
+#define  IREP_FOLDER_NAME_PTM                       "PTM"
 #define  IREP_FOLDER_NAME_PORTTRIGGER               "PORTTRIGGER"
 #define  DML_RR_NAME_XTMNextInsNumber               "NextInstanceNumber"
-#define  DML_RR_NAME_XTMAlias                       "Alias"
-#define  DML_RR_NAME_XTMbNew                        "bNew"
+#define  DML_RR_NAME_PTMAlias                       "Alias"
+#define  DML_RR_NAME_PTMbNew                        "bNew"
 
-#define  DATAMODEL_XTM_CLASS_CONTENT                                                   \
+#define  IREP_FOLDER_NAME_ATM                       "ATM"
+
+#define  DATAMODEL_PTM_CLASS_CONTENT                                                   \
     /* duplication of the base object class content */                                                \
     BASE_CONTENT                                                                       \
-    /* start of XTM object class content */                                                        \
-    SLIST_HEADER                    XTMPMappingList;                                        \
-    SLIST_HEADER                    Q_XtmList;                                        \
+    /* start of PTM object class content */                                                        \
+    SLIST_HEADER                    PTMPMappingList;                                        \
+    SLIST_HEADER                    Q_PtmList;                                        \
     ULONG                           MaxInstanceNumber;                                      \
     ULONG                           ulPtNextInstanceNumber;                                 \
     ULONG                           PreviousVisitTime;                                      \
     UCHAR                           AliasOfPortMapping[64];                                 \
-    ANSC_HANDLE                     hIrepFolderXTM;                                         \
-    ANSC_HANDLE                     hIrepFolderXTMPt;                                       \
+    ANSC_HANDLE                     hIrepFolderPTM;                                         \
+    ANSC_HANDLE                     hIrepFolderPTMPt;                                       \
 
 typedef  struct
-_DATAMODEL_XTM
+_DATAMODEL_PTM
 {
-    DATAMODEL_XTM_CLASS_CONTENT
+    DATAMODEL_PTM_CLASS_CONTENT
 }
-DATAMODEL_XTM,  *PDATAMODEL_XTM;
+DATAMODEL_PTM,  *PDATAMODEL_PTM;
+#define  DATAMODEL_ATM_CLASS_CONTENT                                                   \
+    /* duplication of the base object class content */                                 \
+    BASE_CONTENT                                                                       \
+    /* start of PTM object class content */                                            \
+    SLIST_HEADER                    ATMPMappingList;                                   \
+    SLIST_HEADER                    Q_AtmList;                                         \
+    ULONG                           MaxInstanceNumber;                                 \
+    ULONG                           ulPtNextInstanceNumber;                            \
+    ULONG                           PreviousVisitTime;                                 \
+    UCHAR                           AliasOfPortMapping[64];                            \
+    ANSC_HANDLE                     hIrepFolderATM;                                    \
+    ANSC_HANDLE                     hIrepFolderATMPt;                                  \
+    PDML_ATM_DIAG                   pATMDiag;                                          \
+
+typedef  struct
+_DATAMODEL_ATM
+{
+    DATAMODEL_ATM_CLASS_CONTENT
+} DATAMODEL_ATM,  *PDATAMODEL_ATM;
 
 /*
 *  This struct is for creating entry context link in writable table when call GetEntry()
@@ -72,35 +93,14 @@ DATAMODEL_XTM,  *PDATAMODEL_XTM;
 /**********************************
     Standard function declaration
 ***********************************/
-ANSC_HANDLE
-XtmCreate
-    (
-        VOID
-    );
-
-ANSC_STATUS
-XtmInitialize
-    (
-        ANSC_HANDLE                 hThisObject
-    );
-
-ANSC_STATUS
-XtmRemove
-    (
-        ANSC_HANDLE                 hThisObject
-    );
-
-ANSC_STATUS
-XtmGen
-    (
-        ANSC_HANDLE                 hDml
-    );
-
-ANSC_STATUS
-XtmGenForTriggerEntry
-    (
-        ANSC_HANDLE                 hDml,
-        PDML_XTM      pEntry
-    );
-
+ANSC_HANDLE PtmCreate ( VOID );
+ANSC_STATUS PtmInitialize ( ANSC_HANDLE hThisObject );
+ANSC_STATUS PtmRemove ( ANSC_HANDLE hThisObject );
+ANSC_STATUS PtmGen ( ANSC_HANDLE hDml );
+ANSC_STATUS PtmGenForTriggerEntry ( ANSC_HANDLE hDml, PDML_PTM pEntry );
+ANSC_HANDLE AtmCreate ( VOID );
+ANSC_STATUS AtmInitialize ( ANSC_HANDLE hThisObject );
+ANSC_STATUS AtmRemove ( ANSC_HANDLE hThisObject );
+ANSC_STATUS AtmGen ( ANSC_HANDLE hDml );
+ANSC_STATUS AtmGenForTriggerEntry ( ANSC_HANDLE hDml, PDML_ATM pEntry );
 #endif

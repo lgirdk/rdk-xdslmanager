@@ -96,14 +96,21 @@
 
 #define DATAMODEL_PARAM_LENGTH 256
 
-//XTM Manager
+//PTM Manager
 #define XTM_DBUS_PATH                     "/com/cisco/spvtg/ccsp/xdslmanager"
 #define XTM_COMPONENT_NAME                "eRT.com.cisco.spvtg.ccsp.xdslmanager"
-#define XTM_LINK_TABLE_NAME               "Device.PTM.Link."
-#define XTM_NOE_PARAM_NAME                "Device.PTM.LinkNumberOfEntries"
-#define XTM_LINK_LOWERLAYER_PARAM_NAME    "Device.PTM.Link.%d.LowerLayers"
-#define XTM_LINK_ENABLE_PARAM_NAME        "Device.PTM.Link.%d.Enable"
-#define XTM_LINK_ALIAS_PARAM_NAME         "Device.PTM.Link.%d.Alias"
+
+#define PTM_LINK_TABLE_NAME               "Device.PTM.Link."
+#define PTM_NOE_PARAM_NAME                "Device.PTM.LinkNumberOfEntries"
+#define PTM_LINK_LOWERLAYER_PARAM_NAME    "Device.PTM.Link.%d.LowerLayers"
+#define PTM_LINK_ENABLE_PARAM_NAME        "Device.PTM.Link.%d.Enable"
+#define PTM_LINK_ALIAS_PARAM_NAME         "Device.PTM.Link.%d.Alias"
+
+#define ATM_LINK_TABLE_NAME               "Device.ATM.Link."
+#define ATM_NOE_PARAM_NAME                "Device.ATM.LinkNumberOfEntries"
+#define ATM_LINK_LOWERLAYER_PARAM_NAME    "Device.ATM.Link.%d.LowerLayers"
+#define ATM_LINK_ENABLE_PARAM_NAME        "Device.ATM.Link.%d.Enable"
+#define ATM_LINK_ALIAS_PARAM_NAME         "Device.ATM.Link.%d.Alias"
 
 //WAN Agent
 #define WAN_DBUS_PATH                     "/com/cisco/spvtg/ccsp/wanmanager"
@@ -112,7 +119,10 @@
 #define WAN_PHY_STATUS_PARAM_NAME         "Device.X_RDK_WanManager.CPEInterface.%d.Phy.Status"
 #define WAN_PHY_PATH_PARAM_NAME           "Device.X_RDK_WanManager.CPEInterface.%d.Phy.Path"
 #define WAN_LINK_STATUS_PARAM_NAME        "Device.X_RDK_WanManager.CPEInterface.%d.Wan.LinkStatus"
+#define WAN_WAN_INTERFACE_PARAM_NAME      "Device.X_RDK_WanManager.CPEInterface.%d.Wan.Name"
 #define WAN_IF_NAME_PARAM_NAME            "Device.X_RDK_WanManager.CPEInterface.%d.Name"
+
+#define WAN_INTERFACE_NAME "erouter0"
 
 //XDSL
 #define XDSL_LINE_ENABLE "Device.DSL.Line.%d.Enable"
@@ -164,8 +174,10 @@ static void *DmlXdslEventHandlerThread( void *arg );
 static ANSC_STATUS DmlXdslGetChannelStaticInfo( INT LineIndex, INT ChannelIndex, PDML_XDSL_CHANNEL pstChannelInfo );
 static void DmlXdslStatusStrToEnum(char *status, DML_XDSL_IF_STATUS *ifStatus);
 void DmlXdslLineLinkStatusCallback( char *ifname, DslLinkStatus_t dsl_link_state );
-static ANSC_STATUS DmlCreateXTMLink( char *ifname );
-static ANSC_STATUS DmlDeleteXTMLink( char *ifname );
+static ANSC_STATUS DmlCreatePTMLink( char *ifname );
+static ANSC_STATUS DmlDeletePTMLink( char *ifname );
+static ANSC_STATUS DmlCreateATMLink( char *ifname );
+static ANSC_STATUS DmlDeleteATMLink( char *ifname );
 static void *XTM_DMLUpdationHandlerThread(void *arg);
 static void *XTM_DMLDeletionHandlerThread(void *arg);
 
@@ -204,7 +216,7 @@ DmlXdslInit
     if ( RETURN_OK != xdsl_hal_init())
     {
         CcspTraceError(("%s Failed to init dsl HAL\n", __FUNCTION__));
-	    return ANSC_STATUS_FAILURE;
+        return ANSC_STATUS_FAILURE;
     }
 
     //DSL Line init
@@ -234,9 +246,6 @@ DmlXdslInit
     //DSL  XRDKNLM Init 
     DmlXdslXRdkNlmInit( pMyObject );
 
-    // Parodus init 
-    initparodusTask();
-
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -244,7 +253,7 @@ DmlXdslInit
 ANSC_STATUS
 DmlXdslLineInit
     (
-    	PANSC_HANDLE                phContext
+        PANSC_HANDLE                phContext
     )
 {
     PDATAMODEL_XDSL      pMyObject    = (PDATAMODEL_XDSL)phContext;
@@ -258,11 +267,11 @@ DmlXdslLineInit
     //Return failure if allocation failiure
     if( NULL == pXDSLLineTmp )
     {
-	    return ANSC_STATUS_FAILURE;
+        return ANSC_STATUS_FAILURE;
     }
 
     pMyObject->ulTotalNoofDSLLines = iTotalLines;
-		
+        
     //Memset all memory
     memset( pXDSLLineTmp, 0, ( sizeof(DML_XDSL_LINE) * iTotalLines ) );
 
@@ -278,7 +287,7 @@ DmlXdslLineInit
     }
 
     //Assign the memory address to oringinal structure
-    pMyObject->pXDSLLine	= pXDSLLineTmp;
+    pMyObject->pXDSLLine    = pXDSLLineTmp;
 
     //Prepare Global Information
     DmlXdslLinePrepareGlobalInfo( pMyObject );
@@ -344,7 +353,7 @@ static ANSC_STATUS DmlXdslGetLineStaticInfo( INT LineIndex, PDML_XDSL_LINE pstLi
     snprintf( pstLineInfo->Alias, sizeof(pstLineInfo->Alias), "dsl%d", LineIndex );
 
     //As of now hardcoded
-    snprintf( pstLineInfo->StandardsSupported, sizeof(pstLineInfo->StandardsSupported), "%s", "G.992.1_Annex_A, G.992.1_Annex_B, G.992.1_Annex_C, T1.413, G.992, G.992.3_Annex_A, G.992.3_Annex_B, G.992.3_Annex_C, G.993.1, G.993.1_Annex_A, G.993.2_Annex_B, G.993_Annex_C" );
+    snprintf( pstLineInfo->StandardsSupported, sizeof(pstLineInfo->StandardsSupported), "%s", "G.992.1_Annex_A, G.992.1_Annex_B, G.992.1_Annex_C, T1.413, G.992.2, G.992.3_Annex_A, G.992.3_Annex_B, G.992.3_Annex_C, G.993.1, G.993.1_Annex_A, G.993.2_Annex_B, G.993.2_Annex_C" );
 
     return ANSC_STATUS_SUCCESS;
 }
@@ -357,7 +366,7 @@ ANSC_STATUS DmlXdslGetLineCfg( INT LineIndex, PDML_XDSL_LINE pstLineInfo )
 
     if( NULL == pstLineInfo )
     {
-	    CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
+	CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
 
@@ -377,13 +386,13 @@ ANSC_STATUS DmlXdslGetLineCfg( INT LineIndex, PDML_XDSL_LINE pstLineInfo )
          CcspTraceError(("%s Failed to get line info value\n", __FUNCTION__));
          return ANSC_STATUS_FAILURE;
     }
-    
+
     //Initialize statistics
     memset( &pstLineInfo->stLineStats, 0, sizeof(DML_XDSL_LINE_STATS ));
 
-    //Collect Line Statistics 
+    //Collect Line Statistics
     if ( RETURN_OK != xdsl_hal_dslGetLineStats( LineIndex, &pstLineInfo->stLineStats ) )
-    {    
+    { 
          CcspTraceError(("%s Failed to get line stats value\n", __FUNCTION__));
          return ANSC_STATUS_FAILURE;
     }
@@ -395,7 +404,7 @@ ANSC_STATUS DmlXdslGetLineCfg( INT LineIndex, PDML_XDSL_LINE pstLineInfo )
 ANSC_STATUS DmlXdslLineSetEnable( INT LineIndex, BOOL Enable )
 {
     hal_param_t req_param;
-	
+    
     //Validate index
     if ( LineIndex < 0 )
     {
@@ -1095,14 +1104,14 @@ static ANSC_STATUS DmlXdslGetLowerLayersInstanceInOtherAgent( XDSL_NOTIFY_ENUM e
         }
         break; /* * NOTIFY_TO_WAN_AGENT */
 
-        case NOTIFY_TO_XTM_AGENT:
+        case NOTIFY_TO_PTM_AGENT:
         {
             char acTmpReturnValue[ 256 ]    = { 0 },
                  a2cTmpTableParams[16][256] = { 0 };
             INT  iLoopCount,
                  iTotalNoofEntries;
 
-            if ( ANSC_STATUS_FAILURE == DmlXdslGetParamValues( XTM_COMPONENT_NAME, XTM_DBUS_PATH, XTM_NOE_PARAM_NAME, acTmpReturnValue ) )
+            if ( ANSC_STATUS_FAILURE == DmlXdslGetParamValues( XTM_COMPONENT_NAME, XTM_DBUS_PATH, PTM_NOE_PARAM_NAME, acTmpReturnValue ) )
             {
                 CcspTraceError(("%s %d Failed to get param value\n", __FUNCTION__, __LINE__));
                 return ANSC_STATUS_FAILURE;
@@ -1119,7 +1128,7 @@ static ANSC_STATUS DmlXdslGetLowerLayersInstanceInOtherAgent( XDSL_NOTIFY_ENUM e
 
             //Get table names
             iTotalNoofEntries = 0;
-            if ( ANSC_STATUS_FAILURE == DmlXdslGetParamNames( XTM_COMPONENT_NAME, XTM_DBUS_PATH, XTM_LINK_TABLE_NAME, a2cTmpTableParams , &iTotalNoofEntries ))
+            if ( ANSC_STATUS_FAILURE == DmlXdslGetParamNames( XTM_COMPONENT_NAME, XTM_DBUS_PATH, PTM_LINK_TABLE_NAME, a2cTmpTableParams , &iTotalNoofEntries ))
             {
                 CcspTraceError(("%s %d Failed to get param value\n", __FUNCTION__, __LINE__));
                 return ANSC_STATUS_FAILURE;
@@ -1157,7 +1166,71 @@ static ANSC_STATUS DmlXdslGetLowerLayersInstanceInOtherAgent( XDSL_NOTIFY_ENUM e
                 }
             }
         }
-        break; /* * NOTIFY_TO_XTM_AGENT */
+        break; /* * NOTIFY_TO_PTM_AGENT */
+
+        case NOTIFY_TO_ATM_AGENT:
+        {
+            char acTmpReturnValue[ 256 ]    = { 0 },
+                 a2cTmpTableParams[16][256] = { 0 };
+            INT  iLoopCount,
+                 iTotalNoofEntries;
+
+            if ( ANSC_STATUS_FAILURE == DmlXdslGetParamValues( XTM_COMPONENT_NAME, XTM_DBUS_PATH, ATM_NOE_PARAM_NAME, acTmpReturnValue ) )
+            {
+                CcspTraceError(("%s %d Failed to get param value\n", __FUNCTION__, __LINE__));
+                return ANSC_STATUS_FAILURE;
+            }
+
+            //Total count
+            iTotalNoofEntries = atoi( acTmpReturnValue );
+            CcspTraceInfo(("%s %d - TotalNoofEntries:%d\n", __FUNCTION__, __LINE__, iTotalNoofEntries));
+
+            if( 0 >= iTotalNoofEntries )
+            { 
+               return ANSC_STATUS_SUCCESS;
+            }
+
+            //Get table names
+            iTotalNoofEntries = 0;
+            if ( ANSC_STATUS_FAILURE == DmlXdslGetParamNames( XTM_COMPONENT_NAME, XTM_DBUS_PATH, ATM_LINK_TABLE_NAME, a2cTmpTableParams , &iTotalNoofEntries ))
+            {
+                CcspTraceError(("%s %d Failed to get param value\n", __FUNCTION__, __LINE__));
+                return ANSC_STATUS_FAILURE;
+            }
+
+            //Traverse from loop
+            for ( iLoopCount = 0; iLoopCount < iTotalNoofEntries; iLoopCount++ )
+            {
+                char acTmpQueryParam[256] = { 0 };
+
+                //Query 
+                snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ), "%sLowerLayers", a2cTmpTableParams[ iLoopCount ] );
+
+                memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
+                if ( ANSC_STATUS_FAILURE == DmlXdslGetParamValues( XTM_COMPONENT_NAME, XTM_DBUS_PATH, acTmpQueryParam, acTmpReturnValue ) )
+                {
+                    CcspTraceError(("%s %d Failed to get param value\n", __FUNCTION__, __LINE__));
+                    continue;
+                }
+
+                //Compare lowerlayers
+                if( 0 == strcmp( acTmpReturnValue, pLowerLayers ) )
+                {
+                    char  tmpTableParam[ 256 ] = { 0 };
+                    const char *last_two;
+
+                    //Copy table param
+                    snprintf( tmpTableParam, sizeof(tmpTableParam), "%s", a2cTmpTableParams[ iLoopCount ] );
+
+                    //Get last two chareters from return value and cut the instance
+                    last_two = &tmpTableParam[strlen(tmpTableParam) - 2];
+
+                    *piInstanceNumber   = atoi(last_two);
+                    break;
+                }
+            }
+        }
+        break; /* * NOTIFY_TO_ATM_AGENT */
 
         default:
         {
@@ -1203,13 +1276,14 @@ ANSC_STATUS DmlXdslCreateXTMLink( char *ifname )
         CcspTraceInfo(("%s : pthread_cond_timedwait ERROR!!!\n",__FUNCTION__));
     }
 
-    CcspTraceInfo(("%s %d - Successfully started XTM creation thread\n",__FUNCTION__, __LINE__));
+    CcspTraceInfo(("%s %d - Successfully started PTM creation thread\n",__FUNCTION__, __LINE__));
     return ANSC_STATUS_SUCCESS;
 }
 
 /* * XTM_DMLUpdationHandlerThread() */
 static void *XTM_DMLUpdationHandlerThread( void *arg )
 {
+    char StandardUsed[64] = {'\0'};
     char* ifname = (char*)arg;
 
     if ( NULL == ifname)
@@ -1223,13 +1297,45 @@ static void *XTM_DMLUpdationHandlerThread( void *arg )
 
     pthread_mutex_lock(&mUpdationMutex);
 
-    if (ANSC_STATUS_SUCCESS == DmlCreateXTMLink(ifname))
+    if (ANSC_STATUS_SUCCESS == DmlGetXdslStandardUsed(StandardUsed))
     {
-        CcspTraceInfo(("%s Successfully created XTMLink\n",__FUNCTION__));
+        if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413")  || 
+           strstr(StandardUsed,"G.992.2") || strstr(StandardUsed,"G.992.3") || 
+           strstr(StandardUsed,"G.992.5")) /* ADSL */
+        {
+            if (ANSC_STATUS_SUCCESS == DmlCreateATMLink(ifname))
+            {
+                CcspTraceInfo(("%s Successfully created ATMLink\n",__FUNCTION__));
+            }
+            else
+            {
+                CcspTraceInfo(("%s - Failed to create ATMLink\n",__FUNCTION__));
+            }
+        }
+        else if(strstr(StandardUsed,"G.993.2")) /* VDSL */
+        {
+            if (ANSC_STATUS_SUCCESS == DmlCreatePTMLink(ifname))
+            {
+                CcspTraceInfo(("%s Successfully created PTMLink\n",__FUNCTION__));
+            }
+            else
+            {
+                CcspTraceInfo(("%s - Failed to create PTMLink\n",__FUNCTION__));
+            }
+        }
+        else if(strstr(StandardUsed,"G.9701")) /* GFAST */
+        {
+            CcspTraceInfo(("%s : %s standards is not supported\n", __FUNCTION__, StandardUsed));
+        }
+        else
+        {
+            CcspTraceError(("%s : %s have no match with StandardsSupported\n", __FUNCTION__, StandardUsed));
+            return ANSC_STATUS_FAILURE;
+        }
     }
     else
     {
-        CcspTraceInfo(("%s - Failed to create XTMLink\n",__FUNCTION__));
+        CcspTraceError(("%s : DmlGetXdslStandardUsed() failed \n", __FUNCTION__ ));
     }
 
     pthread_cond_signal(&cond);
@@ -1239,13 +1345,33 @@ static void *XTM_DMLUpdationHandlerThread( void *arg )
     pthread_exit(NULL);
 }
 
-/* * DmlCreateXTMLink() */
-ANSC_STATUS DmlCreateXTMLink( char *ifname )
+ANSC_STATUS DmlGetXdslStandardUsed( char *StandardUsed )
+{
+    int rc = ANSC_STATUS_SUCCESS;
+    DML_XDSL_LINE stLineInfo;
+    unsigned int line_id = 1;
+
+    memset(&stLineInfo, 0, sizeof(stLineInfo));
+    rc = xdsl_hal_dslGetLineInfo(line_id, &stLineInfo);
+    if (rc == ANSC_STATUS_SUCCESS)
+    {
+        strncpy(StandardUsed, stLineInfo.StandardUsed, sizeof(stLineInfo.StandardUsed));
+    }
+    else
+    {
+        rc = ANSC_STATUS_FAILURE;
+    }
+
+    return rc;
+}
+
+/* * DmlCreatePTMLink() */
+ANSC_STATUS DmlCreatePTMLink( char *ifname )
 {
     DML_XDSL_LINE_GLOBALINFO   stGlobalInfo   = { 0 };
-    char                       *acSetParamName = NULL;
-    char                       *acSetParamValue = NULL;
-    INT                        iXTMInstance   = -1;
+    char                       acSetParamName[256] = { 0 };
+    char                       acSetParamValue[256] = { 0 };
+    INT                        iPTMInstance   = -1;
 
     //Validate buffer
     if( NULL == ifname )
@@ -1258,16 +1384,16 @@ ANSC_STATUS DmlCreateXTMLink( char *ifname )
     DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( ifname, &stGlobalInfo );
 
     //Get Instance for corresponding lower layer
-    DmlXdslGetLowerLayersInstanceInOtherAgent( NOTIFY_TO_XTM_AGENT, stGlobalInfo.LowerLayers, &iXTMInstance );
+    DmlXdslGetLowerLayersInstanceInOtherAgent( NOTIFY_TO_PTM_AGENT, stGlobalInfo.LowerLayers, &iPTMInstance );
 
-    //Create XTM Link
+    //Create PTM Link
     //Index is not present. so needs to create a PTM instance
-    if( -1 == iXTMInstance )
+    if( -1 == iPTMInstance )
     {
         char  acTableName[ 128 ] = { 0 }; 
         INT   iNewTableInstance  = -1;
 
-        sprintf( acTableName, "%s", XTM_LINK_TABLE_NAME );
+        sprintf( acTableName, "%s", PTM_LINK_TABLE_NAME);
         if ( CCSP_SUCCESS != CcspBaseIf_AddTblRow (
                                                     bus_handle,
                                                     XTM_COMPONENT_NAME,
@@ -1282,51 +1408,99 @@ ANSC_STATUS DmlCreateXTMLink( char *ifname )
        }
 
        //Assign new instance
-       iXTMInstance = iNewTableInstance;
+       iPTMInstance = iNewTableInstance;
     }
 
-    acSetParamName = (char *) malloc(sizeof(char) * DATAMODEL_PARAM_LENGTH);
-    acSetParamValue = (char *) malloc(sizeof(char) * DATAMODEL_PARAM_LENGTH);
-
-    if(acSetParamName == NULL || acSetParamValue == NULL)
-    {
-        CcspTraceError(("%s Memory allocation failed \n", __FUNCTION__));
-        return ANSC_STATUS_FAILURE;
-    }
-
-    memset( acSetParamName, 0, DATAMODEL_PARAM_LENGTH );
-    memset( acSetParamValue, 0, DATAMODEL_PARAM_LENGTH );
-
-    CcspTraceInfo(("%s %d XTM Instance:%d\n",__FUNCTION__, __LINE__,iXTMInstance));
+    CcspTraceInfo(("%s %d PTM Instance:%d\n",__FUNCTION__, __LINE__,iPTMInstance));
 
     //Set Lower Layer
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, XTM_LINK_LOWERLAYER_PARAM_NAME, iXTMInstance );
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PTM_LINK_LOWERLAYER_PARAM_NAME, iPTMInstance );
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", stGlobalInfo.LowerLayers );
     DmlXdslSetParamValues( XTM_COMPONENT_NAME, XTM_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, FALSE );
 
     //Set Alias
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, XTM_LINK_ALIAS_PARAM_NAME, iXTMInstance );
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PTM_LINK_ALIAS_PARAM_NAME, iPTMInstance );
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", stGlobalInfo.Name );
     DmlXdslSetParamValues( XTM_COMPONENT_NAME, XTM_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, FALSE );
 
-    //Set XTM Enable
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, XTM_LINK_ENABLE_PARAM_NAME, iXTMInstance );
+    //Set PTM Enable
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PTM_LINK_ENABLE_PARAM_NAME, iPTMInstance );
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "true" );
     DmlXdslSetParamValues( XTM_COMPONENT_NAME, XTM_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
 
-    if(acSetParamName != NULL)
-    {
-        free(acSetParamName);
-    }
-    if(acSetParamValue != NULL)
-    {
-        free(acSetParamValue);
-    }
-
-    CcspTraceInfo(("%s %d Successfully notified Up event to XTM Agent for %s interface\n", __FUNCTION__,__LINE__,ifname));
+    CcspTraceInfo(("%s %d Successfully notified Up event to PTM Agent for %s interface\n", __FUNCTION__,__LINE__,ifname));
 
     return ANSC_STATUS_SUCCESS;
 }
+
+/* * DmlCreateATMLink() */
+ANSC_STATUS DmlCreateATMLink( char *ifname )
+{
+    DML_XDSL_LINE_GLOBALINFO   stGlobalInfo   = { 0 };
+    char                       acSetParamName[DATAMODEL_PARAM_LENGTH];
+    char                       acSetParamValue[DATAMODEL_PARAM_LENGTH];
+    INT                        iATMInstance   = -1;
+
+    //Validate buffer
+    if( NULL == ifname )
+    {
+        CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    //Get global copy of the data from interface name
+    DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( ifname, &stGlobalInfo );
+
+    //Get Instance for corresponding lower layer
+    DmlXdslGetLowerLayersInstanceInOtherAgent( NOTIFY_TO_ATM_AGENT, stGlobalInfo.LowerLayers, &iATMInstance );
+
+    //Create ATM Link
+    //Index is not present. so needs to create a ATM instance
+    if( -1 == iATMInstance )
+    {
+        char  acTableName[ 128 ] = { 0 }; 
+        INT   iNewTableInstance  = -1;
+
+        sprintf( acTableName, "%s", ATM_LINK_TABLE_NAME );
+        if ( CCSP_SUCCESS != CcspBaseIf_AddTblRow (
+                                                    bus_handle,
+                                                    XTM_COMPONENT_NAME,
+                                                    XTM_DBUS_PATH,
+                                                    0,          /* session id */
+                                                    acTableName,
+                                                    &iNewTableInstance
+                                                  ) )
+       {  
+            CcspTraceError(("%s Failed to add table %s\n", __FUNCTION__,acTableName));
+            return ANSC_STATUS_FAILURE;
+       }
+
+       //Assign new instance
+       iATMInstance = iNewTableInstance;
+    }
+
+    CcspTraceInfo(("%s %d ATM Instance:%d\n",__FUNCTION__, __LINE__, iATMInstance));
+
+    //Set Lower Layer
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, ATM_LINK_LOWERLAYER_PARAM_NAME, iATMInstance );
+    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", stGlobalInfo.LowerLayers );
+    DmlXdslSetParamValues( XTM_COMPONENT_NAME, XTM_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, FALSE );
+
+    //Set Alias
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, ATM_LINK_ALIAS_PARAM_NAME, iATMInstance );
+    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", stGlobalInfo.Name );
+    DmlXdslSetParamValues( XTM_COMPONENT_NAME, XTM_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, FALSE );
+
+    //Set ATM Enable
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, ATM_LINK_ENABLE_PARAM_NAME, iATMInstance );
+    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "true" );
+    DmlXdslSetParamValues( XTM_COMPONENT_NAME, XTM_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
+
+    CcspTraceInfo(("%s %d Successfully notified Up event to ATM Agent for %s interface\n", __FUNCTION__,__LINE__,ifname));
+
+    return ANSC_STATUS_SUCCESS;
+}
+
 
 /* * DmlXdslDeleteXTMLink() */
 ANSC_STATUS DmlXdslDeleteXTMLink( char *ifname )
@@ -1366,8 +1540,11 @@ ANSC_STATUS DmlXdslDeleteXTMLink( char *ifname )
     return ANSC_STATUS_SUCCESS;
 }
 
+
+
 static void *XTM_DMLDeletionHandlerThread( void *arg )
 {
+    char StandardUsed[64] = {'\0'};
     char* ifname = (char*)arg;
 
     if ( NULL == ifname )
@@ -1381,13 +1558,45 @@ static void *XTM_DMLDeletionHandlerThread( void *arg )
 
     pthread_mutex_lock(&mUpdationMutex);
 
-    if (ANSC_STATUS_SUCCESS != DmlDeleteXTMLink(ifname))
+    if (ANSC_STATUS_SUCCESS == DmlGetXdslStandardUsed(StandardUsed))
     {
-        CcspTraceError(("%s:Failed to delete XTM table\n ",__FUNCTION__));
+        if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413") || strstr(StandardUsed,"G.992.2") ||
+           strstr(StandardUsed,"G.992.3") || strstr(StandardUsed,"G.992.5")|| strstr(StandardUsed,"G.993.2") ||
+           strstr(StandardUsed,"G.993.2") || strstr(StandardUsed,"G.9701")) /* ADSL */
+        {
+            if (ANSC_STATUS_SUCCESS != DmlDeleteATMLink(ifname))
+            {
+                CcspTraceError(("%s:Failed to delete ATM table\n ",__FUNCTION__));
+            }
+            else
+            {
+                CcspTraceInfo(("%s:Successfully deleted ATM table\n",__FUNCTION__));
+            }
+        }
+        else if(strstr(StandardUsed,"G.993.2")) /* VDSL */
+        {
+            if (ANSC_STATUS_SUCCESS != DmlDeletePTMLink(ifname))
+            {
+                CcspTraceError(("%s:Failed to delete PTM table\n ",__FUNCTION__));
+            }
+            else
+            {
+                CcspTraceInfo(("%s:Successfully deleted PTM table\n",__FUNCTION__));
+            }
+        }
+        else if(strstr(StandardUsed,"G.9701")) /* GFAST */
+        {
+            CcspTraceInfo(("%s : %s standards is not supported\n", __FUNCTION__, StandardUsed));
+        }
+        else
+        {
+            CcspTraceError(("%s : %s have no match with StandardsSupported\n", __FUNCTION__, StandardUsed));
+            return ANSC_STATUS_FAILURE;
+        }
     }
     else
     {
-        CcspTraceInfo(("%s:Successfully deleted XTM table\n",__FUNCTION__));
+        CcspTraceError(("%s : DmlGetXdslStandardUsed() failed \n", __FUNCTION__ ));
     }
 
     pthread_cond_signal(&cond);
@@ -1397,13 +1606,71 @@ static void *XTM_DMLDeletionHandlerThread( void *arg )
     pthread_exit(NULL);
 }
 
-/* * DmlDeleteXTMLink() */
-ANSC_STATUS DmlDeleteXTMLink( char *ifname )
+/* * DmlDeletePTMLink() */
+ANSC_STATUS DmlDeletePTMLink( char *ifname )
 {
     DML_XDSL_LINE_GLOBALINFO   stGlobalInfo   = { 0 };
     char                       acTableName[ 128 ] = { 0 };
-    char                       *acSetParamName = NULL;
-    char                       *acSetParamValue = NULL;
+    char                       acSetParamName[256] = { 0 };
+    char                       acSetParamValue[256] = { 0 };
+    INT                        iPTMInstance   = -1;
+    
+    //Validate buffer
+    if( NULL == ifname )
+    {
+        CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    //Get global copy of the data from interface name
+    DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( ifname, &stGlobalInfo );
+
+    //Get Instance for corresponding lower layer
+    DmlXdslGetLowerLayersInstanceInOtherAgent( NOTIFY_TO_PTM_AGENT, stGlobalInfo.LowerLayers, &iPTMInstance );
+
+    //Index is not present. so no need to do anything any PTM instance
+    if( -1 == iPTMInstance )
+    {
+        CcspTraceError(("%s %d PTM instance not present\n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    CcspTraceInfo(("%s %d PTM Instance:%d\n",__FUNCTION__, __LINE__,iPTMInstance));
+
+    //Set PTM Enable
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, PTM_LINK_ENABLE_PARAM_NAME, iPTMInstance );
+    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "false" );
+    DmlXdslSetParamValues( XTM_COMPONENT_NAME, XTM_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
+
+    //Delay - to set param.
+    sleep(2);
+
+    //Delete PTM instance
+    sprintf( acTableName, "%s%d.", PTM_LINK_TABLE_NAME, iPTMInstance );
+    if ( CCSP_SUCCESS != CcspBaseIf_DeleteTblRow (
+                                                   bus_handle,
+                                                   XTM_COMPONENT_NAME,
+                                                   XTM_DBUS_PATH,
+                                                   0,          /* session id */
+                                                   acTableName
+                                                 ) )
+    {
+         CcspTraceError(("%s Failed to delete table %s\n", __FUNCTION__,acTableName));
+         return ANSC_STATUS_FAILURE;
+    }
+
+    CcspTraceInfo(("%s %d Successfully notified Down event to PTM Agent for %s interface\n", __FUNCTION__,__LINE__,ifname));
+
+    return ANSC_STATUS_SUCCESS;
+}
+
+/* * DmlDeleteATMLink() */
+ANSC_STATUS DmlDeleteATMLink( char *ifname )
+{
+    DML_XDSL_LINE_GLOBALINFO   stGlobalInfo   = { 0 };
+    char                       acTableName[ 128 ] = { 0 };
+    char                       acSetParamName[DATAMODEL_PARAM_LENGTH];
+    char                       acSetParamValue[DATAMODEL_PARAM_LENGTH];
     INT                        iXTMInstance   = -1;
     
     //Validate buffer
@@ -1417,7 +1684,7 @@ ANSC_STATUS DmlDeleteXTMLink( char *ifname )
     DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( ifname, &stGlobalInfo );
 
     //Get Instance for corresponding lower layer
-    DmlXdslGetLowerLayersInstanceInOtherAgent( NOTIFY_TO_XTM_AGENT, stGlobalInfo.LowerLayers, &iXTMInstance );
+    DmlXdslGetLowerLayersInstanceInOtherAgent( NOTIFY_TO_ATM_AGENT, stGlobalInfo.LowerLayers, &iXTMInstance );
 
     //Index is not present. so no need to do anything any PTM instance
     if( -1 == iXTMInstance )
@@ -1426,30 +1693,18 @@ ANSC_STATUS DmlDeleteXTMLink( char *ifname )
         return ANSC_STATUS_FAILURE;
     }
 
-    acSetParamName = (char *) malloc(sizeof(char) * DATAMODEL_PARAM_LENGTH);
-    acSetParamValue = (char *) malloc(sizeof(char) * DATAMODEL_PARAM_LENGTH);
+    CcspTraceInfo(("%s %d PTM Instance:%d\n",__FUNCTION__, __LINE__,iXTMInstance));
 
-    if(acSetParamName == NULL || acSetParamValue == NULL)
-    {
-        CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
-        return ANSC_STATUS_FAILURE;
-    }
-
-    memset(acSetParamName, 0, DATAMODEL_PARAM_LENGTH);
-    memset(acSetParamValue, 0, DATAMODEL_PARAM_LENGTH);
-
-    CcspTraceInfo(("%s %d XTM Instance:%d\n",__FUNCTION__, __LINE__,iXTMInstance));
-
-    //Set XTM Enable
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, XTM_LINK_ENABLE_PARAM_NAME, iXTMInstance );
+    //Set PTM Enable
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, ATM_LINK_ENABLE_PARAM_NAME, iXTMInstance );
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "false" );
     DmlXdslSetParamValues( XTM_COMPONENT_NAME, XTM_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
 
     //Delay - to set param.
     sleep(2);
 
-    //Delete XTM instance
-    sprintf( acTableName, "%s%d.", XTM_LINK_TABLE_NAME, iXTMInstance );
+    //Delete PTM instance
+    sprintf( acTableName, "%s%d.", ATM_LINK_TABLE_NAME, iXTMInstance );
     if ( CCSP_SUCCESS != CcspBaseIf_DeleteTblRow (
                                                    bus_handle,
                                                    XTM_COMPONENT_NAME,
@@ -1471,17 +1726,18 @@ ANSC_STATUS DmlDeleteXTMLink( char *ifname )
         free(acSetParamValue);
     }
 
-    CcspTraceInfo(("%s %d Successfully notified Down event to XTM Agent for %s interface\n", __FUNCTION__,__LINE__,ifname));
+    CcspTraceInfo(("%s %d Successfully notified Down event to ATM Agent for %s interface\n", __FUNCTION__,__LINE__,ifname));
 
     return ANSC_STATUS_SUCCESS;
 }
+
 
 /* * DmlXdslSetWanLinkStatusForWanManager() */
 ANSC_STATUS DmlXdslSetWanLinkStatusForWanManager( char *ifname, char *WanStatus )
 {
     DML_XDSL_LINE_GLOBALINFO   stGlobalInfo   = { 0 };
-    char                       *acSetParamName = NULL;
-    char                       *acSetParamValue = NULL;
+    char                       acSetParamName[256] = {'\0'};
+    char                       acSetParamValue[256] = {'\0'};
 
     INT                            iWANInstance   = -1;
 
@@ -1505,33 +1761,17 @@ ANSC_STATUS DmlXdslSetWanLinkStatusForWanManager( char *ifname, char *WanStatus 
         return ANSC_STATUS_FAILURE;
     }
 
-    acSetParamName = (char *) malloc(sizeof(char) * DATAMODEL_PARAM_LENGTH);
-    acSetParamValue = (char *) malloc(sizeof(char) * DATAMODEL_PARAM_LENGTH);
-
-    if (acSetParamName == NULL || acSetParamValue == NULL)
-    {
-        CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
-        return ANSC_STATUS_FAILURE;
-    }
-
-    memset( acSetParamName, 0, DATAMODEL_PARAM_LENGTH );
-    memset( acSetParamValue, 0, DATAMODEL_PARAM_LENGTH );
-
     CcspTraceInfo(("%s %d WAN Instance:%d\n",__FUNCTION__, __LINE__,iWANInstance));
+
+    //Set WAN Interface Name
+    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, WAN_WAN_INTERFACE_PARAM_NAME, iWANInstance );
+    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WAN_INTERFACE_NAME );
+    DmlXdslSetParamValues( WAN_COMPONENT_NAME, WAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
 
     //Set WAN Link Status
     snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, WAN_LINK_STATUS_PARAM_NAME, iWANInstance );
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WanStatus );
     DmlXdslSetParamValues( WAN_COMPONENT_NAME, WAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
-
-    if(acSetParamName != NULL)
-    {
-        free(acSetParamName);
-    }
-    if(acSetParamValue != NULL)
-    {
-        free(acSetParamValue);
-    }
 
     CcspTraceInfo(("%s %d Successfully notified %s event to WAN Agent for %s interface\n", __FUNCTION__, __LINE__, WanStatus, ifname));
 
@@ -1542,8 +1782,8 @@ ANSC_STATUS DmlXdslSetWanLinkStatusForWanManager( char *ifname, char *WanStatus 
 ANSC_STATUS DmlXdslSetPhyStatusForWanManager( char *ifname, char *PhyStatus )
 {
     DML_XDSL_LINE_GLOBALINFO   stGlobalInfo   = { 0 };
-    char                       *acSetParamName = NULL;
-    char                       *acSetParamValue = NULL;
+    char                       acSetParamName[256] = { 0 };
+    char                       acSetParamValue[256] = { 0 };
     INT                        iWANInstance   = -1;
 
     //Validate buffer
@@ -1566,18 +1806,6 @@ ANSC_STATUS DmlXdslSetPhyStatusForWanManager( char *ifname, char *PhyStatus )
         return ANSC_STATUS_FAILURE;
     }
 
-    acSetParamName = (char *) malloc(sizeof(char) * DATAMODEL_PARAM_LENGTH);
-    acSetParamValue = (char *) malloc(sizeof(char) * DATAMODEL_PARAM_LENGTH);
-
-    if(acSetParamName == NULL || acSetParamValue == NULL)
-    {
-        CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
-        return ANSC_STATUS_FAILURE;
-    }
-
-    memset( acSetParamName, 0, DATAMODEL_PARAM_LENGTH );
-    memset( acSetParamValue, 0, DATAMODEL_PARAM_LENGTH );
-
     CcspTraceInfo(("%s %d WAN Instance:%d\n",__FUNCTION__, __LINE__,iWANInstance));
 
     //Set PHY path
@@ -1589,15 +1817,6 @@ ANSC_STATUS DmlXdslSetPhyStatusForWanManager( char *ifname, char *PhyStatus )
     snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, WAN_PHY_STATUS_PARAM_NAME, iWANInstance );
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", PhyStatus );
     DmlXdslSetParamValues( WAN_COMPONENT_NAME, WAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
-
-    if(acSetParamName != NULL)
-    {
-        free(acSetParamName);
-    }
-    if(acSetParamValue != NULL)
-    {
-        free(acSetParamValue);
-    }
 
     CcspTraceInfo(("%s %d Successfully notified %s event to WAN Agent for %s interface\n", __FUNCTION__, __LINE__, PhyStatus, ifname));
 
@@ -1792,16 +2011,20 @@ DmlXdslReportInit
     }
 
     //Memset all memory
-    memset( pXdslReportTmp, 0, sizeof(DML_X_RDK_REPORT_DSL) );
-    GetNVRamULONGConfiguration(XdslReportStatusEnable, &psmValue);
-    pXdslReportTmp->Enabled = psmValue;
-    GetNVRamULONGConfiguration(XdslReportStatusReportingPeriod, &psmValue);
-    pXdslReportTmp->ReportingPeriod = psmValue;
-
-    //Memset all memory
     memset( pXdslReportDfltTmp, 0, sizeof(DML_X_RDK_REPORT_DSL_DEFAULT) );
     GetNVRamULONGConfiguration(XdslReportStatusDfltReportingPeriod, &psmValue);
+    XdslReportSetDefaultReportingPeriod(psmValue);
     pXdslReportDfltTmp->ReportingPeriod = psmValue;
+
+    //Memset all memory
+    memset( pXdslReportTmp, 0, sizeof(DML_X_RDK_REPORT_DSL) );
+    GetNVRamULONGConfiguration(XdslReportStatusReportingPeriod, &psmValue);
+    XdslReportSetReportingPeriod(psmValue);
+    pXdslReportTmp->ReportingPeriod = psmValue;
+
+    GetNVRamULONGConfiguration(XdslReportStatusEnable, &psmValue);
+    XdslReportSetStatus(psmValue);
+    pXdslReportTmp->Enabled = psmValue;
 
     //Assign the memory address to oringinal structure
     pXdslReportTmp->pDSLDefaultReport = pXdslReportDfltTmp;

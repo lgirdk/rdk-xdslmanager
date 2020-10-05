@@ -193,8 +193,11 @@ BackEndManagerInitialize
     pMyObject->hDSL            = (ANSC_HANDLE)XdslCreate();
     AnscTraceWarning(("  XdslCreate done!\n"));
 
-    pMyObject->hXTM           = (ANSC_HANDLE)XtmCreate();
-    AnscTraceWarning(("  XtmCreate done!\n"));
+    pMyObject->hPTM           = (ANSC_HANDLE)PtmCreate();
+    AnscTraceWarning(("  PtmCreate done!\n"));
+
+    pMyObject->hATM           = (ANSC_HANDLE)AtmCreate();
+    AnscTraceWarning(("  AtmCreate done!\n"));
 
     return returnStatus;
 }
@@ -238,9 +241,14 @@ BackEndManagerRemove
         return ANSC_STATUS_FAILURE;
     }
 
-    if ( pMyObject->hXTM )
+    if ( pMyObject->hPTM )
     {
-        XtmRemove((ANSC_HANDLE)pMyObject->hXTM);
+        PtmRemove((ANSC_HANDLE)pMyObject->hPTM);
+    }
+
+    if ( pMyObject->hATM )
+    {
+        AtmRemove((ANSC_HANDLE)pMyObject->hATM);
     }
 
     /* Remove self */

@@ -23,8 +23,8 @@
 #include <avro.h>
 
 #define XDSL_AVRO_SCHEMA_FILE "/usr/ccsp/harvester/XdslReport.avsc"
-#define DEFAULT_REPORTING_INTERVAL 300
-#define DEFAULT_OVERRIDE_TTL 300
+#define DEFAULT_REPORTING_INTERVAL 0
+#define DEFAULT_OVERRIDE_TTL 0
 #define CHK_AVRO_ERR (strlen(avro_strerror()) > 0)
 #define WRITER_BUF_SIZE  (1024 * 30) // 30K
 #define MAGIC_NUMBER_SIZE 1
@@ -36,6 +36,7 @@
 #define RDKB_ETHAGENT_DBUS_PATH                       "/com/cisco/spvtg/ccsp/ethagent"
 #define CCSP_AGENT_WEBPA_SUBSYSTEM         "eRT."
 #define DEVICE_PROPS_FILE  "/etc/device.properties"
+#define XDSL_REPORT_NAME "VDSLTelemetryDiagnostics"
 
 typedef struct _XdslReportData
 {
@@ -136,9 +137,9 @@ char * getDeviceMac();
 
 /**
  * @brief API to get TTL value
- * @return TTL value 
+ * @return TTL value
  */
-ULONG XdslReportGetOverrideTTL();
+ULONG XdslReportGetDefaultOverrideTTL();
 
 /**
  * @brief API to get Default Reporting Period value

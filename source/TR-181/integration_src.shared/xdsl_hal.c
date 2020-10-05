@@ -42,6 +42,8 @@
 #include <limits.h>
 #include "xdsl_apis.h"
 #include "xdsl_hal.h"
+#include "xtm_internal.h"
+#include "xdsl_internal.h"
 
 #include "rpc-cli/rpc_client.h"
 #include <json-c/json.h>
@@ -61,6 +63,30 @@
 #define XDSL_CHANNEL_STATS "Device.DSL.Channel.%d.Stats."
 
 #define XDSL_NLNM_INFO  "Device.DSL.X_RDK_NLNM."
+
+#define ATM_LINK_ENABLE "Device.ATM.Link.%d.Enable"
+#define ATM_LINK_INFO "Device.ATM.Link.%d."
+#define ATM_LINK_NAME "Device.ATM.Link.%d.Name"
+#define ATM_LINK_DESTINATIONADDRESS "Device.ATM.Link.%d.DestinationAddress"
+#define ATM_LINK_ENCAPSULATION "Device.ATM.Link.%d.Encapsulation"
+#define ATM_LINK_AAL "Device.ATM.Link.%d.AAL"
+#define ATM_LINK_LINKTYPE "Device.ATM.Link.%d.LinkType"
+
+#define ATM_LINK_LINKSTATUS "Device.ATM.Link.1.Status"
+#define ATM_LINK_STATS "Device.ATM.Link.%d.Stats."
+
+#define ATM_LINK_QOS "Device.ATM.Link.%d.QoS."
+#define ATM_LINK_QOS_QOSCLASS "Device.ATM.Link.%d.QoS.QoSClass"
+#define ATM_LINK_QOS_PEAKCELLRATE "Device.ATM.Link.%d.QoS.PeakCellRate"
+#define ATM_LINK_QOS_MAXBURSTSIZE "Device.ATM.Link.%d.QoS.MaximumBurstSize"
+#define ATM_LINK_QOS_SUSCELLRATE "Device.ATM.Link.%d.QoS.SustainableCellRate"
+
+#define ATM_LINK_DIAGNOSTICS   "Device.ATM.Diagnostics.F5Loopback."
+#define ATM_LINK_DIAGNOSTICS_INTERFACE   "Device.ATM.Diagnostics.F5Loopback.Interface"
+#define ATM_LINK_DIAGNOSTICS_STATE       "Device.ATM.Diagnostics.F5Loopback.DiagnosticsState"
+#define ATM_LINK_DIAGNOSTICS_REPETITIONS "Device.ATM.Diagnostics.F5Loopback.NumberOfRepetitions"
+#define ATM_LINK_DIAGNOSTICS_TIMEOUT     "Device.ATM.Diagnostics.F5Loopback.Timeout"
+
 #define RPC_GET_PARAMETERS_REQUEST "getParameters"
 #define RPC_SET_PARAMETERS_REQUEST "setParameters"
 #define JSON_RPC_FIELD_PARAMS "params"
@@ -77,19 +103,27 @@
 
 #define FREE_JSON_OBJECT(expr) \
     if(expr)                   \
-	{                          \
+    {                          \
         json_object_put(expr); \
-	}                          \
+    }                          \
 
 #define NULL_TYPE 0
+#define BITS 8
 /***************************************************************************************
 * GLOBAL SYMBOLS
 ****************************************************************************************/
+extern PBACKEND_MANAGER_OBJECT g_pBEManager;
 
 dsl_link_status_callback dsl_link_status_cb = NULL;
 static int subscribe_dsl_link_event();
+static int g_successful_retrains = -1;
 static void *eventcb(const char *msg, const int len);
 static ANSC_STATUS configure_xdsl_driver();
+static ANSC_STATUS xtse_get_bit_position(char *StandardUsed, int *bit_position, int *bit_range);
+static ANSC_STATUS compare_with_standards_supported( char *standardsSupported, char *Xtse, int size);
+static ANSC_STATUS xdsl_hal_setXtsUsed(char *standardUsed, char *xtsUsedBuf, int size);
+static ANSC_STATUS xdsl_hal_setXtse(char *standardsSupported, char *xtseBuf, int size);
+static ANSC_STATUS getDestinationAddress(char *Interface, char *DestinationAddress);
 
 /**
  * @brief Utility API to create json request message to send to the interface manager
@@ -115,14 +149,25 @@ static json_object *create_json_request_message(eActionType request_type, const 
 static ANSC_STATUS get_link_info(hal_param_t *get_param);
 
 /**
- * @brief Utility API to get XTM link statistics information.
+ * @brief Utility API to get PTM link statistics information.
  *
  * @param reply_msg  (IN) - Json object contains the json response message
  * @param link_stats (OUT)- Pointer to structure to hold statistics data
  * @retval ANSC_STATUS_SUCCESS if successful
  * @retval ANSC_STATUS_FAILURE if any error is detected
  */
-static ANSC_STATUS get_link_stats(const json_object *reply_msg, PDML_PTM_STATS link_stats);
+static ANSC_STATUS get_ptm_link_stats(const json_object *reply_msg, PDML_PTM_STATS link_stats);
+
+/**
+ * @brief Utility API to get ATM link statistics information.
+ *
+ * @param reply_msg  (IN) - Json object contains the json response message
+ * @param link_stats (OUT)- Pointer to structure to hold statistics data
+ * @retval ANSC_STATUS_SUCCESS if successful
+ * @retval ANSC_STATUS_FAILURE if any error is detected
+ */
+
+static ANSC_STATUS get_atm_link_stats(const json_object *reply_msg, PDML_ATM_STATS link_stats);
 
 /* xdsl_hal_init() */
 int xdsl_hal_init( void )
@@ -371,10 +416,257 @@ int xdsl_hal_dslSetLineEnableDataGathering(hal_param_t *req_msg)
     return rc;
 }
 
+static ANSC_STATUS xtse_get_bit_position(char *StandardUsed, int *bit_position, int *bit_range)
+{
+   if(StandardUsed != NULL)
+   {
+          if(!strcmp(StandardUsed,"G.992.1_Annex_A"))
+          {
+              *bit_position = G_992_1_POTS_NON_OVERLAPPED;
+          /* NOTE : More than one XTSE bits can be mapped to the same standard. So we need to filter out the repeated ones.
+               * If the standard is "G.992.1_Annex_A" , there are two bits corresponding to this standard,
+               G_992_1_POTS_NON_OVERLAPPED             = 3,  < Annex A >
+                   G_992_1_POTS_OVERLAPPED                 = 4,  < Annex A >
+           * Set both bits (G_992_1_POTS_NON_OVERLAPPED and G_992_1_POTS_OVERLAPPED)
+              */
+              *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.1_Annex_B"))
+          {
+              *bit_position = G_992_1_ISDN_NON_OVERLAPPED;
+              *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.1_Annex_C"))
+          {
+             *bit_position = G_992_1_TCM_ISDN_NON_OVERLAPPED;
+             *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"T1.413"))
+          {
+              *bit_position = T1_413;
+              *bit_range = 1;
+          }
+          else if(!strcmp(StandardUsed,"T1.413i2"))
+          {
+              *bit_position = T1_413;
+              *bit_range = 1;
+          }
+          else if(!strcmp(StandardUsed,"ETSI_101_388"))
+          {
+              *bit_position = ETSI_101_388;
+              *bit_range = 1;
+          }
+          else if(!strcmp(StandardUsed,"G.992.2"))
+          {
+              *bit_position = G_992_2_POTS_NON_OVERLAPPED;
+              *bit_range = 4;
+          }
+          else if(!strcmp(StandardUsed,"G.992.3_Annex_A"))
+          {
+              *bit_position = G_992_3_POTS_NON_OVERLAPPED;
+              *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.3_Annex_B"))
+          {
+               *bit_position = G_992_3_ISDN_NON_OVERLAPPED;
+               *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.3_Annex_C"))
+          {
+               *bit_position = G_992_3_TCM_ISDN_NON_OVERLAPPED;
+               *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.3_Annex_I"))
+          {
+               *bit_position = G_992_3_ANNEX_I_NON_OVERLAPPED;
+               *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.3_Annex_J"))
+          {
+               *bit_position = G_992_3_ANNEX_J_NON_OVERLAPPED;
+               *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.3_Annex_L"))
+          {
+               *bit_position = G_992_3_POTS_MODE_1;
+               *bit_range = 4;
+          }
+          else if(!strcmp(StandardUsed,"G.992.3_Annex_M"))
+          {
+               *bit_position = G_992_3_EXT_POTS_NON_OVERLAPPED;
+               *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.4"))
+          {
+               *bit_position = G_992_4_POTS_NON_OVERLAPPED;
+               *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.5_Annex_A"))
+          {
+               *bit_position = G_992_5_POTS_NON_OVERLAPPED;
+               *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.5_Annex_B"))
+          {
+               *bit_position = G_992_5_ISDN_NON_OVERLAPPED;
+               *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.5_Annex_C"))
+          {
+               *bit_position = G_992_5_TCM_ISDN_NON_OVERLAPPED;
+               *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.5_Annex_I"))
+          {
+               *bit_position = G_992_5_ANNEX_I_NON_OVERLAPPED;
+               *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.5_Annex_J"))
+          {
+               *bit_position = G_992_5_ANNEX_J_NON_OVERLAPPED;
+               *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.992.5_Annex_M"))
+          {
+               *bit_position = G_992_5_EXT_POTS_NON_OVERLAPPED;
+               *bit_range = 2;
+          }
+          else if(!strcmp(StandardUsed,"G.993.1"))
+          {
+              return ANSC_STATUS_FAILURE;
+	          //To Do:  Find the bit position
+              // *bit_position = 0;
+              // *bit_range = 0;
+          }
+          else if(!strcmp(StandardUsed,"G.993.1_Annex_A"))
+          {
+              return ANSC_STATUS_FAILURE;
+              //To Do:  Find the bit position
+              // *bit_position = 0;
+              // *bit_range = 0;
+          }
+          else if(!strcmp(StandardUsed,"G.993.2_Annex_A"))
+          {
+               *bit_position = G_993_2_NORTH_AMERICA;
+               *bit_range = 1;
+          }
+          else if(!strcmp(StandardUsed,"G.993.2_Annex_B"))
+          {
+              *bit_position = G_993_2_EUROPE;
+              *bit_range = 1;
+          }
+          else if(!strcmp(StandardUsed,"G.993.2_Annex_C"))
+          {
+               *bit_position = G_993_2_JAPAN;
+               *bit_range = 1;
+          }
+          else
+          {
+               CcspTraceError(("%s : %s have no match with StandardsSupported\n", __FUNCTION__, StandardUsed));
+               return ANSC_STATUS_FAILURE;
+          }
+          return ANSC_STATUS_SUCCESS;
+     }
+     else
+     {
+          return ANSC_STATUS_FAILURE;
+     }
+}
+
+static ANSC_STATUS compare_with_standards_supported( char *standardsSupported, char *xtse, int size)
+{
+    unsigned int bit_position, bit_range, octet, shift_bit;
+    unsigned int byte[8] = {0};
+    unsigned int temp_byte = 0x01;
+    unsigned int buf = 0;
+    int i = 0;
+
+    if(standardsSupported != NULL)
+    {
+        char *str;
+        str = strdup(standardsSupported);
+        int init_size = strlen(str);
+        char delim[] = ", ";
+        int i = 0;
+        char *ptr = strtok(str, delim);
+
+        while(ptr != NULL)
+        {
+            if(xtse_get_bit_position(ptr,&bit_position, &bit_range) == ANSC_STATUS_SUCCESS)
+            {
+                for(i=0; i< bit_range; i++)
+                {
+                    octet = (((bit_position + i) -1) / BITS);
+                    shift_bit = (((bit_position + i) - 1)% BITS);
+                    buf = (temp_byte << shift_bit);
+                    byte[octet] = (byte[octet] | buf);
+
+                    CcspTraceDebug(("bit_position :%d, octet : %d\n", bit_position, octet));
+                    buf = 0;  //clear buf
+                }
+            }
+            ptr = strtok(NULL, delim);
+        }
+
+        snprintf(xtse, size, "%02x%02x%02x%02x%02x%02x%02x%02x", byte[7],byte[6],byte[5],byte[4],byte[3],byte[2],byte[1],byte[0] );
+        return ANSC_STATUS_SUCCESS;
+    }
+    else
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+}
+
+static ANSC_STATUS xdsl_hal_setXtsUsed(char *standardUsed, char *xtsUsedBuf, int size)
+{
+    unsigned int bit_position, bit_range, octet, shift_bit;
+    unsigned int byte[8] = {0};
+    unsigned int temp_byte = 0x01;
+    unsigned int buf = 0;
+    int i = 0;
+
+    if(xtse_get_bit_position(standardUsed, &bit_position, &bit_range) == ANSC_STATUS_SUCCESS)
+    {
+       for(i=0; i < bit_range; i++)
+       {
+          octet = (((bit_position + i) - 1) / BITS);
+          shift_bit = (((bit_position + i) - 1) % BITS);
+          buf = (temp_byte << shift_bit);
+          byte[octet] = (byte[octet] | buf);
+
+          buf = 0; //clear buf
+       }
+       snprintf(xtsUsedBuf, size, "%02x%02x%02x%02x%02x%02x%02x%02x", byte[7],byte[6],byte[5],byte[4],byte[3],byte[2],byte[1],byte[0] );
+
+       return ANSC_STATUS_SUCCESS;
+    }
+    else
+    {
+       return ANSC_STATUS_FAILURE;
+    }
+}
+
+static ANSC_STATUS xdsl_hal_setXtse(char *standardsSupported, char *xtseBuf, int size)
+{
+    char tmpBuf[17] = {0};
+    if(compare_with_standards_supported(standardsSupported, &tmpBuf, sizeof(tmpBuf)) == ANSC_STATUS_SUCCESS)
+    {
+       snprintf(xtseBuf, size, "%s", tmpBuf);
+       return ANSC_STATUS_SUCCESS;
+    }
+    else
+    {
+       CcspTraceError(("Failed to retrieve XTSE\n"));
+       return ANSC_STATUS_FAILURE;
+    }
+}
+
 /* xdsl_hal_dslGetLineInfo() */
 int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
 {
     int rc = RETURN_OK;
+    char xtseBuf[17]    = { 0 };
+    char xtsUsedBuf[17] = { 0 };
     hal_param_t req_param;
     hal_param_t resp_param;
 
@@ -667,6 +959,28 @@ int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
 
     }
 
+    if(strstr (pstLineInfo->XTSE, "0000000000000000"))
+    {
+       if(strlen(pstLineInfo->StandardsSupported) != 0)
+       {
+         if(xdsl_hal_setXtse(pstLineInfo->StandardsSupported, &xtseBuf, sizeof(xtseBuf)) == ANSC_STATUS_SUCCESS)
+         {
+            snprintf(pstLineInfo->XTSE, sizeof(pstLineInfo->XTSE), "%s", xtseBuf);
+         }
+       }
+    }
+
+    if(strstr (pstLineInfo->XTSUsed, "0000000000000000"))
+    {
+       if(strlen(pstLineInfo->StandardUsed) != 0)
+       {
+         if(xdsl_hal_setXtsUsed(pstLineInfo->StandardUsed, &xtsUsedBuf, sizeof(xtsUsedBuf)) == ANSC_STATUS_SUCCESS)
+         {
+            snprintf(pstLineInfo->XTSUsed, sizeof(pstLineInfo->XTSUsed), "%s", xtsUsedBuf);
+         }
+      }
+    }
+
     FREE_JSON_OBJECT(jmsg);
     FREE_JSON_OBJECT(jreply_msg);
 
@@ -732,6 +1046,7 @@ static void *eventcb(const char *msg, const int len)
             if ( strncmp(event_val, "up", 2) == 0 )
             {
                 link_status = LINK_UP;
+                g_successful_retrains = g_successful_retrains + 1;
             }
             else if ( strncmp(event_val,"training",8) == 0 )
             {
@@ -898,7 +1213,7 @@ int xdsl_hal_dslGetLineStats(int lineNo, PDML_XDSL_LINE_STATS pstLineStats)
             pstLineStats->stCurrentDay.X_RDK_InitTimeouts = atoi(resp_param.value);
         }
         else if (strstr (resp_param.name, "Stats.CurrentDay.X_RDK_SuccessfulRetrains")) {
-            pstLineStats->stCurrentDay.X_RDK_SuccessfulRetrains = atoi(resp_param.value);
+            pstLineStats->stCurrentDay.X_RDK_SuccessfulRetrains = g_successful_retrains;
         }
         else if (strstr (resp_param.name, "Stats.QuarterHour.ErroredSecs")) {
             pstLineStats->stQuarterHour.ErroredSecs = atoi(resp_param.value);
@@ -1485,7 +1800,7 @@ ANSC_STATUS xtm_hal_getLinkInfoParam(hal_param_t *get_param)
     rc = get_link_info(get_param);
     if (rc != ANSC_STATUS_SUCCESS)
     {
-        CcspTraceError(("%s - %d Failed to get XTM link info for param [%s]  \n", __FUNCTION__, __LINE__, get_param->name));
+        CcspTraceError(("%s - %d Failed to get PTM link info for param [%s]  \n", __FUNCTION__, __LINE__, get_param->name));
     }
 
     return rc;
@@ -1508,7 +1823,7 @@ ANSC_STATUS xtm_hal_getLinkStats(const CHAR *param_name, PDML_PTM_STATS link_sta
         return ANSC_STATUS_FAILURE;
     }
 
-    rc = get_link_stats(jreply_msg, link_stats);
+    rc = get_ptm_link_stats(jreply_msg, link_stats);
     if (rc != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s - %d Failed to get statistics data  \n", __FUNCTION__, __LINE__));
@@ -1575,7 +1890,7 @@ static ANSC_STATUS get_link_info(hal_param_t *get_param)
     return ANSC_STATUS_SUCCESS;
 }
 
-static ANSC_STATUS get_link_stats(const json_object *reply_msg, PDML_PTM_STATS link_stats)
+static ANSC_STATUS get_ptm_link_stats(const json_object *reply_msg, PDML_PTM_STATS link_stats)
 {
     ANSC_STATUS rc = ANSC_STATUS_SUCCESS;
     int total_param_count = 0;
@@ -1727,4 +2042,552 @@ static json_object *create_json_request_message(eActionType request_type, const 
     }
     return jrequest;
 }
+
+ANSC_STATUS atm_hal_setLinkInfoParam(PDML_ATM config)
+{
+    int rc = RETURN_OK;
+    json_object *jmsg = NULL;
+    json_object *jreply_msg = NULL;
+    json_bool status = FALSE;
+    hal_param_t param;
+
+    if (NULL == config)
+    {
+        CcspTraceError(("Error: Invalid arguement \n"));
+        return RETURN_ERR;
+    }
+
+    jmsg = json_hal_client_get_request_header(RPC_SET_PARAMETERS_REQUEST);
+    CHECK(jmsg);
+
+    snprintf(param.name, sizeof(param), ATM_LINK_ENABLE, config->InstanceNumber);
+    if (config->Enable)
+        snprintf(param.value, sizeof(param.value), "%s", "true");
+    else
+        snprintf(param.value, sizeof(param.value), "%s", "false");
+    param.type = PARAM_BOOLEAN;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+    
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_NAME, config->InstanceNumber);
+    snprintf(param.value, sizeof(param.value), "%s", config->Name);
+    param.type = PARAM_STRING;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+    
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_DESTINATIONADDRESS, config->InstanceNumber);
+    snprintf(param.value, sizeof(param.value), "%s", config->DestinationAddress);
+    param.type = PARAM_STRING;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+    
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_ENCAPSULATION, config->InstanceNumber);
+    switch(config->Encapsulation)
+    {
+        case LLC:
+            snprintf(param.value, sizeof(param.value), "%s", "LLC");
+            break;
+        case VCMUX:
+            snprintf(param.value, sizeof(param.value), "%s", "VCMUX");
+            break;
+    }
+    param.type = PARAM_STRING;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+    
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_AAL, config->InstanceNumber);
+    switch(config->AAL)
+    {
+        case AAL1:
+           snprintf(param.value, sizeof(param.value), "%s", "AAL1");
+           break;
+        case AAL2:
+           snprintf(param.value, sizeof(param.value), "%s", "AAL2");
+           break;
+        case AAL3:
+           snprintf(param.value, sizeof(param.value), "%s", "AAL3");
+           break;
+        case AAL4:
+           snprintf(param.value, sizeof(param.value), "%s", "AAL4");
+           break;
+        case AAL5:
+           snprintf(param.value, sizeof(param.value), "%s", "AAL5");
+           break;
+    }
+    param.type = PARAM_STRING;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_LINKTYPE, config->InstanceNumber);
+    switch(config->LinkType)
+    {
+        case EOA:
+           snprintf(param.value, sizeof(param.value), "%s", "EOA");
+           break;
+        case IPOA:
+           snprintf(param.value, sizeof(param.value), "%s", "IPOA");
+           break;
+        case PPPOA:
+           snprintf(param.value, sizeof(param.value), "%s", "PPPOA");
+           break;
+        case CIP:
+           snprintf(param.value, sizeof(param.value), "%s", "CIP");
+           break;
+        case UNCONFIGURED:
+           snprintf(param.value, sizeof(param.value), "%s", "UNCONFIGURED");
+           break;
+    }
+    param.type = PARAM_STRING;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_QOS_QOSCLASS, config->InstanceNumber);
+    switch(config->Qos.QoSClass)
+    {
+        case UBR:
+           snprintf(param.value, sizeof(param.value), "%s", "UBR");
+           break;
+        case CBR:
+           snprintf(param.value, sizeof(param.value), "%s", "CBR");
+           break;
+        case GFR:
+           snprintf(param.value, sizeof(param.value), "%s", "GFR");
+           break;
+        case VBR_NRT:
+           snprintf(param.value, sizeof(param.value), "%s", "VBR-nrt");
+           break;
+        case VBR_RT:
+           snprintf(param.value, sizeof(param.value), "%s", "VBR-rt");
+           break;
+        case UBR_PLUS:
+           snprintf(param.value, sizeof(param.value), "%s", "UBR+");
+           break;
+        case ABR:
+           snprintf(param.value, sizeof(param.value), "%s", "ABR");
+           break;
+    }
+    param.type = PARAM_STRING;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_QOS_PEAKCELLRATE, config->InstanceNumber);
+    snprintf(param.value, sizeof(param.value), "%d", config->Qos.PeakCellRate);
+    param.type = PARAM_UNSIGNED_INTEGER;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_QOS_MAXBURSTSIZE, config->InstanceNumber);
+    snprintf(param.value, sizeof(param.value), "%d", config->Qos.MaximumBurstSize);
+    param.type = PARAM_UNSIGNED_INTEGER;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_QOS_SUSCELLRATE, config->InstanceNumber);
+    snprintf(param.value, sizeof(param.value), "%d", config->Qos.SustainableCellRate);
+    param.type = PARAM_UNSIGNED_INTEGER;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+    CcspTraceInfo(("JSON Request message = %s \n", json_object_to_json_string_ext(jmsg, JSON_C_TO_STRING_PRETTY)));
+
+    if( json_hal_client_send_and_get_reply(jmsg, &jreply_msg) != RETURN_OK)
+    {
+        CcspTraceError(("[%s][%d] RPC message failed \n", __FUNCTION__, __LINE__));
+        FREE_JSON_OBJECT(jmsg);
+        FREE_JSON_OBJECT(jreply_msg);
+        return RETURN_ERR;
+    }
+    CHECK(jreply_msg);
+    
+    if (json_hal_get_result_status(jreply_msg, &status) == RETURN_OK)
+    {
+        if (status)
+        {
+            CcspTraceInfo(("%s - %d Set request is successful ", __FUNCTION__, __LINE__));
+            rc = RETURN_OK;
+        }
+        else
+        {
+            CcspTraceError(("%s - %d - Set request is failed \n", __FUNCTION__, __LINE__));
+            rc = RETURN_ERR;
+        }
+    }
+    else
+    {
+        CcspTraceError(("%s - %d Failed to get result status from json response, something wrong happened!!! \n", __FUNCTION__, __LINE__));
+        rc = RETURN_ERR;
+    }
+    
+    // Free json objects.
+    FREE_JSON_OBJECT(jmsg);
+    FREE_JSON_OBJECT(jreply_msg);
+    
+    return rc;
+
+}
+
+static ANSC_STATUS getDestinationAddress(char *Interface, char *DestinationAddress)
+{
+    int                     rc             = RETURN_OK;
+    PDATAMODEL_ATM          pMyObject      = (PDATAMODEL_ATM)g_pBEManager->hATM;
+    PSINGLE_LINK_ENTRY      pSListEntry    = NULL;
+    PCONTEXT_LINK_OBJECT    pCxtLink       = NULL;
+    PDML_ATM                p_Atm          = NULL;
+
+    if (Interface == NULL || DestinationAddress == NULL)
+    {
+        CcspTraceError(("Error: Invalid arguement \n"));
+        return RETURN_ERR;
+    }
+
+    int index = 0;
+    sscanf(Interface, "%*[^0-9]%d", &index);
+
+    pSListEntry  = AnscSListGetEntryByIndex(&pMyObject->Q_AtmList, (index-1));
+    if ( pSListEntry )
+    {
+        pCxtLink  = ACCESS_CONTEXT_LINK_OBJECT(pSListEntry);
+        p_Atm  = (PDML_ATM) pCxtLink->hContext;
+        if (p_Atm)
+        {
+            strcpy(DestinationAddress, p_Atm->DestinationAddress);
+        }
+        else
+        {
+            rc = RETURN_ERR;
+        }
+    }
+    else
+    {
+        rc = RETURN_ERR;
+    }
+
+    return rc;
+}
+
+ANSC_STATUS atm_hal_startAtmLoopbackDiagnostics(PDML_ATM_DIAG pDiag)
+{
+    json_object *jmsg = NULL;
+    json_object *jreply_msg = NULL;
+    json_bool status = FALSE;
+    hal_param_t param;
+    int total_param_count = 0;
+    char DestinationAddress[128] = {'\0'};
+    int index = 0;
+    
+    if (NULL == pDiag)
+    {
+        CcspTraceError(("Error: Invalid arguement \n"));
+        return ANSC_STATUS_FAILURE;
+    }
+    
+    jmsg = json_hal_client_get_request_header(RPC_SET_PARAMETERS_REQUEST);
+    CHECK(jmsg);
+
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_DIAGNOSTICS_INTERFACE);
+    snprintf(param.value, sizeof(param.value), "%s", pDiag->Interface);
+    param.type = PARAM_STRING;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+    /* Get the destination address of the given interface */
+    if ( getDestinationAddress(pDiag->Interface, DestinationAddress) == RETURN_ERR)
+    {
+        CcspTraceError(("Error: getDestinationAddress failed \n"));
+        FREE_JSON_OBJECT(jmsg);
+        return ANSC_STATUS_FAILURE;
+    }
+
+    sscanf(pDiag->Interface, "%*[^0-9]%d", &index);
+
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_DESTINATIONADDRESS, index);
+    snprintf(param.value, sizeof(param.value), "%s", DestinationAddress);
+    param.type = PARAM_STRING;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_DIAGNOSTICS_STATE);
+    switch(pDiag->DiagnosticsState)
+    {
+        case DIAG_STATE_REQUESTED:
+            snprintf(param.value, sizeof(param.value), "%s", "Requested");
+            break;
+    }
+    param.type = PARAM_STRING;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_DIAGNOSTICS_REPETITIONS);
+    snprintf(param.value, sizeof(param.value), "%d", pDiag->NumberOfRepetitions);
+    param.type = PARAM_UNSIGNED_INTEGER;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+    memset(&param, 0, sizeof(param));
+    snprintf(param.name, sizeof(param), ATM_LINK_DIAGNOSTICS_TIMEOUT);
+    snprintf(param.value, sizeof(param.value), "%d", pDiag->Timeout);
+    param.type = PARAM_UNSIGNED_INTEGER;
+    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+    CcspTraceInfo(("JSON Request message = %s \n", json_object_to_json_string_ext(jmsg, JSON_C_TO_STRING_PRETTY)));
+
+    if( json_hal_client_send_and_get_reply(jmsg, &jreply_msg) != RETURN_OK)
+    {
+        CcspTraceError(("[%s][%d] RPC message failed \n", __FUNCTION__, __LINE__));
+        FREE_JSON_OBJECT(jmsg);
+        FREE_JSON_OBJECT(jreply_msg);
+        return ANSC_STATUS_FAILURE;
+    }
+    CHECK(jreply_msg);
+
+    if (json_hal_get_result_status(jreply_msg, &status) == RETURN_OK)
+    {
+        if (status)
+        {
+            CcspTraceInfo(("%s - %d Set request is successful ", __FUNCTION__, __LINE__));
+        }
+        else
+        {
+            CcspTraceError(("%s - %d - Set request is failed \n", __FUNCTION__, __LINE__));
+        }
+    }
+    else
+    {
+        CcspTraceError(("%s - %d Failed to get result status from json response, something wrong happened!!! \n", __FUNCTION__, __LINE__));
+        FREE_JSON_OBJECT(jmsg);
+        FREE_JSON_OBJECT(jreply_msg);
+        return ANSC_STATUS_FAILURE;
+    }
+
+    jmsg = create_json_request_message(GET_REQUEST_MESSAGE, ATM_LINK_DIAGNOSTICS, NULL_TYPE , NULL);
+    CHECK(jmsg != NULL);
+
+    CcspTraceInfo(("%s - %d Json request message = %s \n", __FUNCTION__, __LINE__, json_object_to_json_string_ext(jmsg, JSON_C_TO_STRING_PRETTY)));
+
+    if (json_hal_client_send_and_get_reply(jmsg, &jreply_msg) == RETURN_ERR)
+    {
+        CcspTraceError(("%s - %d Failed to get reply for the json request \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    CHECK(jreply_msg != NULL);
+    CcspTraceInfo(("Got Json response \n = %s \n", json_object_to_json_string_ext(jreply_msg, JSON_C_TO_STRING_PRETTY)));
+
+    total_param_count = json_hal_get_total_param_count(jreply_msg);
+
+    for (int index = 0; index < total_param_count; index++)
+    {
+        if (json_hal_get_param(jreply_msg, index, GET_RESPONSE_MESSAGE, &param) != RETURN_OK)
+        {
+            CcspTraceError(("%s - %d Failed to get required params from the response message \n", __FUNCTION__, __LINE__));
+            FREE_JSON_OBJECT(jmsg);
+            FREE_JSON_OBJECT(jreply_msg);
+            return ANSC_STATUS_FAILURE;
+        }
+ 
+        if (strstr (param.name, "DiagnosticsState"))
+        {
+            if (strstr (param.value, "None"))
+            {
+                pDiag->DiagnosticsState = DIAG_STATE_NONE;
+            }
+            else if (strstr (param.value, "Requested"))
+            {
+                pDiag->DiagnosticsState = DIAG_STATE_REQUESTED;
+            }
+            else if (strstr (param.value, "Canceled"))
+            {
+                pDiag->DiagnosticsState = DIAG_STATE_CANCELED;
+            }
+            else if (strstr (param.value, "Complete"))
+            {
+                pDiag->DiagnosticsState = DIAG_STATE_COMPLETE;
+            }
+            else if (strstr (param.value, "Error"))
+            {
+                pDiag->DiagnosticsState = DIAG_STATE_ERROR;
+            }
+            else if (strstr (param.value, "Error_Internal"))
+            {
+                pDiag->DiagnosticsState = DIAG_STATE_ERROR_INTERNAL;
+            }
+            else if (strstr (param.value, "Error_Other"))
+            {
+                pDiag->DiagnosticsState = DIAG_STATE_ERROR_OTHER;
+            }
+        }
+        else if (strstr (param.name, "SuccessCount"))
+        {
+            pDiag->SuccessCount = strtol(&(param.value), NULL, 10);
+        }
+        else if (strstr (param.name, "FailureCount"))
+        {
+            pDiag->FailureCount = strtol(&(param.value), NULL, 10);
+        }
+        else if (strstr (param.name, "AverageResponseTime"))
+        {
+            pDiag->AverageResponseTime = strtol(&(param.value), NULL, 10);
+        }
+        else if (strstr (param.name, "MinimumResponseTime"))
+        {
+            pDiag->MinimumResponseTime = strtol(&(param.value), NULL, 10);
+        }
+        else if (strstr (param.name, "MaximumResponseTime"))
+        {
+            pDiag->MaximumResponseTime = strtol(&(param.value), NULL, 10);
+        }
+    }
+
+    // Free json objects.
+    FREE_JSON_OBJECT(jmsg);
+    FREE_JSON_OBJECT(jreply_msg);
+    
+    return ANSC_STATUS_SUCCESS;
+}
+
+ANSC_STATUS atm_hal_getLinkStats(const CHAR *param_name, PDML_ATM_STATS link_stats)
+{
+    CHECK(param_name != NULL);
+    CHECK(link_stats != NULL);
+
+    ANSC_STATUS rc = ANSC_STATUS_SUCCESS;
+
+    json_object *jreply_msg = NULL;
+    json_object *jrequest = create_json_request_message(GET_REQUEST_MESSAGE, param_name, NULL_TYPE , NULL);
+    CHECK(jrequest != NULL);
+
+    if (json_hal_client_send_and_get_reply(jrequest, &jreply_msg) == RETURN_ERR)
+    {
+        CcspTraceError(("%s - %d Failed to get reply for the json request \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    rc = get_atm_link_stats(jreply_msg, link_stats);
+    if (rc != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s - %d Failed to get statistics data  \n", __FUNCTION__, __LINE__));
+    }
+
+        // Free json objects.
+    if (jrequest)
+    {
+        json_object_put(jrequest);
+        jrequest = NULL;
+    }
+
+    if (jreply_msg)
+    {
+        json_object_put(jreply_msg);
+        jreply_msg = NULL;
+    }
+    return rc;
+}
+
+static ANSC_STATUS get_atm_link_stats(const json_object *reply_msg, PDML_ATM_STATS link_stats)
+{
+    ANSC_STATUS rc = ANSC_STATUS_SUCCESS;
+    int total_param_count = 0;
+
+    total_param_count = json_hal_get_total_param_count(reply_msg);
+    hal_param_t resp_param;
+
+    /**
+     * Traverse through each index and retrieve value.
+     */
+    for (int i = 0; i < total_param_count; ++i)
+    {
+        if (json_hal_get_param(reply_msg, i, GET_RESPONSE_MESSAGE, &resp_param) != RETURN_OK)
+        {
+            CcspTraceError(("%s - %d Failed to get the param from response message [index = %d] \n", __FUNCTION__, __LINE__, i));
+            continue;
+        }
+
+        if (strstr(resp_param.name, "BytesSent"))
+        {
+            link_stats->BytesSent = atol(resp_param.value);
+        }
+        else if (strstr(resp_param.name, "BytesReceived"))
+        {
+            link_stats->BytesReceived = atol(resp_param.value);
+        }
+        else if (strstr(resp_param.name, "PacketsSent"))
+        {
+            if (strstr(resp_param.name, "Unicast"))
+            {
+                link_stats->UnicastPacketsSent = atol(resp_param.value);
+            }
+            else if (strstr(resp_param.name, "Discard"))
+            {
+                link_stats->DiscardPacketsSent = atoi(resp_param.value);
+            }
+            else if (strstr(resp_param.name, "Multicast"))
+            {
+                link_stats->MulticastPacketsSent = atol(resp_param.value);
+            }
+            else if (strstr(resp_param.name, "Broadcast"))
+            {
+                link_stats->BroadcastPacketsSent = atol(resp_param.value);
+            }
+            else
+            {
+                link_stats->PacketsSent = atol(resp_param.value);
+            }
+        }
+        else if (strstr(resp_param.name, "PacketsReceived"))
+        {
+            if (strstr(resp_param.name, "Unicast"))
+            {
+                link_stats->UnicastPacketsReceived = atol(resp_param.value);
+            }
+            else if (strstr(resp_param.name, "Discard"))
+            {
+                link_stats->DiscardPacketsReceived = atoi(resp_param.value);
+            }
+            else if (strstr(resp_param.name, "Multicast"))
+            {
+                link_stats->MulticastPacketsReceived = atol(resp_param.value);
+            }
+            else if (strstr(resp_param.name, "Broadcast"))
+            {
+                link_stats->BroadcastPacketsReceived = atol(resp_param.value);
+            }
+            else if (strstr(resp_param.name, "UnknownProto"))
+            {
+                link_stats->UnknownProtoPacketsReceived = atoi(resp_param.value);
+            }
+            else
+            {
+                link_stats->PacketsReceived = atol(resp_param.value);
+            }
+        }
+        else if (strstr(resp_param.name, "ErrorsSent"))
+        {
+            link_stats->ErrorsSent = atoi(resp_param.value);
+        }
+        else if (strstr(resp_param.name, "ErrorsReceived"))
+        {
+            link_stats->ErrorsReceived = atoi(resp_param.value);
+        }
+    }
+
+    CcspTraceDebug(("%s - %d Statistics Information \n", __FUNCTION__, __LINE__));
+    CcspTraceDebug(("BytesSent = %ld \n", link_stats->BytesSent));
+    CcspTraceDebug(("BytesReceived = %ld \n", link_stats->BytesReceived));
+    CcspTraceDebug(("PacketsSent = %ld \n", link_stats->PacketsSent));
+    CcspTraceDebug(("PacketsReceived = %ld \n", link_stats->PacketsReceived));
+    CcspTraceDebug(("ErrorsSent = %d \n", link_stats->ErrorsSent));
+    CcspTraceDebug(("ErrorsReceived = %d \n", link_stats->ErrorsReceived));
+    CcspTraceDebug(("UnicastPacketsSent = %ld \n", link_stats->UnicastPacketsSent));
+    CcspTraceDebug(("UnicastPacketsReceived = %ld \n", link_stats->UnicastPacketsReceived));
+    CcspTraceDebug(("DiscardPacketsReceived = %d \n", link_stats->DiscardPacketsReceived));
+    CcspTraceDebug(("DiscardPacketsSent = %d \n", link_stats->DiscardPacketsSent));
+    CcspTraceDebug(("DiscardPacketsReceived = %d \n", link_stats->DiscardPacketsReceived));
+    CcspTraceDebug(("MulticastPacketsSent = %ld \n", link_stats->MulticastPacketsSent));
+    CcspTraceDebug(("MulticastPacketsReceived = %ld \n", link_stats->MulticastPacketsReceived));
+    CcspTraceDebug(("BroadcastPacketsSent = %ld \n", link_stats->BroadcastPacketsSent));
+    CcspTraceDebug(("BroadcastPacketsReceived = %ld \n", link_stats->BroadcastPacketsReceived));
+    CcspTraceDebug(("UnknownProtoPacketsReceived = %d \n", link_stats->UnknownProtoPacketsReceived));
+
+    return ANSC_STATUS_SUCCESS;
+}
+
 

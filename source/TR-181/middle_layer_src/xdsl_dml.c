@@ -5517,6 +5517,7 @@ X_RDK_Report_DSL_Default_GetParamUlongValue
     /* check the parameter name and set the corresponding value */
     if(AnscEqualString(ParamName, "OverrideTTL", TRUE) && (puLong != NULL))
     {
+        pXdslReportDflt->OverrideTTL = XdslReportGetDefaultOverrideTTL();
         *puLong = pXdslReportDflt->OverrideTTL;
         return TRUE;
     }

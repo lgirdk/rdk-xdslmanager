@@ -39,7 +39,7 @@
 
  APIs for Object:
 
-    Ethernet.XTMTermination.{i}.
+    Device.PTM.Link.{i}.
 
     *  PTMLink_GetEntryCount
     *  PTMLink_GetEntry
@@ -177,5 +177,49 @@ PTMLinkStats_GetParamUlongValue
         char*                       ParamName,
         ULONG*                      puLong
     );
+
+/***********************************************************************
+
+ APIs for Object:
+
+    Device.ATM.{i}.Link.
+
+    *  ATMLink_GetEntryCount
+    *  ATMLink_GetEntry
+    *  ATMLink_AddEntry
+    *  ATMLink_DelEntry
+    *  ATMLink_GetParamBoolValue
+    *  ATMLink_GetParamUlongValue
+    *  ATMLink_GetParamStringValue
+    *  ATMLink_SetParamBoolValue
+    *  ATMLink_SetParamUlongValue
+    *  ATMLink_SetParamStringValue
+    *  ATMLink_Validate
+    *  ATMLink_Commit
+    *  ATMLink_Rollback
+
+***********************************************************************/
+
+ULONG ATMLink_GetEntryCount ( ANSC_HANDLE hInsContext );
+ANSC_HANDLE ATMLink_GetEntry ( ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber );
+ANSC_HANDLE ATMLink_AddEntry ( ANSC_HANDLE hInsContext, ULONG* pInsNumber );
+ULONG ATMLink_DelEntry ( ANSC_HANDLE hInsContext, ANSC_HANDLE hInstance );
+BOOL ATMLink_GetParamBoolValue ( ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool );
+BOOL ATMLink_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong );
+ULONG ATMLink_GetParamStringValue  ( ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize );
+BOOL ATMLink_SetParamBoolValue ( ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue );
+BOOL ATMLink_SetParamIntValue( ANSC_HANDLE hInsContext, char* ParamName, int iValue );
+BOOL ATMLink_SetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue );
+BOOL ATMLink_SetParamStringValue ( ANSC_HANDLE hInsContext, char*ParamName, char*pString );
+BOOL ATMLink_Validate ( ANSC_HANDLE hInsContext, char*pReturnParamName, ULONG *puLength );
+ULONG ATMLink_Commit ( ANSC_HANDLE  hInsContext );
+ULONG ATMLink_Rollback ( ANSC_HANDLE hInsContext );
+BOOL ATMLinkQOS_GetParamUlongValue ( ANSC_HANDLE hInsContext, char *ParamName, ULONG *puLong );
+BOOL ATMLinkQOS_SetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue  );
+BOOL ATMLinkStats_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong );
+BOOL ATMLinkDiagnostics_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong );
+BOOL ATMLinkDiagnostics_SetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue );
+BOOL ATMLinkDiagnostics_SetParamStringValue ( ANSC_HANDLE hInsContext, char* ParamName, char *pString );
+ULONG ATMLinkDiagnostics_GetParamStringValue ( ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize );
 
 #endif

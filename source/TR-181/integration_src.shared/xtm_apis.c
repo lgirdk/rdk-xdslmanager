@@ -52,9 +52,13 @@
 #define VLAN_ETH_LINK_PARAM_LOWERLAYERS   "Device.X_RDK_Ethernet.Link.%d.LowerLayers"
 #define VLAN_ETH_LINK_PARAM_ENABLE        "Device.X_RDK_Ethernet.Link.%d.Enable"
 
-#define XTM_LINK_ENABLE "Device.PTM.Link.%d.Enable"
-#define XTM_LINK_STATUS "Device.PTM.Link.%d.Status"
-#define XTM_LINK_STATS "Device.PTM.Link.%d.Stats"
+#define PTM_LINK_ENABLE "Device.PTM.Link.%d.Enable"
+#define PTM_LINK_STATUS "Device.PTM.Link.%d.Status"
+#define PTM_LINK_STATS  "Device.PTM.Link.%d.Stats"
+
+#define ATM_LINK_ENABLE "Device.ATM.Link.%d.Enable"
+#define ATM_LINK_STATUS "Device.ATM.Link.%d.Status"
+#define ATM_LINK_STATS  "Device.ATM.Link.%d.Stats"
 
 #define DATAMODEL_PARAM_LENGTH 256
 
@@ -64,8 +68,7 @@ extern ANSC_HANDLE         bus_handle;
 static ANSC_STATUS CosaDmlXtmGetParamValues(char *pComponent, char *pBus, char *pParamName, char *pReturnVal);
 static ANSC_STATUS CosaDmlXtmSetParamValues(const char *pComponent, const char *pBus, const char *pParamName, const char *pParamVal, enum dataType_e type, unsigned int bCommitFlag);
 static ANSC_STATUS CosaDmlXtmGetParamNames(char *pComponent, char *pBus, char *pParamName, char a2cReturnVal[][256], int *pReturnSize);
-static ANSC_STATUS CosaDmlXtmGetLowerLayersInstanceInOtherAgent(XTM_NOTIFY_ENUM enNotifyAgent, char *pLowerLayers, INT *piInstanceNumber);
-
+static ANSC_STATUS CosaDmlXtmGetLowerLayersInstanceInOtherAgent(PTM_NOTIFY_ENUM enNotifyAgent, char *pLowerLayers, INT *piInstanceNumber);
 /* ******************************************************************* */
 
 /* * SListPushEntryByInsNum() */
@@ -267,7 +270,7 @@ static ANSC_STATUS CosaDmlXtmSetParamValues(const char *pComponent, const char *
 }
 
 /* * CosaDmlXtmGetLowerLayersInstanceInOtherAgent() */
-static ANSC_STATUS CosaDmlXtmGetLowerLayersInstanceInOtherAgent(XTM_NOTIFY_ENUM enNotifyAgent, char *pLowerLayers, INT *piInstanceNumber)
+static ANSC_STATUS CosaDmlXtmGetLowerLayersInstanceInOtherAgent(PTM_NOTIFY_ENUM enNotifyAgent, char *pLowerLayers, INT *piInstanceNumber)
 {
     //Validate buffer
     if ((NULL == pLowerLayers) || (NULL == piInstanceNumber))
@@ -344,7 +347,7 @@ static ANSC_STATUS CosaDmlXtmGetLowerLayersInstanceInOtherAgent(XTM_NOTIFY_ENUM 
                  }
              }
           }
-          break; /* * NOTIFY_TO_XTM_MANAGER */
+          break; /* * NOTIFY_TO_PTM_MANAGER */
    
           default:
           {
@@ -357,10 +360,10 @@ static ANSC_STATUS CosaDmlXtmGetLowerLayersInstanceInOtherAgent(XTM_NOTIFY_ENUM 
 }
 
 /* Create and Enable Ethernet.Link. */
-ANSC_STATUS DmlXtmCreateEthLink( PDML_XTM   pEntry )
+ANSC_STATUS DmlPtmCreateEthLink( PDML_PTM   pEntry )
 {
-    char *acSetParamName = NULL;
-    char *acSetParamValue = NULL;
+    char acSetParamName[256] = { 0 };
+    char acSetParamValue[256] = { 0 };
     INT  iVLANInstance = -1;
     
     //Validate buffer
@@ -397,17 +400,6 @@ ANSC_STATUS DmlXtmCreateEthLink( PDML_XTM   pEntry )
         iVLANInstance = iNewTableInstance;
     }
 
-    acSetParamName = (char *) malloc(sizeof(char) * DATAMODEL_PARAM_LENGTH);
-    acSetParamValue = (char *) malloc(sizeof(char) * DATAMODEL_PARAM_LENGTH);
-
-    if(acSetParamName == NULL || acSetParamValue == NULL)
-    {
-        return ANSC_STATUS_FAILURE;
-    }
-
-    memset(acSetParamName, 0, DATAMODEL_PARAM_LENGTH);
-    memset(acSetParamValue, 0, DATAMODEL_PARAM_LENGTH);
-
     CcspTraceInfo(("%s %d VLANAgent -> Device.Ethernet.Link Instance:%d\n", __FUNCTION__, __LINE__, iVLANInstance));
 
     //Set Alias
@@ -430,25 +422,16 @@ ANSC_STATUS DmlXtmCreateEthLink( PDML_XTM   pEntry )
     snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "true");
     CosaDmlXtmSetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE);
  
-    if(acSetParamName != NULL)
-    {
-       free(acSetParamName);
-    }
-    if(acSetParamValue != NULL)
-    {
-       free(acSetParamValue);
-    }
-    
-    CcspTraceInfo(("%s: Successfully created XTM VLAN link table for %s interface\n",XTM_MARKER_VLAN_CREATE,pEntry->Name));
+    CcspTraceInfo(("%s: Successfully created PTM VLAN link table for %s interface\n",PTM_MARKER_VLAN_CREATE,pEntry->Name));
     
     return ANSC_STATUS_SUCCESS;
 }
 
 /* Disable and delete Eth link. (Ethernet.Link.) */
-ANSC_STATUS DmlXtmDeleteEthLink( char *pLowerLayer )
+ANSC_STATUS DmlPtmDeleteEthLink( char *pLowerLayer )
 {
-    char    *acSetParamName = NULL;
-    char    *acSetParamValue = NULL;
+    char    acSetParamName[256] = { 0 };
+    char    acSetParamValue[256] = { 0 };
     char    acTableName[128] = { 0 };
     INT     iVLANInstance = -1;
 
@@ -471,30 +454,10 @@ ANSC_STATUS DmlXtmDeleteEthLink( char *pLowerLayer )
     
     CcspTraceInfo(("%s %d VLANAgent -> Device.Ethernet.Link Instance:%d\n", __FUNCTION__, __LINE__, iVLANInstance));
 
-    acSetParamName = (char *) malloc(sizeof(char) * DATAMODEL_PARAM_LENGTH);
-    acSetParamValue = (char *) malloc(sizeof(char) * DATAMODEL_PARAM_LENGTH);
-
-    if(acSetParamName == NULL || acSetParamValue == NULL)
-    {
-        return ANSC_STATUS_FAILURE;
-    }
-
-    memset(acSetParamName, 0, DATAMODEL_PARAM_LENGTH);
-    memset(acSetParamValue, 0, DATAMODEL_PARAM_LENGTH);
-
     //Disable link.
     snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_ETH_LINK_PARAM_ENABLE, iVLANInstance);
     snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "false");
     CosaDmlXtmSetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE);
-
-    if(acSetParamName != NULL)
-    {
-        free(acSetParamName);
-    }
-    if(acSetParamValue != NULL)
-    {
-        free(acSetParamValue);
-    }
 
     //Delay - to set param.
     sleep(2);
@@ -515,17 +478,25 @@ ANSC_STATUS DmlXtmDeleteEthLink( char *pLowerLayer )
         return ANSC_STATUS_FAILURE;
     }
     
-    CcspTraceInfo(("%s:Successfully deleted XTM VLAN link %s table\n",XTM_MARKER_VLAN_DELETE,acTableName));
+    CcspTraceInfo(("%s:Successfully deleted PTM VLAN link %s table\n",PTM_MARKER_VLAN_DELETE,acTableName));
     
     return ANSC_STATUS_SUCCESS;
 }
 
-/* * DmlGetXtmIfEnable */
-ANSC_STATUS
-DmlGetXtmIfEnable
-    (
-        BOOLEAN     *pbEnable
-    )
+/* Create and PPP Tunnel */
+ANSC_STATUS DmlAtmCreatePPPLink( PDML_ATM pEntry )
+{
+    return ANSC_STATUS_SUCCESS;
+}
+
+/* Disable and delete PPP Tunnel */
+ANSC_STATUS DmlAtmDeletePPPLink( char *pLowerLayer )
+{
+    return ANSC_STATUS_SUCCESS;
+}
+
+/* * DmlGetPtmIfEnable */
+ANSC_STATUS DmlGetPtmIfEnable (BOOLEAN *pbEnable)
 {
     //Validate buffer
     if ( NULL == pbEnable )
@@ -543,7 +514,7 @@ DmlGetXtmIfEnable
     memset(&req_param, 0, sizeof(req_param));
 
     PTMLink_GetEntry(NULL, 0, &ulInstanceNumber);
-    snprintf(req_param.name, sizeof(req_param.name), XTM_LINK_ENABLE, ulInstanceNumber);
+    snprintf(req_param.name, sizeof(req_param.name), PTM_LINK_ENABLE, ulInstanceNumber);
     if (ANSC_STATUS_SUCCESS != xtm_hal_getLinkInfoParam(&req_param))
     {
         CcspTraceError(("%s %d - Failed to get link enable status \n",__FUNCTION__,__LINE__));
@@ -558,12 +529,8 @@ DmlGetXtmIfEnable
     return ANSC_STATUS_SUCCESS;
 }
 
-/* * DmlSetXtmIfEnable */
-ANSC_STATUS
-DmlSetXtmIfEnable
-    (
-        BOOLEAN     bEnable
-    )
+/* * DmlSetPtmIfEnable */
+ANSC_STATUS DmlSetPtmIfEnable (BOOLEAN bEnable)
 {
     /**
      * Construct Full DML path.
@@ -573,7 +540,7 @@ DmlSetXtmIfEnable
     hal_param_t req_param;
     memset(&req_param, 0, sizeof(req_param));
     PTMLink_GetEntry(NULL, 0, &ulInstanceNumber);
-    snprintf(req_param.name, sizeof(req_param), XTM_LINK_ENABLE, ulInstanceNumber);
+    snprintf(req_param.name, sizeof(req_param), PTM_LINK_ENABLE, ulInstanceNumber);
     req_param.type = PARAM_BOOLEAN;
     snprintf(req_param.value, sizeof(req_param.value), "%d", bEnable);
 
@@ -583,20 +550,15 @@ DmlSetXtmIfEnable
         return ANSC_STATUS_FAILURE;
     }
 
-    CcspTraceInfo(("%s:Successfully configured XTM interface\n",XTM_MARKER_VLAN_CFG_CHNG,bEnable));
+    CcspTraceInfo(("%s:Successfully configured PTM interface\n",PTM_MARKER_VLAN_CFG_CHNG,bEnable));
 
     return ANSC_STATUS_SUCCESS;
 }
 
-/* * DmlGetXtmIfStatus() */
-ANSC_STATUS
-DmlGetXtmIfStatus
-    (
-        ANSC_HANDLE         hContext,
-        PDML_XTM      pEntry          /* Identified by InstanceNumber */
-    )
+/* * DmlGetPtmIfStatus() */
+ANSC_STATUS DmlGetPtmIfStatus (ANSC_HANDLE hContext, PDML_PTM pEntry )
 {
-    ANSC_STATUS             returnStatus  = ANSC_STATUS_FAILURE;
+    ANSC_STATUS returnStatus = ANSC_STATUS_FAILURE;
     xtm_link_status_e linkStatus;
     hal_param_t req_param;
     memset(&req_param, 0, sizeof(req_param));
@@ -607,7 +569,7 @@ DmlGetXtmIfStatus
              * Construct Full DML path.
              * Device.PTM.Link.1.Status.
              */
-            snprintf(req_param.name, sizeof(req_param.name), XTM_LINK_STATUS, pEntry->InstanceNumber);
+            snprintf(req_param.name, sizeof(req_param.name), PTM_LINK_STATUS, pEntry->InstanceNumber);
             if (ANSC_STATUS_SUCCESS != xtm_hal_getLinkInfoParam(&req_param))
             {
                 pEntry->Status = Error;
@@ -645,12 +607,7 @@ DmlGetXtmIfStatus
     return returnStatus;
 }
 
-ANSC_STATUS
-DmlGetXtmIfStatistics
-    (
-        ANSC_HANDLE        hContext,
-        PDML_XTM      pEntry          /* Identified by InstanceNumber */
-    )
+ANSC_STATUS DmlGetPtmIfStatistics (ANSC_HANDLE hContext, PDML_PTM pEntry)
 {
     int returnStatus  = ANSC_STATUS_SUCCESS;
     char cLinkStats[256] = {'\0'};
@@ -660,11 +617,11 @@ DmlGetXtmIfStatistics
              * Construct Full DML path.
              * Device.PTM.Link.1.Stats.
              */
-            snprintf(cLinkStats, sizeof(cLinkStats), XTM_LINK_STATS, pEntry->InstanceNumber);
+            snprintf(cLinkStats, sizeof(cLinkStats), PTM_LINK_STATS, pEntry->InstanceNumber);
             memset(&pEntry->Statistics, 0, sizeof(pEntry->Statistics));
             returnStatus = xtm_hal_getLinkStats(cLinkStats, &pEntry->Statistics);
             if (returnStatus != ANSC_STATUS_SUCCESS) {
-                CcspTraceError(("%s %d Failed to get XTM stats\n",__FUNCTION__,__LINE__));
+                CcspTraceError(("%s %d Failed to get PTM stats\n",__FUNCTION__,__LINE__));
             }
         }
     }
@@ -672,13 +629,8 @@ DmlGetXtmIfStatistics
     return returnStatus;
 }
 
-/* * DmlSetXtm() */
-ANSC_STATUS
-DmlSetXtm
-    (
-        ANSC_HANDLE         hContext,
-        PDML_XTM      pEntry          /* Identified by InstanceNumber */
-    )
+/* * DmlSetPtm() */
+ANSC_STATUS DmlSetPtm (ANSC_HANDLE hContext, PDML_PTM pEntry)
 {
     ANSC_STATUS             returnStatus  = ANSC_STATUS_SUCCESS;
 
@@ -687,15 +639,10 @@ DmlSetXtm
     return returnStatus;
 }
 
-/* * DmlAddXtm() */
-ANSC_STATUS
-DmlAddXtm
-    (
-        ANSC_HANDLE        hContext,
-        PDML_XTM      pEntry
-    )
+/* * DmlAddPtm() */
+ANSC_STATUS DmlAddPtm (ANSC_HANDLE hContext, PDML_PTM pEntry)
 {
-    ANSC_STATUS             returnStatus  = ANSC_STATUS_SUCCESS;
+    ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
 
     if (!pEntry)
     {
@@ -703,21 +650,16 @@ DmlAddXtm
     }
 
     //Create actual interface
-    returnStatus = DmlSetXtmIfEnable( pEntry->Enable );
+    returnStatus = DmlSetPtmIfEnable( pEntry->Enable );
 
     //Create Ethernet.Link
-    returnStatus = DmlXtmCreateEthLink( pEntry );
+    returnStatus = DmlPtmCreateEthLink( pEntry );
 
     return returnStatus;
 }
 
-/* * DmlDelXtm() */
-ANSC_STATUS
-DmlDelXtm
-    (
-        ANSC_HANDLE        hContext,
-        PDML_XTM      pEntry
-    )
+/* * DmlDelPtm() */
+ANSC_STATUS DmlDelPtm (ANSC_HANDLE hContext, PDML_PTM pEntry )
 {
     ANSC_STATUS  returnStatus   = ANSC_STATUS_SUCCESS;
 
@@ -728,13 +670,241 @@ DmlDelXtm
     else 
     {
         //Delete Ethernet.Link
-        returnStatus = DmlXtmDeleteEthLink( pEntry->Path );
+        returnStatus = DmlPtmDeleteEthLink( pEntry->Path );
    
         //Remove actual intergace
-        returnStatus = DmlSetXtmIfEnable( pEntry->Enable );
+        returnStatus = DmlSetPtmIfEnable( pEntry->Enable );
     }
 
     return returnStatus;
 }
 
+/* * DmlGetAtmIfEnable */
+ANSC_STATUS DmlGetAtmIfEnable (BOOLEAN *pbEnable)
+{
+    //Validate buffer
+    if ( NULL == pbEnable )
+    {
+        CcspTraceError(("%s %d - Invalid buffer\n",__FUNCTION__,__LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
 
+    /**
+     * Construct Full DML path.
+     * Device.ATM.Link.1.Enable.
+     */
+    ULONG ulInstanceNumber = 0;
+    hal_param_t req_param;
+    memset(&req_param, 0, sizeof(req_param));
+
+    ATMLink_GetEntry(NULL, 0, &ulInstanceNumber);
+    snprintf(req_param.name, sizeof(req_param.name), ATM_LINK_ENABLE, ulInstanceNumber);
+    if (ANSC_STATUS_SUCCESS != xtm_hal_getLinkInfoParam(&req_param))
+    {
+        CcspTraceError(("%s %d - Failed to get link enable status \n",__FUNCTION__,__LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    /**
+     * Store the enable status.
+     */
+    *pbEnable = strtol(&(req_param.value), NULL, 10);
+
+    return ANSC_STATUS_SUCCESS;
+}
+
+/* * DmlSetAtmIfEnable */
+ANSC_STATUS DmlSetAtmIfEnable (ANSC_HANDLE hContext, PDML_ATM pAtm)
+{
+    if (ANSC_STATUS_SUCCESS != atm_hal_setLinkInfoParam(pAtm))
+    {
+        CcspTraceError(("%s %d - Failed to set link enable\n",__FUNCTION__,__LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    CcspTraceInfo(("Successfully configured ATM interface\n"));
+
+    return ANSC_STATUS_SUCCESS;
+}
+
+/* DmlStartAtmLoopbackDiagnostics */
+ANSC_STATUS DmlStartAtmLoopbackDiagnostics (PDML_ATM_DIAG pDiag)
+{
+    if (ANSC_STATUS_SUCCESS != atm_hal_startAtmLoopbackDiagnostics(pDiag))
+    {
+        CcspTraceError(("%s %d - Failed to start ATM diagnostics \n",__FUNCTION__,__LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    return ANSC_STATUS_SUCCESS;
+}
+
+/* DmlAtmInit() */
+ANSC_STATUS DmlAtmInit (ANSC_HANDLE hDml, PANSC_HANDLE phContext)
+{
+    PDATAMODEL_ATM  pMyObject = (PDATAMODEL_ATM)phContext;
+
+    //ATM Diagnostics init
+    DmlAtmDiagnosticsInit( pMyObject );
+
+    return ANSC_STATUS_SUCCESS;
+}
+
+/*DmlAtmDiagnosticsInit */
+ANSC_STATUS DmlAtmDiagnosticsInit (PANSC_HANDLE phContext)
+{
+    PDATAMODEL_ATM    pMyObject      = (PDATAMODEL_ATM)phContext;
+    PDML_ATM_DIAG     pATMDiagTmp    = NULL;
+
+    pATMDiagTmp = (PDML_ATM_DIAG) AnscAllocateMemory( sizeof(DML_ATM_DIAG) );
+
+    //Return failure if allocation failiure
+    if( NULL == pATMDiagTmp )
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    //Memset all memory
+    memset( pATMDiagTmp, 0, sizeof(DML_ATM_DIAG) );
+
+    //Initialize
+    pATMDiagTmp->DiagnosticsState      = DIAG_STATE_NONE;
+    pATMDiagTmp->NumberOfRepetitions   = 0;
+    pATMDiagTmp->Timeout               = 0;
+    pATMDiagTmp->SuccessCount          = 0;
+    pATMDiagTmp->FailureCount          = 0;
+    pATMDiagTmp->AverageResponseTime   = 0;
+    pATMDiagTmp->MinimumResponseTime   = 0;
+    pATMDiagTmp->MaximumResponseTime   = 0;
+
+    //Assign the memory address to oringinal structure
+    pMyObject->pATMDiag = pATMDiagTmp;
+
+    return ANSC_STATUS_SUCCESS;
+}
+
+/* * DmlGetPtmIfStatus() */
+ANSC_STATUS DmlGetAtmIfStatus (ANSC_HANDLE hContext, PDML_ATM pEntry)
+{
+    ANSC_STATUS returnStatus  = ANSC_STATUS_FAILURE;
+    xtm_link_status_e linkStatus;
+    hal_param_t req_param;
+    memset(&req_param, 0, sizeof(req_param));
+    if (pEntry != NULL)
+    {
+        if( pEntry->Enable)
+        {
+            /**
+             * Construct Full DML path.
+             * Device.ATM.Link.1.Status.
+             */
+            snprintf(req_param.name, sizeof(req_param.name), ATM_LINK_STATUS, pEntry->InstanceNumber);
+            if (ANSC_STATUS_SUCCESS != xtm_hal_getLinkInfoParam(&req_param))
+            {
+                pEntry->Status = Error;
+                CcspTraceError(("%s Failed to get link status\n",__FUNCTION__));
+            }
+            else 
+            {
+                    /**
+                     * Convert status message and returned.
+                     */
+                    if (strncmp(req_param.value, XTM_LINK_UP, strlen(XTM_LINK_UP)) == 0)
+                    {
+                        pEntry->Status = Up;
+                    }
+                    else if (strncmp(req_param.value, XTM_LINK_DOWN, strlen(XTM_LINK_DOWN)) == 0)
+                    {
+                        pEntry->Status = Down;
+                    }
+                    else if (strncmp(req_param.value, XTM_LINK_UNKNOWN, strlen(XTM_LINK_UNKNOWN)) == 0)
+                    {
+                        pEntry->Status = Unknown;
+                    }
+                    else if (strncmp(req_param.value, XTM_LINK_LOWERLAYER_DOWN, strlen(XTM_LINK_LOWERLAYER_DOWN)) == 0)
+                    {
+                        pEntry->Status = LowerLayerDown;
+                    }
+                    else
+                    {
+                        pEntry->Status = Error;
+                    }
+                returnStatus = ANSC_STATUS_SUCCESS;
+            }
+        }
+    }
+
+    return returnStatus;
+}
+
+ANSC_STATUS DmlGetAtmIfStatistics (ANSC_HANDLE hContext, PDML_ATM pEntry)
+{
+    int returnStatus  = ANSC_STATUS_SUCCESS;
+    char cLinkStats[256] = {'\0'};
+    if (pEntry != NULL) {
+        if( pEntry->Enable) {
+            /**
+             * Construct Full DML path.
+             * Device.ATM.Link.1.Stats.
+             */
+            snprintf(cLinkStats, sizeof(cLinkStats), ATM_LINK_STATS, pEntry->InstanceNumber);
+            memset(&pEntry->Statistics, 0, sizeof(pEntry->Statistics));
+            returnStatus = xtm_hal_getLinkStats(cLinkStats, &pEntry->Statistics);
+            if (returnStatus != ANSC_STATUS_SUCCESS) {
+                CcspTraceError(("%s %d Failed to get PTM stats\n",__FUNCTION__,__LINE__));
+            }
+        }
+    }
+
+    return returnStatus;
+}
+
+/* * DmlSetAtm() */
+ANSC_STATUS DmlSetAtm (ANSC_HANDLE   hContext, PDML_ATM pEntry )
+{
+    ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
+
+    //TBD
+
+    return returnStatus;
+}
+
+/* * DmlAddAtm() */
+ANSC_STATUS DmlAddAtm (ANSC_HANDLE hContext, PDML_ATM pEntry )
+{
+    ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
+
+    if (!pEntry)
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    //Create ATM interface
+    returnStatus = DmlSetAtmIfEnable( hContext, pEntry );
+
+    //Create PPP Link
+    returnStatus = DmlAtmCreatePPPLink( pEntry );
+
+    return returnStatus;
+}
+
+/* * DmlDelAtm() */
+ANSC_STATUS DmlDelAtm (ANSC_HANDLE hContext, PDML_ATM pEntry )
+{
+    ANSC_STATUS  returnStatus   = ANSC_STATUS_SUCCESS;
+
+    if ( !pEntry )
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+    else 
+    {
+        //Delete Ethernet.Link
+        returnStatus = DmlAtmDeletePPPLink( pEntry->Path );
+
+        //Remove actual intergace
+        returnStatus = DmlSetAtmIfEnable( pEntry, hContext );
+    }
+
+    return returnStatus;
+}

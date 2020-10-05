@@ -433,11 +433,9 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_AddEntry",  PTMLink_AddEntry);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_DelEntry",  PTMLink_DelEntry);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_GetParamBoolValue",  PTMLink_GetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_GetParamIntValue",  PTMLink_GetParamIntValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_GetParamUlongValue",  PTMLink_GetParamUlongValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_GetParamStringValue",  PTMLink_GetParamStringValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_SetParamBoolValue",  PTMLink_SetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_SetParamIntValue",  PTMLink_SetParamIntValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_SetParamUlongValue", PTMLink_SetParamUlongValue );
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_SetParamStringValue",  PTMLink_SetParamStringValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_Validate",  PTMLink_Validate);
@@ -445,6 +443,31 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_Rollback", PTMLink_Rollback );
 
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLinkStats_GetParamUlongValue", PTMLinkStats_GetParamUlongValue );
+
+    /* register the back-end apis for the data model */
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_GetEntryCount", ATMLink_GetEntryCount );
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_GetEntry",  ATMLink_GetEntry);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_AddEntry",  ATMLink_AddEntry);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_DelEntry",  ATMLink_DelEntry);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_GetParamBoolValue",  ATMLink_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_GetParamUlongValue",  ATMLink_GetParamUlongValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_GetParamStringValue",  ATMLink_GetParamStringValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_SetParamBoolValue",  ATMLink_SetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_SetParamUlongValue", ATMLink_SetParamUlongValue );
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_SetParamStringValue",  ATMLink_SetParamStringValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_Validate",  ATMLink_Validate);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_Commit",  ATMLink_Commit);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_Rollback", ATMLink_Rollback );
+    
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLinkStats_GetParamUlongValue", ATMLinkStats_GetParamUlongValue );
+
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLinkQOS_GetParamUlongValue", ATMLinkQOS_GetParamUlongValue );
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLinkQOS_SetParamUlongValue", ATMLinkQOS_SetParamUlongValue );
+
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLinkDiagnostics_GetParamUlongValue", ATMLinkDiagnostics_GetParamUlongValue );
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLinkDiagnostics_SetParamUlongValue", ATMLinkDiagnostics_SetParamUlongValue );
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLinkDiagnostics_GetParamStringValue", ATMLinkDiagnostics_GetParamStringValue );
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLinkDiagnostics_SetParamStringValue", ATMLinkDiagnostics_SetParamStringValue );
 
     /* Create backend framework */
     g_pBEManager = (PBACKEND_MANAGER_OBJECT)BackEndManagerCreate();

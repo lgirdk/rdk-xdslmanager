@@ -65,13 +65,13 @@ pthread_key_t       sm_private_key;
 /* STATES */
 static dslSmState_t StateDisconnected( PXDSL_SM_PRIVATE_INFO pstPrivInfo );                    // waits for DSL to be physically connected.
 static dslSmState_t StateTraining( PXDSL_SM_PRIVATE_INFO pstPrivInfo );                        // waits for DSL to train up.
-static dslSmState_t StateXtmConfiguring( PXDSL_SM_PRIVATE_INFO pstPrivInfo );                     // waits for XTM interfaces to be configured.
+static dslSmState_t StateXtmConfiguring( PXDSL_SM_PRIVATE_INFO pstPrivInfo );                     // waits for PTM interfaces to be configured.
 static dslSmState_t StateWanLinkUp( PXDSL_SM_PRIVATE_INFO pstPrivInfo );                              // monitors the DSL interface.
 
 /* TRANSITIONS */
 static dslSmState_t TransitionStart( void );                         // initiliases the state machine.
 static dslSmState_t TransitionTraining( PXDSL_SM_PRIVATE_INFO pstPrivInfo );                   // starts training DSL.
-static dslSmState_t TransitionTrained( PXDSL_SM_PRIVATE_INFO pstPrivInfo );                    // starts configuring XTM.
+static dslSmState_t TransitionTrained( PXDSL_SM_PRIVATE_INFO pstPrivInfo );                    // starts configuring PTM.
 static dslSmState_t TransitionWanLinkUp( PXDSL_SM_PRIVATE_INFO pstPrivInfo );                     // sets up the dsl interface.
 static dslSmState_t TransitionPhyInterfaceDown( PXDSL_SM_PRIVATE_INFO pstPrivInfo );                   // tears down the dsl interface.
 static dslSmState_t TransitionExit( PXDSL_SM_PRIVATE_INFO pstPrivInfo );                         //Exit from state machine
@@ -289,7 +289,26 @@ static dslSmState_t StateTraining( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 static dslSmState_t StateXtmConfiguring( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 {
     DML_XDSL_LINE_GLOBALINFO stGlobalInfo = { 0 }; 
-
+#ifdef _HUB4_PRODUCT_REQ_
+    char StandardUsed[64] = {'\0'};
+    char region[16] = {'\0'};
+    int ret = platform_hal_GetRouterRegion(region);
+    if (ret == 0)
+    {
+        if ((strncmp(region, "GB", strlen("GB"))== 0))
+        {
+            if (ANSC_STATUS_SUCCESS == DmlGetXdslStandardUsed(StandardUsed))
+            {
+                if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413")  || 
+                   strstr(StandardUsed,"G.992.2") || strstr(StandardUsed,"G.992.3") || 
+                   strstr(StandardUsed,"G.992.5")) /* ADSL */
+                {
+                    DmlXdslLineSetWanStatus( 0, XDSL_LINE_WAN_UP );
+                }
+            }
+        }
+    }
+#endif
     //Get current DSL link status
     DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( pstPrivInfo->Name, &stGlobalInfo );
 
@@ -340,12 +359,12 @@ static dslSmState_t TransitionTraining( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 static dslSmState_t TransitionTrained( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 {
     /*
-     *   1. Notify to XTM to create and enable interface link
+     *   1. Notify to PTM to create and enable interface link
      */
 
     if ( ANSC_STATUS_SUCCESS != DmlXdslCreateXTMLink( pstPrivInfo->Name ) )
     {
-        CcspTraceError(("%s Failed to create XTM link\n", __FUNCTION__));
+        CcspTraceError(("%s Failed to create PTM link\n", __FUNCTION__));
     }
 
     CcspTraceInfo(("%s - %s:IfName:%s STATE_XTM_CONFIGURING\n",__FUNCTION__,XDSL_MARKER_SM_TRANSITION,pstPrivInfo->Name));
@@ -372,12 +391,12 @@ static dslSmState_t TransitionWanLinkUp( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 static dslSmState_t TransitionPhyInterfaceDown( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 {
     /* 
-     *   1. Notify to XTM to disable and delete interface link
+     *   1. Notify to PTM to disable and delete interface link
      *   2. Notify to WAN for Down event
      */
     if ( ANSC_STATUS_SUCCESS != DmlXdslDeleteXTMLink( pstPrivInfo->Name ) )
     {
-        CcspTraceError(("%s Failed to delete XTM link\n", __FUNCTION__));
+        CcspTraceError(("%s Failed to delete PTM link\n", __FUNCTION__));
     }
 
     if ( ANSC_STATUS_SUCCESS != DmlXdslSetWanLinkStatusForWanManager( pstPrivInfo->Name, "Down" ) )

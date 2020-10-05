@@ -46,6 +46,77 @@ typedef enum _DslLinkStatus_t {
     LINK_ERROR
 }DslLinkStatus_t;
 
+enum dsl_xtse_bit {
+        /* Octet 1 - ADSL */
+        T1_413                                  = 1,
+        ETSI_101_388                            = 2,
+        G_992_1_POTS_NON_OVERLAPPED             = 3, /* Annex A */
+        G_992_1_POTS_OVERLAPPED                 = 4, /* Annex A */
+        G_992_1_ISDN_NON_OVERLAPPED             = 5, /* Annex B */
+        G_992_1_ISDN_OVERLAPPED                 = 6, /* Annex B */
+        G_992_1_TCM_ISDN_NON_OVERLAPPED         = 7, /* Annex C */
+        G_992_1_TCM_ISDN_OVERLAPPED             = 8, /* Annex C */
+
+        /* Octet 2 - Splitter-less ADSL, i.e. g.lite */
+        G_992_2_POTS_NON_OVERLAPPED             = 9, /* Annex A */
+        G_992_2_POTS_OVERLAPPED                 = 10, /* Annex B */
+        G_992_2_TCM_ISDN_NON_OVERLAPPED         = 11, /* Annex C */
+        G_992_2_TCM_ISDN_OVERLAPPED             = 12, /* Annex C */
+        /* Bits 13 - 16 are reserved */
+
+        /* Octet 3 - ADSL2 */
+        /* Bits 17 - 18 are reserved */
+        G_992_3_POTS_NON_OVERLAPPED             = 19, /* Annex A */
+        G_992_3_POTS_OVERLAPPED                 = 20, /* Annex A */
+        G_992_3_ISDN_NON_OVERLAPPED             = 21, /* Annex B */
+        G_992_3_ISDN_OVERLAPPED                 = 22, /* Annex B */
+        G_992_3_TCM_ISDN_NON_OVERLAPPED         = 23, /* Annex C */
+        G_992_3_TCM_ISDN_OVERLAPPED             = 24, /* Annex C */
+
+        /* Octet 4 - Splitter-less ADSL2 and ADSL2 */
+        G_992_4_POTS_NON_OVERLAPPED             = 25, /* Annex A */
+        G_992_4_POTS_OVERLAPPED                 = 26, /* Annex A */
+        /* Bits 27 - 28 are reserved */
+        G_992_3_ANNEX_I_NON_OVERLAPPED          = 29, /* All digital mode */
+        G_992_3_ANNEX_I_OVERLAPPED              = 30, /* All digital mode */
+        G_992_3_ANNEX_J_NON_OVERLAPPED          = 31, /* All digital mode */
+        G_992_3_ANNEX_J_OVERLAPPED              = 32, /* All digital mode */
+
+
+        /* Octet 5 - Splitter-less ADSL2 and ADSL2 */
+        G_992_4_ANNEX_I_NON_OVERLAPPED          = 33, /* All digital mode */
+        G_992_4_ANNEX_I_OVERLAPPED              = 34, /* All digital mode */
+        G_992_3_POTS_MODE_1                     = 35, /* Annex L, non-overlapped, wide upstream */
+        G_992_3_POTS_MODE_2                     = 36, /* Annex L, non-overlapped, narrow upstream */
+        G_992_3_POTS_MODE_3                     = 37, /* Annex L, overlapped, wide upstream */
+        G_992_3_POTS_MODE_4                     = 38, /* Annex L, overlapped, narrow upstream */
+        G_992_3_EXT_POTS_NON_OVERLAPPED         = 39, /* Annex M */
+        G_992_3_EXT_POTS_OVERLAPPED             = 40, /* Annex M */
+
+        /* Octet 6 - ADSL2+ */
+        G_992_5_POTS_NON_OVERLAPPED             = 41, /* Annex A */
+        G_992_5_POTS_OVERLAPPED                 = 42, /* Annex A */
+        G_992_5_ISDN_NON_OVERLAPPED             = 43, /* Annex B */
+        G_992_5_ISDN_OVERLAPPED                 = 44, /* Annex B */
+        G_992_5_TCM_ISDN_NON_OVERLAPPED         = 45, /* Annex C */
+        G_992_5_TCM_ISDN_OVERLAPPED             = 46, /* Annex C */
+        G_992_5_ANNEX_I_NON_OVERLAPPED          = 47, /* All digital mode */
+        G_992_5_ANNEX_I_OVERLAPPED              = 48, /* All digital mode */
+
+        /* Octet 7 - ADSL2+ */
+        G_992_5_ANNEX_J_NON_OVERLAPPED          = 49, /* All digital mode */
+        G_992_5_ANNEX_J_OVERLAPPED              = 50, /* All digital mode */
+        G_992_5_EXT_POTS_NON_OVERLAPPED         = 51, /* Annex M */
+        G_992_5_EXT_POTS_OVERLAPPED             = 52, /* Annex M */
+        /* Bits 53 - 56 are reserved */
+
+        /* Octet 8 - VDSL2 */
+        G_993_2_NORTH_AMERICA                   = 57, /* Annex A */
+        G_993_2_EUROPE                          = 58, /* Annex B */
+        G_993_2_JAPAN                           = 59, /* Annex C */
+        /* Bits 60 - 64 are reserved */
+};
+
 /**
  * This callback sends to upper layer when it receives link status from  DSL driver
  *
@@ -201,8 +272,8 @@ int xdsl_hal_dslGetChannelStats(int lineNo, int channelNo, PDML_XDSL_CHANNEL_STA
 //int xdsl_dslGetDiagnosticSeltp(int lineNo, DslDiagSeltp_t *DiagSeltp);
 
 /**
-* @brief API to set XTM (PTM) Link parameter. This API is called to enable/disable
-* XTM interface.
+* @brief API to set PTM (PTM) Link parameter. This API is called to enable/disable
+* PTM interface.
 *
 * @param set_param    (OUT) - Pointer to hal_param_t contains the param name, type and value needs to set
 * which is based on the param_type.
@@ -214,8 +285,8 @@ int xdsl_hal_dslGetChannelStats(int lineNo, int channelNo, PDML_XDSL_CHANNEL_STA
 ANSC_STATUS xtm_hal_setLinkInfoParam (hal_param_t *set_param);
 
 /**
-* @brief API to retrive XTM (PTM) Link information such as Enable, link Status
-* and Mac address of XTM interface
+* @brief API to retrive PTM (PTM) Link information such as Enable, link Status
+* and Mac address of PTM interface
 *
 * @param get_param    (OUT) - Pointer to hal_param_t contains the param name and type
 * @return The status of the operation
@@ -225,9 +296,9 @@ ANSC_STATUS xtm_hal_setLinkInfoParam (hal_param_t *set_param);
 ANSC_STATUS xtm_hal_getLinkInfoParam (hal_param_t *get_param);
 
 /**
-* @brief Get XTM link statistics information
+* @brief Get PTM link statistics information
 *
-* @param XTM DML path. This string contins the full DML link path of XTM type (Eg: Device.PTM.Link.1.Stats)
+* @param PTM DML path. This string contins the full DML link path of PTM type (Eg: Device.PTM.Link.1.Stats)
 * @param Structure pointer to hold statistics information
 *
 * @return The status of the operation
@@ -235,5 +306,31 @@ ANSC_STATUS xtm_hal_getLinkInfoParam (hal_param_t *get_param);
 * @retval ANSC_STATUS_FAILURE if any error is detected
 */
 ANSC_STATUS xtm_hal_getLinkStats(const CHAR *param_name, PDML_PTM_STATS link_stats);
+
+/**
+* @brief API to set ATM Link parameter. This API is called to enable/disable
+* PTM interface.
+*
+* @param set_param    (OUT) - Pointer to hal_param_t contains the param name, type and value needs to set
+* which is based on the param_type.
+*
+* @return The status of the operation
+* @retval ANSC_STATUS_SUCCESS if successful
+* @retval ANSC_STATUS_FAILURE if any error is detected
+*/
+ANSC_STATUS atm_hal_setLinkInfoParam (PDML_ATM link);
+
+/**
+* @brief Get ATM link statistics information
+*
+* @param PTM DML path. This string contins the full DML link path of ATM type (Eg: Device.ATM.Link.1.Stats)
+* @param Structure pointer to hold statistics information
+*
+* @return The status of the operation
+* @retval ANSC_STATUS_SUCCESS if successful
+* @retval ANSC_STATUS_FAILURE if any error is detected
+*/
+ANSC_STATUS atm_hal_getLinkStats(const CHAR *param_name, PDML_ATM_STATS link_stats);
+
 
 #endif /* _XDSL_JSON_APIS_H */

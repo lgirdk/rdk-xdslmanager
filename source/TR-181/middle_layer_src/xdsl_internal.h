@@ -41,7 +41,7 @@
 typedef  struct
 _DATAMODEL_DSL                                               
 {
-	DATAMODEL_XDSL_CLASS_CONTENT
+    DATAMODEL_XDSL_CLASS_CONTENT
 }
 DATAMODEL_DSL,  *PDATAMODEL_XDSL;
 

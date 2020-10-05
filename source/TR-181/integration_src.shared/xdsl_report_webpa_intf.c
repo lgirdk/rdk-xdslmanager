@@ -142,7 +142,7 @@ static void get_parodus_url(char **url)
 }
 #endif
 
-static void *handle_parodus()
+int ParodusClientInit()
 {
     CcspTraceInfo(("XDSL REPORT %s : LINE %d client_instance = %p\n", __FUNCTION__, __LINE__, client_instance));
     int backoffRetryTime = 0;
@@ -153,10 +153,9 @@ static void *handle_parodus()
     int retval=-1;
     char *parodus_url = NULL;
 
-    CcspTraceInfo((" ******** Start of handle_parodus ********\n"));
+    CcspTraceInfo((" ******** Start of ParodusClientInit ********\n"));
 
     CcspTraceInfo(("XDSL REPORT %s : LINE %d client_instance = %p\n", __FUNCTION__, __LINE__, client_instance));
-    pthread_detach(pthread_self());
 
     max_retry_sleep = (int) pow(2, backoff_max_time) -1;
     CcspTraceInfo((" max_retry_sleep is %d\n", max_retry_sleep ));
@@ -165,69 +164,53 @@ static void *handle_parodus()
 
     CcspTraceInfo(("XDSL REPORT %s : LINE %d client_instance = %p\n", __FUNCTION__, __LINE__, client_instance));
     get_parodus_url(&parodus_url);
-    if(parodus_url != NULL)
+    if(parodus_url == NULL)
     {
-        libpd_cfg_t cfg1 = {.service_name = "xdsl",
-            .receive = false, .keepalive_timeout_secs = 0,
-            .parodus_url = parodus_url,
-            .client_url = NULL
-        };
+        CcspTraceInfo((" Cannot retrieve parodus url \n"));
+        return ANSC_STATUS_FAILURE;
+    }
+    libpd_cfg_t cfg1 = {.service_name = "xdsl",
+        .receive = false, .keepalive_timeout_secs = 0,
+        .parodus_url = parodus_url,
+        .client_url = NULL
+    };
 
-        CcspTraceInfo((" Configurations => service_name : %s parodus_url : %s client_url : %s\n", cfg1.service_name, cfg1.parodus_url, cfg1.client_url ));
+    CcspTraceInfo((" Configurations => service_name : %s parodus_url : %s client_url : %s\n", cfg1.service_name, cfg1.parodus_url, cfg1.client_url ));
 
-        while(1)
+    while(1)
+    {
+        CcspTraceInfo(("XDSL REPORT %s : LINE %d client_instance = %p\n", __FUNCTION__, __LINE__, client_instance));
+        if(backoffRetryTime < max_retry_sleep)
         {
-            CcspTraceInfo(("XDSL REPORT %s : LINE %d client_instance = %p\n", __FUNCTION__, __LINE__, client_instance));
-            if(backoffRetryTime < max_retry_sleep)
-            {
-                backoffRetryTime = (int) pow(2, c) -1;
-            }
-
-            CcspTraceInfo((" New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime));
-            int ret =libparodus_init (&client_instance, &cfg1);
-
-            CcspTraceInfo(("XDSL REPORT %s : LINE %d client_instance = %p\n", __FUNCTION__, __LINE__, client_instance));
-            CcspTraceInfo((" ret is %d\n",ret));
-            if(ret ==0)
-            {
-                CcspTraceInfo((" Init for parodus Success..!!\n"));
-                break;
-            }
-            else
-            {
-                CcspTraceWarning((" Init for parodus (url %s) failed: '%s'\n", parodus_url, libparodus_strerror(ret)));
-                if( NULL == parodus_url )
-                {
-                    get_parodus_url(&parodus_url);
-                    cfg1.parodus_url = parodus_url;
-                }
-                sleep(backoffRetryTime);
-                c++;
-            }
-            retval = libparodus_shutdown(client_instance);
-            CcspTraceInfo((" libparodus_shutdown retval: %d\n", retval));
+            backoffRetryTime = (int) pow(2, c) -1;
         }
-    }
-    return 0;
-}
 
-void initparodusTask()
-{
-    int err = 0;
-    pthread_t parodusThreadId;
+        CcspTraceInfo((" New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime));
+        int ret =libparodus_init (&client_instance, &cfg1);
 
-    CcspTraceInfo(("XDSL REPORT %s : LINE %d client_instance = %p\n", __FUNCTION__, __LINE__, client_instance));
-    err = pthread_create(&parodusThreadId, NULL, handle_parodus, NULL);
-    if (err != 0) 
-    {
         CcspTraceInfo(("XDSL REPORT %s : LINE %d client_instance = %p\n", __FUNCTION__, __LINE__, client_instance));
-        CcspTraceWarning((" Error creating messages thread :[%s]\n", strerror(err)));
+        CcspTraceInfo((" ret is %d\n",ret));
+        if(ret ==0)
+        {
+            CcspTraceInfo((" Init for parodus Success..!!\n"));
+            return ANSC_STATUS_SUCCESS;
+        }
+        else
+        {
+            CcspTraceWarning((" Init for parodus (url %s) failed: '%s'\n", parodus_url, libparodus_strerror(ret)));
+            if( NULL == parodus_url )
+            {
+                get_parodus_url(&parodus_url);
+                cfg1.parodus_url = parodus_url;
+            }
+            sleep(backoffRetryTime);
+            c++;
+        }
+        retval = libparodus_shutdown(client_instance);
+        CcspTraceInfo((" libparodus_shutdown retval: %d\n", retval));
     }
-    else
-    {
-        CcspTraceInfo(("XDSL REPORT %s : LINE %d client_instance = %p\n", __FUNCTION__, __LINE__, client_instance));
-        CcspTraceInfo((" handle_parodus thread created Successfully\n"));
-    }
+    CcspTraceInfo((" libparodus_init failure \n"));
+    return ANSC_STATUS_FAILURE;
 }
 
 void sendWebpaMsg(char *serviceName, char *dest, char *trans_id, char *contentType, char *payload, unsigned int payload_len)

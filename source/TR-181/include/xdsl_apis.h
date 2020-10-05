@@ -66,7 +66,8 @@ typedef enum
 _XDSL_NOTIFY_ENUM
 {
     NOTIFY_TO_WAN_AGENT      = 1,
-    NOTIFY_TO_XTM_AGENT      = 2
+    NOTIFY_TO_PTM_AGENT      = 2,
+    NOTIFY_TO_ATM_AGENT      = 3
 } XDSL_NOTIFY_ENUM;
 
 /** enum line encoding */
@@ -536,6 +537,8 @@ INT DmlXdslGetTotalNoofChannels( INT LineIndex );
 ANSC_STATUS DmlXdslGetChannelCfg( INT LineIndex, INT ChannelIndex, PDML_XDSL_CHANNEL pstChannelInfo );
 
 ANSC_STATUS DmlXdslChannelSetEnable( INT LineIndex, INT ChannelIndex, BOOL Enable );
+
+ANSC_STATUS DmlGetXdslStandardUsed( char *standard_used);
 
 ANSC_STATUS
 DmlXdslDiagnosticsInit
