@@ -159,9 +159,13 @@ typedef struct _XDSLMSGQWanData
 }XDSLMSGQWanData;
 
 PDML_XDSL_LINE_GLOBALINFO     gpstLineGInfo     = NULL;
+//mutex for flobal variable
 static pthread_mutex_t        gmXdslGInfo_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t        mUpdationMutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t         cond = PTHREAD_COND_INITIALIZER;
+
+//mutex for signal conditional
+static pthread_mutex_t        mCondMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t         mCreationCond = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t         mDeletionCond = PTHREAD_COND_INITIALIZER;
 
 static ANSC_STATUS DmlXdslGetLineStaticInfo( INT LineIndex, PDML_XDSL_LINE pstLineInfo );
 static ANSC_STATUS DmlXdslLinePrepareGlobalInfo( ANSC_HANDLE   hContext );
@@ -243,7 +247,7 @@ DmlXdslInit
     //DSL Diagnostics init
     DmlXdslReportInit( pMyObject );
 
-    //DSL  XRDKNLM Init 
+    //DSL  XRDKNLM Init
     DmlXdslXRdkNlmInit( pMyObject );
 
     return ANSC_STATUS_SUCCESS;
@@ -271,7 +275,7 @@ DmlXdslLineInit
     }
 
     pMyObject->ulTotalNoofDSLLines = iTotalLines;
-        
+
     //Memset all memory
     memset( pXDSLLineTmp, 0, ( sizeof(DML_XDSL_LINE) * iTotalLines ) );
 
@@ -322,11 +326,12 @@ static ANSC_STATUS DmlXdslLinePrepareGlobalInfo( ANSC_HANDLE   hContext )
         PDML_XDSL_LINE  pXDSLLineTmp  = NULL;
 
         pXDSLLineTmp = pMyObject->pXDSLLine + iLoopCount;
-    
-        gpstLineGInfo[iLoopCount].Upstream       = FALSE; 
-        gpstLineGInfo[iLoopCount].WanStatus      = XDSL_LINE_WAN_DOWN;
-        gpstLineGInfo[iLoopCount].LinkStatus     = XDSL_LINK_STATUS_Disabled;
+
+        gpstLineGInfo[iLoopCount].Upstream          = FALSE;
+        gpstLineGInfo[iLoopCount].WanStatus         = XDSL_LINE_WAN_DOWN;
+        gpstLineGInfo[iLoopCount].LinkStatus        = XDSL_LINK_STATUS_Disabled;
         snprintf( gpstLineGInfo[iLoopCount].LowerLayers, sizeof(gpstLineGInfo[iLoopCount].LowerLayers), "%s", pXDSLLineTmp->LowerLayers );
+        gpstLineGInfo[iLoopCount].iface_thread_id   = 0;
     }
 
     return ANSC_STATUS_SUCCESS;
@@ -342,7 +347,7 @@ INT DmlXdslGetTotalNoofLines( VOID )
 static ANSC_STATUS DmlXdslGetLineStaticInfo( INT LineIndex, PDML_XDSL_LINE pstLineInfo )
 {
     //Fill default or static information for the line index
-    
+
     //Get Lowerlayers
     snprintf( pstLineInfo->LowerLayers, sizeof(pstLineInfo->LowerLayers), "Device.DSL.Line.%d", LineIndex + 1 );
 
@@ -392,7 +397,7 @@ ANSC_STATUS DmlXdslGetLineCfg( INT LineIndex, PDML_XDSL_LINE pstLineInfo )
 
     //Collect Line Statistics
     if ( RETURN_OK != xdsl_hal_dslGetLineStats( LineIndex, &pstLineInfo->stLineStats ) )
-    { 
+    {
          CcspTraceError(("%s Failed to get line stats value\n", __FUNCTION__));
          return ANSC_STATUS_FAILURE;
     }
@@ -404,7 +409,7 @@ ANSC_STATUS DmlXdslGetLineCfg( INT LineIndex, PDML_XDSL_LINE pstLineInfo )
 ANSC_STATUS DmlXdslLineSetEnable( INT LineIndex, BOOL Enable )
 {
     hal_param_t req_param;
-    
+
     //Validate index
     if ( LineIndex < 0 )
     {
@@ -433,7 +438,7 @@ ANSC_STATUS DmlXdslLineSetEnable( INT LineIndex, BOOL Enable )
 ANSC_STATUS DmlXdslLineSetDataGatheringEnable( INT LineIndex, BOOL Enable )
 {
     //TBD
-    
+
     CcspTraceInfo(("%s - %s:LineIndex:%d Enable:%d\n",__FUNCTION__,XDSL_MARKER_LINE_CFG_CHNG,LineIndex,Enable));
 
     return ANSC_STATUS_SUCCESS;
@@ -442,7 +447,12 @@ ANSC_STATUS DmlXdslLineSetDataGatheringEnable( INT LineIndex, BOOL Enable )
 /* DmlXdslLineSetUpstream() */
 ANSC_STATUS DmlXdslLineSetUpstream( INT LineIndex, BOOL Upstream )
 {
-    //Validate index 
+    pthread_t iface_thread_id = 0;
+    unsigned int check_try = 0;    
+    
+    CcspTraceInfo(("%s - %d: Received Upstream %d event\n",__FUNCTION__,__LINE__,  Upstream));
+
+    //Validate index
     if ( LineIndex < 0 )
     {
         CcspTraceError(("%s Invalid index[%d]\n", __FUNCTION__,LineIndex));
@@ -452,20 +462,44 @@ ANSC_STATUS DmlXdslLineSetUpstream( INT LineIndex, BOOL Upstream )
     //Set Upstream flag
     pthread_mutex_lock(&gmXdslGInfo_mutex);
     gpstLineGInfo[LineIndex].Upstream = Upstream;
+    iface_thread_id = gpstLineGInfo[LineIndex].iface_thread_id;
     pthread_mutex_unlock(&gmXdslGInfo_mutex);
 
-    //Needs to start thread based on instance - TBD. As of now I started
-    if( TRUE == Upstream )
+
+    if(TRUE == Upstream)
     {
-        XDSL_SM_PRIVATE_INFO stSMPrivateInfo = { 0 };
+        //Check if we already have a thread running
+        while((iface_thread_id > 0) && (check_try < 15))
+        {
+            //wait some seconds to the old thread terminate
+            sleep(1);
 
-        /* Create and Start DSL state machine */
-        pthread_mutex_lock(&gmXdslGInfo_mutex);
-        snprintf( stSMPrivateInfo.Name, sizeof( stSMPrivateInfo.Name ), "%s", gpstLineGInfo[LineIndex].Name );
-        snprintf( stSMPrivateInfo.LowerLayers, sizeof( stSMPrivateInfo.LowerLayers ),"%s", gpstLineGInfo[LineIndex].LowerLayers );
-        pthread_mutex_unlock(&gmXdslGInfo_mutex);
+            //re-check the thread id
+            pthread_mutex_lock(&gmXdslGInfo_mutex);
+            iface_thread_id = gpstLineGInfo[LineIndex].iface_thread_id;
+            pthread_mutex_unlock(&gmXdslGInfo_mutex);
 
-        XdslManager_Start_StateMachine( &stSMPrivateInfo );
+            check_try++;
+        }
+
+        //Needs to start thread based on instance - TBD. As of now I started
+        //Thread only starts if there are no other thread running for the interface
+        if((TRUE == Upstream) && (iface_thread_id == 0))
+        {
+            XDSL_SM_PRIVATE_INFO stSMPrivateInfo = { 0 };
+
+            /* Create and Start DSL state machine */
+            pthread_mutex_lock(&gmXdslGInfo_mutex);
+            snprintf( stSMPrivateInfo.Name, sizeof( stSMPrivateInfo.Name ), "%s", gpstLineGInfo[LineIndex].Name );
+            snprintf( stSMPrivateInfo.LowerLayers, sizeof( stSMPrivateInfo.LowerLayers ),"%s", gpstLineGInfo[LineIndex].LowerLayers );
+            pthread_mutex_unlock(&gmXdslGInfo_mutex);
+
+            XdslManager_Start_StateMachine( &stSMPrivateInfo );
+        }
+        else
+        {
+            CcspTraceError(("%s %d - There are an Interface Thread already running for LINE IDX %d \n", __FUNCTION__,__LINE__, LineIndex));
+        }
     }
 
     CcspTraceInfo(("%s - %s:LineIndex:%d Upstream:%d\n",__FUNCTION__,XDSL_MARKER_LINE_CFG_CHNG,LineIndex,Upstream));
@@ -553,13 +587,127 @@ ANSC_STATUS DmlXdslLineGetIndexFromIfName( char *ifname, INT *LineIndex )
         {
             *LineIndex = iLoopCount;
             pthread_mutex_unlock(&gmXdslGInfo_mutex);
-            return ANSC_STATUS_SUCCESS; 
+            return ANSC_STATUS_SUCCESS;
         }
     }
 
     pthread_mutex_unlock(&gmXdslGInfo_mutex);
 
     return ANSC_STATUS_FAILURE;
+}
+
+/* DmlXdslLine_GetIfaceTidByGivenIfName() */
+ANSC_STATUS DmlXdslLine_GetIfaceTidByGivenIfName(char* ifname, pthread_t* thread_id)
+{
+    ANSC_STATUS   retStatus;
+    INT           LineIndex = -1;
+
+    //Validate index
+    if (( NULL == ifname) || (NULL == thread_id ))
+    {
+        CcspTraceError(("%s Invalid Buffer\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    retStatus = DmlXdslLineGetIndexFromIfName( ifname, &LineIndex );
+    if( ( ANSC_STATUS_FAILURE == retStatus ) || ( -1 == LineIndex ) )
+    {
+        CcspTraceError(("%s Failed to get index for %s\n", __FUNCTION__,ifname));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    //Get the data
+    pthread_mutex_lock(&gmXdslGInfo_mutex);
+    *thread_id = gpstLineGInfo[LineIndex].iface_thread_id;
+    pthread_mutex_unlock(&gmXdslGInfo_mutex);
+
+    return ( ANSC_STATUS_SUCCESS );
+}
+
+/* DmlXdslLine_UpdateIfaceTidByGivenIfName() */
+ANSC_STATUS DmlXdslLine_UpdateIfaceTidByGivenIfName(char* ifname, pthread_t new_thread_id)
+{
+    ANSC_STATUS   retStatus;
+    INT           LineIndex = -1;
+
+
+    //Validate index
+    if (NULL == ifname)
+    {
+        CcspTraceError(("%s Invalid Buffer\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    retStatus = DmlXdslLineGetIndexFromIfName( ifname, &LineIndex );
+    if( ( ANSC_STATUS_FAILURE == retStatus ) || ( -1 == LineIndex ) )
+    {
+        CcspTraceError(("%s Failed to get index for %s\n", __FUNCTION__,ifname));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    //Get the data
+    pthread_mutex_lock(&gmXdslGInfo_mutex);
+    gpstLineGInfo[LineIndex].iface_thread_id = new_thread_id;
+    pthread_mutex_unlock(&gmXdslGInfo_mutex);
+
+    return ( ANSC_STATUS_SUCCESS );
+}
+
+
+/* DmlXdslLine_GetStandardUsedByGivenIfName() */
+ANSC_STATUS DmlXdslLine_GetStandardUsedByGivenIfName(char* ifname, char* StandardUsed)
+{
+    ANSC_STATUS   retStatus;
+    INT           LineIndex = -1;
+
+    //Validate index
+    if ( ( NULL == ifname ) || ( NULL == StandardUsed ) )
+    {
+        CcspTraceError(("%s Invalid Buffer\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    retStatus = DmlXdslLineGetIndexFromIfName( ifname, &LineIndex );
+    if( ( ANSC_STATUS_FAILURE == retStatus ) || ( -1 == LineIndex ) )
+    {
+        CcspTraceError(("%s Failed to get index for %s\n", __FUNCTION__,ifname));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    //Get the data
+    pthread_mutex_lock(&gmXdslGInfo_mutex);
+    snprintf(StandardUsed, XDSL_STANDARD_USED_STR_MAX, "%s", gpstLineGInfo[LineIndex].StandardUsed);
+    pthread_mutex_unlock(&gmXdslGInfo_mutex);
+
+    return ( ANSC_STATUS_SUCCESS );
+}
+
+/* DmlXdslLine_UpdateStandardUsedByGivenIfName() */
+ANSC_STATUS DmlXdslLine_UpdateStandardUsedByGivenIfName(char* ifname, char* StandardUsed)
+{
+    ANSC_STATUS   retStatus;
+    INT           LineIndex = -1;
+
+    //Validate index
+    if ( ( NULL == ifname ) || ( NULL == StandardUsed ) )
+    {
+        CcspTraceError(("%s Invalid Buffer\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    retStatus = DmlXdslLineGetIndexFromIfName( ifname, &LineIndex );
+    if( ( ANSC_STATUS_FAILURE == retStatus ) || ( -1 == LineIndex ) )
+    {
+        CcspTraceError(("%s Failed to get index for %s\n", __FUNCTION__,ifname));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    //Get the data
+    pthread_mutex_lock(&gmXdslGInfo_mutex);
+    strncpy(gpstLineGInfo[LineIndex].StandardUsed, StandardUsed, sizeof(gpstLineGInfo[LineIndex].StandardUsed));
+    pthread_mutex_unlock(&gmXdslGInfo_mutex);
+
+    return ( ANSC_STATUS_SUCCESS );
 }
 
 /* DmlXdslLineGetCopyOfGlobalInfoForGivenIfName() */
@@ -582,7 +730,7 @@ ANSC_STATUS DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( char *ifname, PDML_XDS
         CcspTraceError(("%s Failed to get index for %s\n", __FUNCTION__,ifname));
         return ANSC_STATUS_FAILURE;
     }
-    
+
     //Copy of the data
     pthread_mutex_lock(&gmXdslGInfo_mutex);
     memcpy( pGlobalInfo, &gpstLineGInfo[LineIndex], sizeof(DML_XDSL_LINE_GLOBALINFO));
@@ -607,7 +755,7 @@ ANSC_STATUS DmlXdslLineUpdateLinkStatusAndGetGlobalInfoForGivenIfName( char *ifn
 
     pthread_mutex_lock(&gmXdslGInfo_mutex);
 
-    /* 
+    /*
      * Verify whether Name is NULL or Empty.
      * If yes then needs to store passed ifname into that particular entry and copy the global information
      * If no then needs to parse and match till total entries and copy particular global information
@@ -619,9 +767,9 @@ ANSC_STATUS DmlXdslLineUpdateLinkStatusAndGetGlobalInfoForGivenIfName( char *ifn
             ( '\0' != gpstLineGInfo[iLoopCount].Name[0] ) && \
             ( 0 == strcmp( gpstLineGInfo[iLoopCount].Name, ifname ) )
           )
-        {   
+        {
             //Update link status
-            gpstLineGInfo[iLoopCount].LinkStatus = enLinkStatus; 
+            gpstLineGInfo[iLoopCount].LinkStatus = enLinkStatus;
             memcpy( pGlobalInfo, &gpstLineGInfo[iLoopCount], sizeof(DML_XDSL_LINE_GLOBALINFO));
             retStatus = ANSC_STATUS_SUCCESS;
             break;
@@ -632,7 +780,7 @@ ANSC_STATUS DmlXdslLineUpdateLinkStatusAndGetGlobalInfoForGivenIfName( char *ifn
             {
                 //Update interface name and copy the global information
                 snprintf( gpstLineGInfo[iLoopCount].Name, sizeof( gpstLineGInfo[iLoopCount].Name ), "%s", ifname );
-                
+
                 //Update link status
                 gpstLineGInfo[iLoopCount].LinkStatus = enLinkStatus;
 
@@ -684,7 +832,7 @@ static void DmlXdslStatusStrToEnum(char *status, DML_XDSL_IF_STATUS *ifStatus)
 {
     if(0 == strcmp( status, "Up" ))
     {
-        *ifStatus = XDSL_IF_STATUS_Up; 
+        *ifStatus = XDSL_IF_STATUS_Up;
     }
     else if(0 == strcmp( status, "Down" ))
     {
@@ -792,7 +940,7 @@ void DmlXdslLineLinkStatusCallback( char *ifname, DslLinkStatus_t dsl_link_state
 
            //Send message to Queue.
            DmlXdslLineSendLinkStatusToEventQueue( &MSGQWanData );
-       }  
+       }
     }
 }
 
@@ -856,19 +1004,19 @@ static void *DmlXdslEventHandlerThread( void *arg )
 #ifdef _HUB4_PRODUCT_REQ_
        char               ledStatus[32]      = { 0 };
 #endif
-  
+
        memcpy(&MSGQWanData, EventMsg.Msg, sizeof(XDSLMSGQWanData));
 
        CcspTraceInfo(("%s - MSGQ Name:%s LowerLayers:%s LinkStatus:%d\n", __FUNCTION__, MSGQWanData.Name, MSGQWanData.LowerLayers, MSGQWanData.LinkStatus));
 
        switch( MSGQWanData.LinkStatus )
-       {   
+       {
            case XDSL_LINK_STATUS_Up:
            {
                snprintf( acTmpPhyStatus, sizeof( acTmpPhyStatus ), "%s", "Up" );
            }
            break; /* * XDSL_LINK_STATUS_Up */
-        
+
            case XDSL_LINK_STATUS_Initializing:
            case XDSL_LINK_STATUS_EstablishingLink:
            {
@@ -882,15 +1030,15 @@ static void *DmlXdslEventHandlerThread( void *arg )
 #endif
            }
            break; /* * XDSL_LINK_STATUS_Initializing XDSL_LINK_STATUS_EstablishingLink */
-        
+
            case XDSL_LINK_STATUS_NoSignal:
            case XDSL_LINK_STATUS_Disabled:
-           case XDSL_LINK_STATUS_Error: 
+           case XDSL_LINK_STATUS_Error:
            {
                snprintf( acTmpPhyStatus, sizeof( acTmpPhyStatus ), "%s", "Down" );
            }
            break; /* * XDSL_LINK_STATUS_NoSignal XDSL_LINK_STATUS_Disabled XDSL_LINK_STATUS_Error */
-        
+
            default:
            {
                IsValidStatus = FALSE;
@@ -970,7 +1118,7 @@ static ANSC_STATUS DmlXdslGetParamValues( char *pComponent, char *pBus, char *pP
     int                    ret               = 0,
                            nval;
 
-    //Assign address for get parameter name 
+    //Assign address for get parameter name
     ParamName[0] = pParamName;
 
     ret = CcspBaseIf_getParameterValues(
@@ -996,8 +1144,8 @@ static ANSC_STATUS DmlXdslGetParamValues( char *pComponent, char *pBus, char *pP
         }
 
         return ANSC_STATUS_SUCCESS;
-    }        
-    
+    }
+
     if( retVal )
     {
        free_parameterValStruct_t (bus_handle, nval, retVal);
@@ -1122,7 +1270,7 @@ static ANSC_STATUS DmlXdslGetLowerLayersInstanceInOtherAgent( XDSL_NOTIFY_ENUM e
             CcspTraceInfo(("%s %d - TotalNoofEntries:%d\n", __FUNCTION__, __LINE__, iTotalNoofEntries));
 
             if( 0 >= iTotalNoofEntries )
-            { 
+            {
                return ANSC_STATUS_SUCCESS;
             }
 
@@ -1139,7 +1287,7 @@ static ANSC_STATUS DmlXdslGetLowerLayersInstanceInOtherAgent( XDSL_NOTIFY_ENUM e
             {
                 char acTmpQueryParam[256] = { 0 };
 
-                //Query 
+                //Query
                 snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ), "%sLowerLayers", a2cTmpTableParams[ iLoopCount ] );
 
                 memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
@@ -1160,7 +1308,7 @@ static ANSC_STATUS DmlXdslGetLowerLayersInstanceInOtherAgent( XDSL_NOTIFY_ENUM e
 
                     //Get last two chareters from return value and cut the instance
                     last_two = &tmpTableParam[strlen(tmpTableParam) - 2];
-                    
+
                     *piInstanceNumber   = atoi(last_two);
                     break;
                 }
@@ -1186,7 +1334,7 @@ static ANSC_STATUS DmlXdslGetLowerLayersInstanceInOtherAgent( XDSL_NOTIFY_ENUM e
             CcspTraceInfo(("%s %d - TotalNoofEntries:%d\n", __FUNCTION__, __LINE__, iTotalNoofEntries));
 
             if( 0 >= iTotalNoofEntries )
-            { 
+            {
                return ANSC_STATUS_SUCCESS;
             }
 
@@ -1203,7 +1351,7 @@ static ANSC_STATUS DmlXdslGetLowerLayersInstanceInOtherAgent( XDSL_NOTIFY_ENUM e
             {
                 char acTmpQueryParam[256] = { 0 };
 
-                //Query 
+                //Query
                 snprintf( acTmpQueryParam, sizeof(acTmpQueryParam ), "%sLowerLayers", a2cTmpTableParams[ iLoopCount ] );
 
                 memset( acTmpReturnValue, 0, sizeof( acTmpReturnValue ) );
@@ -1262,7 +1410,11 @@ ANSC_STATUS DmlXdslCreateXTMLink( char *ifname )
        CcspTraceError(("%s %d - Failed to start the handler thread\n",__FUNCTION__, __LINE__));
        return ANSC_STATUS_FAILURE;
     }
-    n = pthread_cond_timedwait(&cond, &mUpdationMutex, &_ts);
+
+    pthread_mutex_lock(&mCondMutex);
+    n = pthread_cond_timedwait(&mCreationCond, &mCondMutex, &_ts);
+    pthread_mutex_unlock(&mCondMutex);
+
     if(n == ETIMEDOUT)
     {
         CcspTraceInfo(("%s : pthread_cond_timedwait TIMED OUT!!!\n",__FUNCTION__));
@@ -1283,7 +1435,7 @@ ANSC_STATUS DmlXdslCreateXTMLink( char *ifname )
 /* * XTM_DMLUpdationHandlerThread() */
 static void *XTM_DMLUpdationHandlerThread( void *arg )
 {
-    char StandardUsed[64] = {'\0'};
+    char StandardUsed[XDSL_STANDARD_USED_STR_MAX] = {'\0'};
     char* ifname = (char*)arg;
 
     if ( NULL == ifname)
@@ -1295,12 +1447,10 @@ static void *XTM_DMLUpdationHandlerThread( void *arg )
     //detach thread from caller stack
     pthread_detach(pthread_self());
 
-    pthread_mutex_lock(&mUpdationMutex);
-
-    if (ANSC_STATUS_SUCCESS == DmlGetXdslStandardUsed(StandardUsed))
+    if (ANSC_STATUS_SUCCESS == DmlXdslLine_GetStandardUsedByGivenIfName(ifname, StandardUsed))
     {
-        if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413")  || 
-           strstr(StandardUsed,"G.992.2") || strstr(StandardUsed,"G.992.3") || 
+        if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413")  ||
+           strstr(StandardUsed,"G.992.2") || strstr(StandardUsed,"G.992.3") ||
            strstr(StandardUsed,"G.992.5")) /* ADSL */
         {
             if (ANSC_STATUS_SUCCESS == DmlCreateATMLink(ifname))
@@ -1330,7 +1480,6 @@ static void *XTM_DMLUpdationHandlerThread( void *arg )
         else
         {
             CcspTraceError(("%s : %s have no match with StandardsSupported\n", __FUNCTION__, StandardUsed));
-            return ANSC_STATUS_FAILURE;
         }
     }
     else
@@ -1338,8 +1487,9 @@ static void *XTM_DMLUpdationHandlerThread( void *arg )
         CcspTraceError(("%s : DmlGetXdslStandardUsed() failed \n", __FUNCTION__ ));
     }
 
-    pthread_cond_signal(&cond);
-    pthread_mutex_unlock(&mUpdationMutex);
+    pthread_mutex_lock(&mCondMutex);
+    pthread_cond_signal(&mCreationCond);
+    pthread_mutex_unlock(&mCondMutex);
 
     //Exit thread.
     pthread_exit(NULL);
@@ -1348,20 +1498,17 @@ static void *XTM_DMLUpdationHandlerThread( void *arg )
 ANSC_STATUS DmlGetXdslStandardUsed( char *StandardUsed )
 {
     int rc = ANSC_STATUS_SUCCESS;
-    DML_XDSL_LINE stLineInfo;
+    hal_param_t     req_param;
     unsigned int line_id = 1;
 
-    memset(&stLineInfo, 0, sizeof(stLineInfo));
-    rc = xdsl_hal_dslGetLineInfo(line_id, &stLineInfo);
-    if (rc == ANSC_STATUS_SUCCESS)
+    memset(&req_param, 0, sizeof(req_param));
+    if ( RETURN_OK != xdsl_hal_dslGetLineStandardUsed( &req_param, line_id ) )
     {
-        strncpy(StandardUsed, stLineInfo.StandardUsed, sizeof(stLineInfo.StandardUsed));
-    }
-    else
-    {
-        rc = ANSC_STATUS_FAILURE;
+        CcspTraceError(("%s Failed to get line StandardUsed value\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
     }
 
+    snprintf(StandardUsed, XDSL_STANDARD_USED_STR_MAX, "%s", req_param.value);
     return rc;
 }
 
@@ -1390,7 +1537,7 @@ ANSC_STATUS DmlCreatePTMLink( char *ifname )
     //Index is not present. so needs to create a PTM instance
     if( -1 == iPTMInstance )
     {
-        char  acTableName[ 128 ] = { 0 }; 
+        char  acTableName[ 128 ] = { 0 };
         INT   iNewTableInstance  = -1;
 
         sprintf( acTableName, "%s", PTM_LINK_TABLE_NAME);
@@ -1402,7 +1549,7 @@ ANSC_STATUS DmlCreatePTMLink( char *ifname )
                                                     acTableName,
                                                     &iNewTableInstance
                                                   ) )
-       {  
+       {
             CcspTraceError(("%s Failed to add table %s\n", __FUNCTION__,acTableName));
             return ANSC_STATUS_FAILURE;
        }
@@ -1458,7 +1605,7 @@ ANSC_STATUS DmlCreateATMLink( char *ifname )
     //Index is not present. so needs to create a ATM instance
     if( -1 == iATMInstance )
     {
-        char  acTableName[ 128 ] = { 0 }; 
+        char  acTableName[ 128 ] = { 0 };
         INT   iNewTableInstance  = -1;
 
         sprintf( acTableName, "%s", ATM_LINK_TABLE_NAME );
@@ -1470,7 +1617,7 @@ ANSC_STATUS DmlCreateATMLink( char *ifname )
                                                     acTableName,
                                                     &iNewTableInstance
                                                   ) )
-       {  
+       {
             CcspTraceError(("%s Failed to add table %s\n", __FUNCTION__,acTableName));
             return ANSC_STATUS_FAILURE;
        }
@@ -1523,7 +1670,10 @@ ANSC_STATUS DmlXdslDeleteXTMLink( char *ifname )
        return ANSC_STATUS_FAILURE;
     }
 
-    n = pthread_cond_timedwait(&cond, &mUpdationMutex, &_ts);
+    pthread_mutex_lock(&mCondMutex);
+    n = pthread_cond_timedwait(&mDeletionCond, &mCondMutex, &_ts);
+    pthread_mutex_unlock(&mCondMutex);
+
     if(n == ETIMEDOUT)
     {
         CcspTraceInfo(("%s : pthread_cond_timedwait TIMED OUT!!!\n",__FUNCTION__));
@@ -1544,7 +1694,7 @@ ANSC_STATUS DmlXdslDeleteXTMLink( char *ifname )
 
 static void *XTM_DMLDeletionHandlerThread( void *arg )
 {
-    char StandardUsed[64] = {'\0'};
+    char StandardUsed[XDSL_STANDARD_USED_STR_MAX] = {'\0'};
     char* ifname = (char*)arg;
 
     if ( NULL == ifname )
@@ -1556,13 +1706,10 @@ static void *XTM_DMLDeletionHandlerThread( void *arg )
     //detach thread from caller stack
     pthread_detach(pthread_self());
 
-    pthread_mutex_lock(&mUpdationMutex);
-
-    if (ANSC_STATUS_SUCCESS == DmlGetXdslStandardUsed(StandardUsed))
+    if (ANSC_STATUS_SUCCESS == DmlXdslLine_GetStandardUsedByGivenIfName(ifname, StandardUsed))
     {
         if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413") || strstr(StandardUsed,"G.992.2") ||
-           strstr(StandardUsed,"G.992.3") || strstr(StandardUsed,"G.992.5")|| strstr(StandardUsed,"G.993.2") ||
-           strstr(StandardUsed,"G.993.2") || strstr(StandardUsed,"G.9701")) /* ADSL */
+           strstr(StandardUsed,"G.992.3") || strstr(StandardUsed,"G.992.5")) /* ADSL */
         {
             if (ANSC_STATUS_SUCCESS != DmlDeleteATMLink(ifname))
             {
@@ -1591,7 +1738,6 @@ static void *XTM_DMLDeletionHandlerThread( void *arg )
         else
         {
             CcspTraceError(("%s : %s have no match with StandardsSupported\n", __FUNCTION__, StandardUsed));
-            return ANSC_STATUS_FAILURE;
         }
     }
     else
@@ -1599,8 +1745,10 @@ static void *XTM_DMLDeletionHandlerThread( void *arg )
         CcspTraceError(("%s : DmlGetXdslStandardUsed() failed \n", __FUNCTION__ ));
     }
 
-    pthread_cond_signal(&cond);
-    pthread_mutex_unlock(&mUpdationMutex);
+
+    pthread_mutex_lock(&mCondMutex);
+    pthread_cond_signal(&mDeletionCond);
+    pthread_mutex_unlock(&mCondMutex);
 
     //Exit thread.
     pthread_exit(NULL);
@@ -1614,7 +1762,7 @@ ANSC_STATUS DmlDeletePTMLink( char *ifname )
     char                       acSetParamName[256] = { 0 };
     char                       acSetParamValue[256] = { 0 };
     INT                        iPTMInstance   = -1;
-    
+
     //Validate buffer
     if( NULL == ifname )
     {
@@ -1672,7 +1820,7 @@ ANSC_STATUS DmlDeleteATMLink( char *ifname )
     char                       acSetParamName[DATAMODEL_PARAM_LENGTH];
     char                       acSetParamValue[DATAMODEL_PARAM_LENGTH];
     INT                        iXTMInstance   = -1;
-    
+
     //Validate buffer
     if( NULL == ifname )
     {
@@ -1717,15 +1865,6 @@ ANSC_STATUS DmlDeleteATMLink( char *ifname )
          return ANSC_STATUS_FAILURE;
     }
 
-    if(acSetParamName != NULL)
-    {
-        free(acSetParamName);
-    }
-    if(acSetParamValue != NULL)
-    {
-        free(acSetParamValue);
-    }
-
     CcspTraceInfo(("%s %d Successfully notified Down event to ATM Agent for %s interface\n", __FUNCTION__,__LINE__,ifname));
 
     return ANSC_STATUS_SUCCESS;
@@ -1743,7 +1882,7 @@ ANSC_STATUS DmlXdslSetWanLinkStatusForWanManager( char *ifname, char *WanStatus 
 
     //Validate buffer
     if( ( NULL == ifname ) || ( NULL == WanStatus ) )
-    {   
+    {
         CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
@@ -1923,7 +2062,7 @@ ANSC_STATUS DmlXdslGetChannelCfg( INT LineIndex, INT ChannelIndex, PDML_XDSL_CHA
 
     //Get channel statistics
     if ( RETURN_OK != xdsl_hal_dslGetChannelStats( LineIndex, ChannelIndex, &pstChannelInfo->stChannelStats ) )
-    {    
+    {
          CcspTraceError(("%s Failed to get channel statistics value\n", __FUNCTION__));
          return ANSC_STATUS_FAILURE;
     }
@@ -1942,7 +2081,7 @@ ANSC_STATUS DmlXdslChannelSetEnable( INT LineIndex, INT ChannelIndex, BOOL Enabl
 
     //Set enable/disable
     //TBD
-    
+
     CcspTraceInfo(("%s - %s:LineIndex:%d ChannelIndex:%d Enable:%d\n",__FUNCTION__,XDSL_MARKER_CHAN_CFG_CHNG,LineIndex,ChannelIndex,Enable));
 
     return ANSC_STATUS_SUCCESS;
@@ -1989,7 +2128,7 @@ DmlXdslReportInit
         PANSC_HANDLE                phContext
 )
 {
-    int retPsmGet                                    = 0; 
+    int retPsmGet                                    = 0;
     ULONG psmValue                                   = 0;
     PDATAMODEL_XDSL               pMyObject          = (PDATAMODEL_XDSL)phContext;
     PDML_X_RDK_REPORT_DSL         pXdslReportTmp     = NULL;

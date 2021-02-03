@@ -152,6 +152,16 @@ int xdsl_hal_registerDslLinkStatusCallback(dsl_link_status_callback link_status_
 int xdsl_hal_dslGetLineEnable( hal_param_t *req_param );
 
 /**
+ * This function gets the StandardUsed field from DSL driver
+ *
+ * @param[in] line_index - The line number which starts with 0
+ * @param[out] StandardUsed value as JSON object
+ *
+ * @return 0 on success. Otherwise a negative value is returned
+ */
+int xdsl_hal_dslGetLineStandardUsed( hal_param_t *req_param, int line_index);
+
+/**
  * This function sets the enable/disble of DSL line
  *
  * @param[in] req_msg - Pointer to hal_param_t structure contains param name,type and value

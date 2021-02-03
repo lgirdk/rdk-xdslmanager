@@ -29,6 +29,11 @@
 #define XDSL_MARKER_LINE_LINK_CB            "RDKB_XDSL_LINE_STATUS_CB"
 #define XDSL_MARKER_SM_TRANSITION           "RDKB_XDSL_SM_TRANSITION"
 
+
+#define XDSL_STANDARD_USED_STR_MAX          64
+
+
+
 /* Collection */
 typedef enum
 _DML_XDSL_IF_STATUS
@@ -159,7 +164,7 @@ _DML_XDSL_LINE
     CHAR                              StandardsSupported[512];
     CHAR                              XTSE[17];
     CHAR                              AllowedProfiles[256];
-    CHAR                              StandardUsed[64];
+    CHAR                              StandardUsed[XDSL_STANDARD_USED_STR_MAX];
     CHAR                              XTSUsed[17];
     CHAR                              FirmwareVersion[64];
     DML_XDSL_IF_STATUS                Status;
@@ -227,8 +232,10 @@ _DML_XDSL_LINE_GLOBALINFO
     BOOL                              Upstream;
     CHAR                              Name[64];
     CHAR                              LowerLayers[128];
+    CHAR                              StandardUsed[XDSL_STANDARD_USED_STR_MAX];
     DML_XDSL_LINE_WAN_STATUS           WanStatus;
     DML_XDSL_LINK_STATUS               LinkStatus;
+    pthread_t                          iface_thread_id;
 }
 DML_XDSL_LINE_GLOBALINFO, *PDML_XDSL_LINE_GLOBALINFO;
 
@@ -523,6 +530,14 @@ ANSC_STATUS DmlXdslLineGetIndexFromIfName( char *ifname, INT *LineIndex );
 ANSC_STATUS DmlXdslDeleteXTMLink( char *ifname );
 
 ANSC_STATUS DmlXdslCreateXTMLink( char *ifname );
+
+ANSC_STATUS DmlXdslLine_GetStandardUsedByGivenIfName(char* ifname, char* StandardUsed);
+
+ANSC_STATUS DmlXdslLine_UpdateStandardUsedByGivenIfName(char* ifname, char* StandardUsed);
+
+ANSC_STATUS DmlXdslLine_GetIfaceTidByGivenIfName(char* ifname, pthread_t* thread_id);
+
+ANSC_STATUS DmlXdslLine_UpdateIfaceTidByGivenIfName(char* ifname, pthread_t new_thread_id);
 
 ANSC_STATUS DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( char *ifname, PDML_XDSL_LINE_GLOBALINFO pGlobalInfo );
 

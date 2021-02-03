@@ -48,7 +48,8 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define LOOP_TIMEOUT                50000 // timeout in milliseconds. This is the state machine loop interval
+#define LOOP_TIMEOUT                  50000 // timeout in milliseconds. This is the state machine loop interval
+#define STANDARD_USED_QUERY_MAX_COUNT 30 // The maximum number of HAL request tries for StandardUsed value
 
 typedef enum {
     STATE_EXIT = 0,
@@ -77,7 +78,9 @@ static dslSmState_t TransitionPhyInterfaceDown( PXDSL_SM_PRIVATE_INFO pstPrivInf
 static dslSmState_t TransitionExit( PXDSL_SM_PRIVATE_INFO pstPrivInfo );                         //Exit from state machine
 
 static void* DslStateMachineThread( void *arg );
-
+#ifdef _HUB4_PRODUCT_REQ_
+static bool isAdslAllowed();
+#endif
 /* ***************************************************************************************** */
 
 /* XdslManager_Start_StateMachine() */
@@ -91,7 +94,7 @@ void XdslManager_Start_StateMachine( PXDSL_SM_PRIVATE_INFO pstMPrivateInfo )
     //Need to create pthread key at once
     if( 0 == siKeyCreated )
     {
-        if ( 0 != pthread_key_create( &sm_private_key, NULL ) ) 
+        if ( 0 != pthread_key_create( &sm_private_key, NULL ) )
         {
           CcspTraceError(("%s %d Unable to create pthread_key\n", __FUNCTION__, __LINE__));
           return;
@@ -109,8 +112,8 @@ void XdslManager_Start_StateMachine( PXDSL_SM_PRIVATE_INFO pstMPrivateInfo )
     }
 
     //Copy buffer
-    memcpy( pstPInfo, pstMPrivateInfo, sizeof( XDSL_SM_PRIVATE_INFO ) ); 
- 
+    memcpy( pstPInfo, pstMPrivateInfo, sizeof( XDSL_SM_PRIVATE_INFO ) );
+
     //DSL state machine thread
     iErrorCode = pthread_create( &dslThreadId, NULL, &DslStateMachineThread, (void*)pstPInfo );
 
@@ -128,6 +131,11 @@ void XdslManager_Start_StateMachine( PXDSL_SM_PRIVATE_INFO pstMPrivateInfo )
 static void* DslStateMachineThread( void *arg )
 {
     dslSmState_t currentSmState   = STATE_EXIT;
+    PXDSL_SM_PRIVATE_INFO  pstPrivInfo = NULL;
+    CHAR StandardUsed[XDSL_STANDARD_USED_STR_MAX] = {0};
+    pthread_t thread_id = 0;
+    bool isStandardUsedUpdated = false;
+    int retry_count = 0;
 
     // event handler
     int n=0;
@@ -137,9 +145,38 @@ static void* DslStateMachineThread( void *arg )
     if ( NULL == arg )
     {
        CcspTraceError(("%s %d Invalid buffer\n", __FUNCTION__,__LINE__));
-       
+
        //Cleanup current thread when exit
        pthread_exit(NULL);
+    }
+
+    //update global iface id
+    pstPrivInfo = (PXDSL_SM_PRIVATE_INFO)arg;
+    thread_id = pthread_self();
+    DmlXdslLine_UpdateIfaceTidByGivenIfName(pstPrivInfo->Name, thread_id);
+
+    //update standardused in global structure
+    while(retry_count < STANDARD_USED_QUERY_MAX_COUNT)
+    {
+        if (ANSC_STATUS_SUCCESS == DmlGetXdslStandardUsed(StandardUsed))
+        {
+            if (StandardUsed[0] != '\0')
+            {
+                DmlXdslLine_UpdateStandardUsedByGivenIfName(pstPrivInfo->Name, StandardUsed);
+                isStandardUsedUpdated = true;
+                break;
+            }
+        }
+
+        retry_count++;
+        sleep(2);
+    }
+
+    //terminate state machine if standardused value is not available
+    if (isStandardUsedUpdated == false)
+    {
+        CcspTraceError(("%s %d Unable to get StandardUsed value from driver.. Stopping xdsl state machine \n", __FUNCTION__,__LINE__));
+        goto EXIT;
     }
 
     //detach thread from caller stack
@@ -167,8 +204,6 @@ static void* DslStateMachineThread( void *arg )
 
     while (bRunning)
     {
-        PXDSL_SM_PRIVATE_INFO  pstPrivInfo = NULL;
-
         /* Wait up to 500 milliseconds */
         tv.tv_sec = 0;
         tv.tv_usec = LOOP_TIMEOUT;
@@ -213,21 +248,25 @@ static void* DslStateMachineThread( void *arg )
             case STATE_EXIT:
             default:
             {
-                //Free current private resource before exit
-                if( NULL != pstPrivInfo )
-                {
-                    free(pstPrivInfo);
-                    pstPrivInfo = NULL;
-
-                }
-
                 bRunning = false;
 
                 CcspTraceInfo(("%s %d - Exit from state machine\n", __FUNCTION__, __LINE__));
-                break; 
-            } 
+                break;
+            }
 
         }
+    }
+
+EXIT:
+    //Clean iface id thread
+    pstPrivInfo = ( PXDSL_SM_PRIVATE_INFO ) pthread_getspecific( sm_private_key );
+    DmlXdslLine_UpdateIfaceTidByGivenIfName(pstPrivInfo->Name, 0);
+
+    //Free current private resource before exit
+    if( NULL != pstPrivInfo )
+    {
+        free(pstPrivInfo);
+        pstPrivInfo = NULL;
     }
 
     //Cleanup current thread when exit
@@ -288,27 +327,21 @@ static dslSmState_t StateTraining( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 
 static dslSmState_t StateXtmConfiguring( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 {
-    DML_XDSL_LINE_GLOBALINFO stGlobalInfo = { 0 }; 
+    DML_XDSL_LINE_GLOBALINFO stGlobalInfo = { 0 };
+    char StandardUsed[XDSL_STANDARD_USED_STR_MAX] = {'\0'};
+    bool is_adsl_allowed = TRUE;
 #ifdef _HUB4_PRODUCT_REQ_
-    char StandardUsed[64] = {'\0'};
-    char region[16] = {'\0'};
-    int ret = platform_hal_GetRouterRegion(region);
-    if (ret == 0)
-    {
-        if ((strncmp(region, "GB", strlen("GB"))== 0))
-        {
-            if (ANSC_STATUS_SUCCESS == DmlGetXdslStandardUsed(StandardUsed))
-            {
-                if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413")  || 
-                   strstr(StandardUsed,"G.992.2") || strstr(StandardUsed,"G.992.3") || 
-                   strstr(StandardUsed,"G.992.5")) /* ADSL */
-                {
-                    DmlXdslLineSetWanStatus( 0, XDSL_LINE_WAN_UP );
-                }
-            }
-        }
-    }
+    is_adsl_allowed = isAdslAllowed();
 #endif
+    if ( is_adsl_allowed && (ANSC_STATUS_SUCCESS == DmlXdslLine_GetStandardUsedByGivenIfName(pstPrivInfo->Name, StandardUsed)))
+    {
+       if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413")  ||
+       strstr(StandardUsed,"G.992.2") || strstr(StandardUsed,"G.992.3") ||
+       strstr(StandardUsed,"G.992.5")) /* ADSL */
+       {
+          DmlXdslLineSetWanStatus( 0, XDSL_LINE_WAN_UP );
+       }
+    }
     //Get current DSL link status
     DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( pstPrivInfo->Name, &stGlobalInfo );
 
@@ -316,7 +349,7 @@ static dslSmState_t StateXtmConfiguring( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
     {
         return TransitionWanLinkUp( pstPrivInfo );
     }
-    else if ( ( FALSE == stGlobalInfo.Upstream ) || 
+    else if ( ( FALSE == stGlobalInfo.Upstream ) ||
               ( XDSL_LINK_STATUS_Up != stGlobalInfo.LinkStatus ) )
     {
         return TransitionPhyInterfaceDown( pstPrivInfo );
@@ -327,13 +360,13 @@ static dslSmState_t StateXtmConfiguring( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 
 static dslSmState_t StateWanLinkUp( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 {
-    DML_XDSL_LINE_GLOBALINFO stGlobalInfo = { 0 }; 
+    DML_XDSL_LINE_GLOBALINFO stGlobalInfo = { 0 };
 
     //Get current DSL link status
     DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( pstPrivInfo->Name, &stGlobalInfo );
 
-    if ( ( FALSE == stGlobalInfo.Upstream ) || 
-         ( XDSL_LINE_WAN_DOWN == stGlobalInfo.WanStatus ) ||  
+    if ( ( FALSE == stGlobalInfo.Upstream ) ||
+         ( XDSL_LINE_WAN_DOWN == stGlobalInfo.WanStatus ) ||
          ( XDSL_LINK_STATUS_Up != stGlobalInfo.LinkStatus ) )
     {
         return TransitionPhyInterfaceDown( pstPrivInfo );
@@ -380,7 +413,7 @@ static dslSmState_t TransitionWanLinkUp( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 
     if ( ANSC_STATUS_SUCCESS != DmlXdslSetWanLinkStatusForWanManager( pstPrivInfo->Name, "Up" ) )
     {
-        CcspTraceError(("%s Failed to set LinkUp to WAN\n", __FUNCTION__)); 
+        CcspTraceError(("%s Failed to set LinkUp to WAN\n", __FUNCTION__));
     }
 
     CcspTraceInfo(("%s - %s:IfName:%s STATE_WAN_LINK_UP\n",__FUNCTION__,XDSL_MARKER_SM_TRANSITION,pstPrivInfo->Name));
@@ -390,7 +423,7 @@ static dslSmState_t TransitionWanLinkUp( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 
 static dslSmState_t TransitionPhyInterfaceDown( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 {
-    /* 
+    /*
      *   1. Notify to PTM to disable and delete interface link
      *   2. Notify to WAN for Down event
      */
@@ -409,9 +442,9 @@ static dslSmState_t TransitionPhyInterfaceDown( PXDSL_SM_PRIVATE_INFO pstPrivInf
     return STATE_DISCONNECTED;
 }
 
-static dslSmState_t TransitionExit( PXDSL_SM_PRIVATE_INFO pstPrivInfo ) 
+static dslSmState_t TransitionExit( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 {
-    /* 
+    /*
      *  1. Exit fro state machine
      */
 
@@ -419,3 +452,19 @@ static dslSmState_t TransitionExit( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 
     return STATE_EXIT;
 }
+
+#ifdef _HUB4_PRODUCT_REQ_
+static bool isAdslAllowed()
+{
+    char region[16] = {'\0'};
+    int ret = platform_hal_GetRouterRegion(region);
+    if (ret == 0)
+    {
+        if ((strncmp(region, "GB", strlen("GB"))== 0))
+        {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+#endif

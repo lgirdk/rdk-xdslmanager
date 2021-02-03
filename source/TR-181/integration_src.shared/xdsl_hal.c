@@ -54,6 +54,7 @@
 
 #define XDSL_LINE_ENABLE "Device.DSL.Line.%d.Enable"
 #define XDSL_LINE_INFO "Device.DSL.Line.%d."
+#define XDSL_LINE_STANDARD_USED "Device.DSL.Line.%d.StandardUsed"
 #define XDSL_LINE_STATS "Device.DSL.Line.%d.Stats."
 #define XDSL_LINE_LINKSTATUS "Device.DSL.Line.1.LinkStatus"
 #define XDSL_LINE_PROFILE "Device.DSL.Line.1.AllowedProfiles"
@@ -308,6 +309,61 @@ int xdsl_hal_dslGetLineEnable( hal_param_t *req_param )
     return rc;
 }
 
+/* xdsl_hal_dslGetLineStandardUsed() */
+int xdsl_hal_dslGetLineStandardUsed( hal_param_t *req_param, int line_index)
+{
+    int rc = RETURN_OK;
+    int total_param_count = 0;
+
+    json_object *jmsg = NULL;
+    json_object *jresponse_msg = NULL;
+    hal_param_t resp_param;
+
+    jmsg = json_hal_client_get_request_header(RPC_GET_PARAMETERS_REQUEST);
+    CHECK(jmsg);
+
+    snprintf(req_param->name, sizeof(req_param->name), XDSL_LINE_STANDARD_USED, line_index);
+
+    memset(&resp_param, 0, sizeof(resp_param));
+    if (json_hal_add_param(jmsg, GET_REQUEST_MESSAGE, req_param) != RETURN_OK)
+    {
+        FREE_JSON_OBJECT(jmsg);
+        return RETURN_ERR;
+    }
+
+    CcspTraceInfo(("JSON Request message = %s \n", json_object_to_json_string_ext(jmsg, JSON_C_TO_STRING_PRETTY)));
+
+    if( json_hal_client_send_and_get_reply(jmsg, &jresponse_msg) != RETURN_OK)
+    {
+        FREE_JSON_OBJECT(jmsg);
+        FREE_JSON_OBJECT(jresponse_msg);
+        return RETURN_ERR;
+    }
+
+    if(jresponse_msg == NULL)
+    {
+        FREE_JSON_OBJECT(jmsg);
+        return RETURN_ERR;
+    }
+
+    rc = json_hal_get_param(jresponse_msg, 0, GET_RESPONSE_MESSAGE, &resp_param);
+    if (rc != RETURN_OK)
+    {
+        FREE_JSON_OBJECT(jmsg);
+        FREE_JSON_OBJECT(jresponse_msg);
+        return RETURN_ERR;
+    }
+
+    if (strstr (resp_param.name, "StandardUsed"))
+    {
+        strncpy(req_param->value, resp_param.value, sizeof(resp_param.value));
+    }
+
+    FREE_JSON_OBJECT(jmsg);
+    FREE_JSON_OBJECT(jresponse_msg);
+
+    return rc;
+}
 /* xdsl_hal_dslSetLineEnable() */
 int xdsl_hal_dslSetLineEnable( hal_param_t *req_msg )
 {
