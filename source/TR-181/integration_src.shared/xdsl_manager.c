@@ -452,7 +452,12 @@ static dslSmState_t TransitionExit( PXDSL_SM_PRIVATE_INFO pstPrivInfo )
 {
     /*
      *  1. Exit fro state machine
-     */
+    */
+
+    if ( ANSC_STATUS_SUCCESS != DmlXdslSetWanLinkStatusForWanManager( pstPrivInfo->Name, "Down" ) )
+    {
+        CcspTraceError(("%s Failed to set LinkDown to WAN\n", __FUNCTION__));
+    }
 
     CcspTraceInfo(("%s - %s:IfName:%s STATE_EXIT\n",__FUNCTION__,XDSL_MARKER_SM_TRANSITION,pstPrivInfo->Name));
 
