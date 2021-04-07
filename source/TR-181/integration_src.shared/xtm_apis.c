@@ -35,6 +35,7 @@
 #define VLAN_ETH_LINK_PARAM_ALIAS         "Device.X_RDK_Ethernet.Link.%d.Alias"
 #define VLAN_ETH_LINK_PARAM_NAME          "Device.X_RDK_Ethernet.Link.%d.Name"
 #define VLAN_ETH_LINK_PARAM_LOWERLAYERS   "Device.X_RDK_Ethernet.Link.%d.LowerLayers"
+#define VLAN_ETH_LINK_PARAM_BASEINTERFACE "Device.X_RDK_Ethernet.Link.%d.X_RDK_BaseInterface"
 #define VLAN_ETH_LINK_PARAM_ENABLE        "Device.X_RDK_Ethernet.Link.%d.Enable"
 
 #define PTM_LINK_ENABLE "Device.PTM.Link.%d.Enable"
@@ -47,6 +48,7 @@
 
 #define DATAMODEL_PARAM_LENGTH 256
 
+#define WAN_INTERFACE_NAME "erouter0"
 
 extern char                g_Subsystem[32];
 extern ANSC_HANDLE         bus_handle;
@@ -390,12 +392,12 @@ ANSC_STATUS DmlPtmCreateEthLink( PDML_PTM   pEntry )
 
     //Set Alias
     snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_ETH_LINK_PARAM_ALIAS, iVLANInstance);
-    snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", pEntry->Alias);
+    snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", pEntry->Name);
     CosaDmlXtmSetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string,FALSE);
     
     //Set Name
     snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_ETH_LINK_PARAM_NAME, iVLANInstance);
-    snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", pEntry->Name);
+    snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WAN_INTERFACE_NAME);
     CosaDmlXtmSetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string,FALSE);
 
     //Set Lowerlayers
@@ -403,6 +405,11 @@ ANSC_STATUS DmlPtmCreateEthLink( PDML_PTM   pEntry )
     snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", pEntry->Path);
     CosaDmlXtmSetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string,FALSE);
 
+    //Set Base interface
+    snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_ETH_LINK_PARAM_BASEINTERFACE, iVLANInstance);
+    snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", pEntry->Alias);
+    CosaDmlXtmSetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string,FALSE);
+    
     //Set Enable
     snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_ETH_LINK_PARAM_ENABLE, iVLANInstance);
     snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "true");
