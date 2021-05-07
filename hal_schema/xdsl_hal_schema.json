@@ -2892,7 +2892,10 @@
           "type": "string",
           "const": "string"
         },
-        "value": { "$ref": "#/definitions/linkEncapsulationEnumList" }
+        "value": {
+          "type": "string",
+          "pattern" : "^(G.992.3_Annex_K_ATM|G.992.3_Annex_K_PTM|G.993.2_Annex_K_ATM|G.993.2_Annex_K_PTM|G.994.1)*$"
+        }
       }
     },
 

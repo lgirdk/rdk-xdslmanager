@@ -45,7 +45,6 @@
 #include "xtm_internal.h"
 #include "xdsl_internal.h"
 
-#include "rpc-cli/rpc_client.h"
 #include <json-c/json.h>
 #include "json_hal_common.h"
 #include "json_hal_client.h"
@@ -56,7 +55,11 @@
 #define XDSL_LINE_INFO "Device.DSL.Line.%d."
 #define XDSL_LINE_STANDARD_USED "Device.DSL.Line.%d.StandardUsed"
 #define XDSL_LINE_STATS "Device.DSL.Line.%d.Stats."
+#ifdef _SR300_PRODUCT_REQ_
+#define XDSL_LINE_LINKSTATUS "Device.DSL.Line.1.Status"
+#else
 #define XDSL_LINE_LINKSTATUS "Device.DSL.Line.1.LinkStatus"
+#endif //_SR300_PRODUCT_REQ_
 #define XDSL_LINE_PROFILE "Device.DSL.Line.1.AllowedProfiles"
 #define XDSL_LINE_DATA_GATHERING_ENABLE "Device.DSL.Line.%d.EnableDataGathering"
 
@@ -94,6 +97,11 @@
 
 #define XDSL_MAX_LINES 1
 #define HAL_CONNECTION_RETRY_MAX_COUNT 10
+
+#define XDSL_LOWER_LAYER_IFACE "dsl0"
+#define XDSL_LINK_UP "up"
+#define XDSL_LINK_DOWN "down"
+#define XDSL_LINK_TRAINING "training"
 
 #define CHECK(expr)                                                \
     if (!(expr))                                                   \
@@ -223,6 +231,7 @@ int xdsl_hal_init( void )
         CcspTraceError(("Failed to subscribe DSL link event \n"));
     }
 
+#ifndef _SR300_PRODUCT_REQ_
     /**
      * Configure xDSL driver.
      */
@@ -231,6 +240,7 @@ int xdsl_hal_init( void )
     {
         CcspTraceError(("Failed to configure xDSL driver \n"));
     }
+#endif
     return rc;
 }
 
@@ -761,6 +771,9 @@ int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
         FREE_JSON_OBJECT(jmsg);
         return RETURN_ERR;
     }
+
+    CcspTraceInfo(("JSON Response message = %s \n", json_object_to_json_string_ext(jreply_msg,JSON_C_TO_STRING_PRETTY)));
+
     if (json_object_object_get_ex(jreply_msg, JSON_RPC_FIELD_PARAMS, &jparams))
     {
         total_param_count = json_object_array_length(jparams);
@@ -849,7 +862,17 @@ int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
             pstLineInfo->LastChange = atoi(resp_param.value);
         }
         else if (strstr (resp_param.name, "PowerManagementState")) {
-            pstLineInfo->PowerManagementState = atoi(resp_param.value);
+            if (strcmp(resp_param.value, "L0") == 0) {
+                pstLineInfo->PowerManagementState = PM_STATE_L0;
+            }else if (strcmp(resp_param.value, "L1") == 0) {
+                pstLineInfo->PowerManagementState = PM_STATE_L1;
+            }else if (strcmp(resp_param.value, "L2") == 0) {
+                pstLineInfo->PowerManagementState = PM_STATE_L2;
+            }else if (strcmp(resp_param.value, "L3") == 0) {
+                pstLineInfo->PowerManagementState = PM_STATE_L3;
+            }else if (strcmp(resp_param.value, "L4") == 0) {
+                pstLineInfo->PowerManagementState = PM_STATE_L4;
+            }
         }
         else if (strstr (resp_param.name, "UpstreamMaxBitRate")) {
             pstLineInfo->UpstreamMaxBitRate= atoi(resp_param.value);
@@ -1103,21 +1126,21 @@ static void *eventcb(const char *msg, const int len)
         if (dsl_link_status_cb)
         {
             DslLinkStatus_t link_status;
-            if ( strncmp(event_val, "up", 2) == 0 )
+            if (strncasecmp(event_val, XDSL_LINK_UP, 2) == 0 )
             {
                 link_status = LINK_UP;
                 g_successful_retrains = g_successful_retrains + 1;
             }
-            else if ( strncmp(event_val,"training",8) == 0 )
+            else if (strncasecmp(event_val,XDSL_LINK_TRAINING,8) == 0 )
             {
                 link_status = LINK_INITIALIZING ;
             }
-            else if ( strncmp(event_val, "down",4) == 0 )
+            else if (strncasecmp(event_val, XDSL_LINK_DOWN,4) == 0 )
             {
                 link_status = LINK_DISABLED ;
             }
-            CcspTraceInfo(("Notifying DSLAgent for the link event \n"));
-            dsl_link_status_cb("dsl0", link_status);
+            CcspTraceInfo(("Notifying DSLManager for the link event \n"));
+            dsl_link_status_cb(XDSL_LOWER_LAYER_IFACE, link_status);
         }
     }
 
@@ -2131,13 +2154,15 @@ ANSC_STATUS atm_hal_setLinkInfoParam(PDML_ATM config)
         snprintf(param.value, sizeof(param.value), "%s", "false");
     param.type = PARAM_BOOLEAN;
     json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
-    
+
+#ifndef _SR300_PRODUCT_REQ_
     memset(&param, 0, sizeof(param));
     snprintf(param.name, sizeof(param), ATM_LINK_NAME, config->InstanceNumber);
     snprintf(param.value, sizeof(param.value), "%s", config->Name);
     param.type = PARAM_STRING;
     json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
-    
+#endif // _SR300_PRODUCT_REQ_
+
     memset(&param, 0, sizeof(param));
     snprintf(param.name, sizeof(param), ATM_LINK_DESTINATIONADDRESS, config->InstanceNumber);
     snprintf(param.value, sizeof(param.value), "%s", config->DestinationAddress);
@@ -2157,7 +2182,8 @@ ANSC_STATUS atm_hal_setLinkInfoParam(PDML_ATM config)
     }
     param.type = PARAM_STRING;
     json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
-    
+
+#ifndef _SR300_PRODUCT_REQ_
     memset(&param, 0, sizeof(param));
     snprintf(param.name, sizeof(param), ATM_LINK_AAL, config->InstanceNumber);
     switch(config->AAL)
@@ -2180,11 +2206,23 @@ ANSC_STATUS atm_hal_setLinkInfoParam(PDML_ATM config)
     }
     param.type = PARAM_STRING;
     json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+#endif // _SR300_PRODUCT_REQ_
 
     memset(&param, 0, sizeof(param));
     snprintf(param.name, sizeof(param), ATM_LINK_LINKTYPE, config->InstanceNumber);
     switch(config->LinkType)
     {
+#ifdef _SR300_PRODUCT_REQ_
+        case EOA:
+           snprintf(param.value, sizeof(param.value), "%s", "EoA");
+           break;
+        case IPOA:
+           snprintf(param.value, sizeof(param.value), "%s", "IPoA");
+           break;
+        case PPPOA:
+           snprintf(param.value, sizeof(param.value), "%s", "PPPoA");
+           break;
+#else
         case EOA:
            snprintf(param.value, sizeof(param.value), "%s", "EOA");
            break;
@@ -2194,6 +2232,7 @@ ANSC_STATUS atm_hal_setLinkInfoParam(PDML_ATM config)
         case PPPOA:
            snprintf(param.value, sizeof(param.value), "%s", "PPPOA");
            break;
+#endif //_SR300_PRODUCT_REQ_
         case CIP:
            snprintf(param.value, sizeof(param.value), "%s", "CIP");
            break;

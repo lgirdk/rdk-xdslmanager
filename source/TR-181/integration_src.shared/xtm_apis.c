@@ -47,6 +47,7 @@
 
 #define DATAMODEL_PARAM_LENGTH 256
 
+
 extern char                g_Subsystem[32];
 extern ANSC_HANDLE         bus_handle;
 
@@ -401,7 +402,7 @@ ANSC_STATUS DmlPtmCreateEthLink( PDML_PTM   pEntry )
     snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_ETH_LINK_PARAM_LOWERLAYERS, iVLANInstance);
     snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", pEntry->Path);
     CosaDmlXtmSetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string,FALSE);
-    
+
     //Set Enable
     snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_ETH_LINK_PARAM_ENABLE, iVLANInstance);
     snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "true");
