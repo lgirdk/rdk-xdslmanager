@@ -112,6 +112,8 @@ extern ANSC_HANDLE         bus_handle;
 
     Device.PTM.Link.{i}.
 
+    *  PTMLink_Synchronize
+    *  PTMLink_IsUpdated
     *  PTMLink_GetEntryCount
     *  PTMLink_GetEntry
     *  PTMLink_AddEntry
@@ -127,6 +129,71 @@ extern ANSC_HANDLE         bus_handle;
     *  PTMLink_Rollback
 
 ***********************************************************************/
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        PTMLink_IsUpdated
+            (
+                ANSC_HANDLE                 hInsContext
+            );
+
+    description:
+
+        This function is checking whether the table is updated or not.
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+    return:     TRUE or FALSE.
+
+**********************************************************************/
+BOOL
+PTMLink_IsUpdated
+    (
+        ANSC_HANDLE                 hInsContext
+    )
+{
+    BOOL    bIsUpdated   = TRUE;
+
+    return bIsUpdated;
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        ULONG
+        PTMLink_Synchronize
+            (
+                ANSC_HANDLE                 hInsContext
+            );
+
+    description:
+
+        This function is called to synchronize the table.
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+    return:     The status of the operation.
+
+**********************************************************************/
+ULONG
+PTMLink_Synchronize
+    (
+        ANSC_HANDLE                 hInsContext
+    )
+{
+    ANSC_STATUS            returnStatus   = ANSC_STATUS_SUCCESS;
+
+    return returnStatus;
+}
 
 /**********************************************************************
 
@@ -1034,6 +1101,8 @@ ULONG PTMLink_Rollback ( ANSC_HANDLE hInsContext )
 
     Device.ATM.Link.{i}.
 
+    *  ATMLink_Synchronize
+    *  ATMLink_IsUpdated
     *  ATMLink_GetEntryCount
     *  ATMLink_GetEntry
     *  ATMLink_AddEntry
@@ -1049,6 +1118,72 @@ ULONG PTMLink_Rollback ( ANSC_HANDLE hInsContext )
     *  ATMLink_Rollback
 
 ***********************************************************************/
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        ATMLink_IsUpdated
+            (
+                ANSC_HANDLE                 hInsContext
+            );
+
+    description:
+
+        This function is checking whether the table is updated or not.
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+    return:     TRUE or FALSE.
+
+**********************************************************************/
+BOOL
+ATMLink_IsUpdated
+    (
+        ANSC_HANDLE                 hInsContext
+    )
+{
+    BOOL    bIsUpdated   = TRUE;
+
+    return bIsUpdated;
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        ULONG
+        ATMLink_Synchronize
+            (
+                ANSC_HANDLE                 hInsContext
+            );
+
+    description:
+
+        This function is called to synchronize the table.
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+    return:     The status of the operation.
+
+**********************************************************************/
+ULONG
+ATMLink_Synchronize
+    (
+        ANSC_HANDLE                 hInsContext
+    )
+{
+    ANSC_STATUS            returnStatus   = ANSC_STATUS_SUCCESS;
+
+    return returnStatus;
+}
 
 /**********************************************************************
 

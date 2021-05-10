@@ -22,6 +22,7 @@
 
 #include "cosa_apis.h"
 #include "ssp_global.h"
+#include "xdsl_apis.h"
 
 #define XTM_IF_STATUS_ERROR            7
 #define XTM_IF_STATUS_NOT_PRESENT      5
@@ -258,5 +259,6 @@ ANSC_STATUS DmlPtmCreateEthLink (PDML_PTM pEntry);
 ANSC_STATUS DmlPtmDeleteEthLink (char *l3ifName);
 ANSC_STATUS DmlAtmCreatePPPLink( PDML_ATM pEntry );
 ANSC_STATUS DmlAtmDeletePPPLink( char *l3ifName );
-
+void DmlPTMLinkUpdateParams (  ANSC_HANDLE hInsContext, PDML_XDSL_LINE_GLOBALINFO pGlobalInfo, BOOL bValue);
+void DmlATMLinkUpdateParams (  ANSC_HANDLE hInsContext, PDML_XDSL_LINE_GLOBALINFO pGlobalInfo, BOOL bValue);
 #endif

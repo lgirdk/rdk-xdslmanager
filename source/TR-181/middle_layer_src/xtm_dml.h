@@ -40,7 +40,8 @@
  APIs for Object:
 
     Device.PTM.Link.{i}.
-
+    *  PTMLink_IsUpdated
+    *  PTMLink_Synchronize
     *  PTMLink_GetEntryCount
     *  PTMLink_GetEntry
     *  PTMLink_AddEntry
@@ -56,6 +57,17 @@
     *  PTMLink_Rollback
 
 ***********************************************************************/
+BOOL
+PTMLink_IsUpdated
+    (
+        ANSC_HANDLE                 hInsContext
+    );
+
+ULONG
+PTMLink_Synchronize
+    (
+        ANSC_HANDLE                 hInsContext
+    );
 
 ULONG
 PTMLink_GetEntryCount
@@ -184,6 +196,8 @@ PTMLinkStats_GetParamUlongValue
 
     Device.ATM.{i}.Link.
 
+    *  ATMLink_IsUpdated
+    *  ATMLink_Synchronize
     *  ATMLink_GetEntryCount
     *  ATMLink_GetEntry
     *  ATMLink_AddEntry
@@ -199,7 +213,8 @@ PTMLinkStats_GetParamUlongValue
     *  ATMLink_Rollback
 
 ***********************************************************************/
-
+BOOL ATMLink_IsUpdated ( ANSC_HANDLE hInsContext );
+ULONG ATMLink_Synchronize ( ANSC_HANDLE hInsContext );
 ULONG ATMLink_GetEntryCount ( ANSC_HANDLE hInsContext );
 ANSC_HANDLE ATMLink_GetEntry ( ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber );
 ANSC_HANDLE ATMLink_AddEntry ( ANSC_HANDLE hInsContext, ULONG* pInsNumber );

@@ -901,3 +901,23 @@ ANSC_STATUS DmlDelAtm (ANSC_HANDLE hContext, PDML_ATM pEntry )
 
     return returnStatus;
 }
+
+void DmlPTMLinkUpdateParams (  ANSC_HANDLE hInsContext, PDML_XDSL_LINE_GLOBALINFO pGlobalInfo, BOOL bValue)
+{
+    PCONTEXT_LINK_OBJECT pCxtLink = (PCONTEXT_LINK_OBJECT)hInsContext;
+    PDML_PTM p_Ptm = (PDML_PTM) pCxtLink->hContext;
+    AnscCopyString(p_Ptm->Alias, pGlobalInfo->Name);
+    AnscCopyString(p_Ptm->LowerLayers, pGlobalInfo->LowerLayers);
+    p_Ptm->Enable  = bValue;
+    
+}
+
+void DmlATMLinkUpdateParams (  ANSC_HANDLE hInsContext, PDML_XDSL_LINE_GLOBALINFO pGlobalInfo, BOOL bValue)
+{
+    PCONTEXT_LINK_OBJECT pCxtLink = (PCONTEXT_LINK_OBJECT)hInsContext;
+    PDML_ATM p_Atm = (PDML_ATM) pCxtLink->hContext;
+    AnscCopyString(p_Atm->Alias, pGlobalInfo->Name);
+    AnscCopyString(p_Atm->LowerLayers, pGlobalInfo->LowerLayers);
+    p_Atm->Enable  = bValue;
+
+}

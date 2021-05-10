@@ -430,10 +430,10 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "X_RDK_NLNM_GetParamIntValue",  X_RDK_NLNM_GetParamIntValue);
 
     /* register the back-end apis for the data model */
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_Synchronize",  PTMLink_Synchronize);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_IsUpdated",  PTMLink_IsUpdated);    
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_GetEntryCount", PTMLink_GetEntryCount );
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_GetEntry",  PTMLink_GetEntry);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_AddEntry",  PTMLink_AddEntry);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_DelEntry",  PTMLink_DelEntry);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_GetParamBoolValue",  PTMLink_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_GetParamUlongValue",  PTMLink_GetParamUlongValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_GetParamStringValue",  PTMLink_GetParamStringValue);
@@ -447,10 +447,10 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLinkStats_GetParamUlongValue", PTMLinkStats_GetParamUlongValue );
 
     /* register the back-end apis for the data model */
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_Synchronize",  ATMLink_Synchronize);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_IsUpdated",  ATMLink_IsUpdated);    
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_GetEntryCount", ATMLink_GetEntryCount );
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_GetEntry",  ATMLink_GetEntry);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_AddEntry",  ATMLink_AddEntry);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_DelEntry",  ATMLink_DelEntry);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_GetParamBoolValue",  ATMLink_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_GetParamUlongValue",  ATMLink_GetParamUlongValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_GetParamStringValue",  ATMLink_GetParamStringValue);
