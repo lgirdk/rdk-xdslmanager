@@ -437,9 +437,6 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_GetParamBoolValue",  PTMLink_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_GetParamUlongValue",  PTMLink_GetParamUlongValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_GetParamStringValue",  PTMLink_GetParamStringValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_SetParamBoolValue",  PTMLink_SetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_SetParamUlongValue", PTMLink_SetParamUlongValue );
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_SetParamStringValue",  PTMLink_SetParamStringValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_Validate",  PTMLink_Validate);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_Commit",  PTMLink_Commit);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "PTMLink_Rollback", PTMLink_Rollback );
@@ -454,9 +451,6 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_GetParamBoolValue",  ATMLink_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_GetParamUlongValue",  ATMLink_GetParamUlongValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_GetParamStringValue",  ATMLink_GetParamStringValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_SetParamBoolValue",  ATMLink_SetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_SetParamUlongValue", ATMLink_SetParamUlongValue );
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_SetParamStringValue",  ATMLink_SetParamStringValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_Validate",  ATMLink_Validate);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_Commit",  ATMLink_Commit);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "ATMLink_Rollback", ATMLink_Rollback );

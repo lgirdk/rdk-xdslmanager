@@ -49,9 +49,6 @@
     *  PTMLink_GetParamBoolValue
     *  PTMLink_GetParamUlongValue
     *  PTMLink_GetParamStringValue
-    *  PTMLink_SetParamBoolValue
-    *  PTMLink_SetParamUlongValue
-    *  PTMLink_SetParamStringValue
     *  PTMLink_Validate
     *  PTMLink_Commit
     *  PTMLink_Rollback
@@ -131,38 +128,6 @@ PTMLink_GetParamStringValue
     );
 
 BOOL
-PTMLink_SetParamBoolValue
-    (
-        ANSC_HANDLE                 hInsContext,
-        char*                       ParamName,
-        BOOL                        bValue
-    );
-
-BOOL
-PTMLink_SetParamIntValue
-    (
-        ANSC_HANDLE                 hInsContext,
-        char*                       ParamName,
-        int                         iValue
-    );
-
-BOOL
-PTMLink_SetParamUlongValue
-    (
-        ANSC_HANDLE                 hInsContext,
-        char*                       ParamName,
-        ULONG                       uValue
-    );
-
-BOOL
-PTMLink_SetParamStringValue
-    (
-        ANSC_HANDLE                 hInsContext,
-        char*                       ParamName,
-        char*                       pString
-    );
-
-BOOL
 PTMLink_Validate
     (
         ANSC_HANDLE                 hInsContext,
@@ -205,9 +170,6 @@ PTMLinkStats_GetParamUlongValue
     *  ATMLink_GetParamBoolValue
     *  ATMLink_GetParamUlongValue
     *  ATMLink_GetParamStringValue
-    *  ATMLink_SetParamBoolValue
-    *  ATMLink_SetParamUlongValue
-    *  ATMLink_SetParamStringValue
     *  ATMLink_Validate
     *  ATMLink_Commit
     *  ATMLink_Rollback
@@ -222,10 +184,6 @@ ULONG ATMLink_DelEntry ( ANSC_HANDLE hInsContext, ANSC_HANDLE hInstance );
 BOOL ATMLink_GetParamBoolValue ( ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool );
 BOOL ATMLink_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong );
 ULONG ATMLink_GetParamStringValue  ( ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize );
-BOOL ATMLink_SetParamBoolValue ( ANSC_HANDLE hInsContext, char* ParamName, BOOL bValue );
-BOOL ATMLink_SetParamIntValue( ANSC_HANDLE hInsContext, char* ParamName, int iValue );
-BOOL ATMLink_SetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue );
-BOOL ATMLink_SetParamStringValue ( ANSC_HANDLE hInsContext, char*ParamName, char*pString );
 BOOL ATMLink_Validate ( ANSC_HANDLE hInsContext, char*pReturnParamName, ULONG *puLength );
 ULONG ATMLink_Commit ( ANSC_HANDLE  hInsContext );
 ULONG ATMLink_Rollback ( ANSC_HANDLE hInsContext );

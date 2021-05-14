@@ -1503,9 +1503,6 @@
             <func_GetParamBoolValue>PTMLink_GetParamBoolValue</func_GetParamBoolValue>
             <func_GetParamUlongValue>PTMLink_GetParamUlongValue</func_GetParamUlongValue>
             <func_GetParamStringValue>PTMLink_GetParamStringValue</func_GetParamStringValue>
-            <func_SetParamBoolValue>PTMLink_SetParamBoolValue</func_SetParamBoolValue>
-            <func_SetParamUlongValue>PTMLink_SetParamUlongValue</func_SetParamUlongValue>
-            <func_SetParamStringValue>PTMLink_SetParamStringValue</func_SetParamStringValue>
             <func_Validate>PTMLink_Validate</func_Validate>
             <func_Commit>PTMLink_Commit</func_Commit>
             <func_Rollback>PTMLink_Rollback</func_Rollback>
@@ -1657,9 +1654,6 @@
             <func_GetParamBoolValue>ATMLink_GetParamBoolValue</func_GetParamBoolValue>
             <func_GetParamUlongValue>ATMLink_GetParamUlongValue</func_GetParamUlongValue>
             <func_GetParamStringValue>ATMLink_GetParamStringValue</func_GetParamStringValue>
-            <func_SetParamBoolValue>ATMLink_SetParamBoolValue</func_SetParamBoolValue>
-            <func_SetParamUlongValue>ATMLink_SetParamUlongValue</func_SetParamUlongValue>
-            <func_SetParamStringValue>ATMLink_SetParamStringValue</func_SetParamStringValue>
             <func_Validate>ATMLink_Validate</func_Validate>
             <func_Commit>ATMLink_Commit</func_Commit>
             <func_Rollback>ATMLink_Rollback</func_Rollback>
