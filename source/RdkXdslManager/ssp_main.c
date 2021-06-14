@@ -228,10 +228,14 @@ void sig_handler(int sig)
         CcspTraceWarning(("SIGALRM received!\n"));
         RDKLogEnable = GetLogInfo(bus_handle,"eRT.","Device.LogAgent.X_RDKCENTRAL-COM_LoggerEnable");
         RDKLogLevel = (char)GetLogInfo(bus_handle,"eRT.","Device.LogAgent.X_RDKCENTRAL-COM_LogLevel");
+
+#if defined(FEATURE_RDKB_XDSL_PPP_MANAGER)
         XDSLManager_RDKLogLevel = GetLogInfo(bus_handle,"eRT.","Device.LogAgent.X_RDKCENTRAL-COM_XDSLManager_LogLevel");
         XDSLManager_RDKLogEnable = (char)GetLogInfo(bus_handle,"eRT.","Device.LogAgent.X_RDKCENTRAL-COM_XDSLManager_LoggerEnable");
         CcspTraceWarning(("RDKLogEnable %d, RDKLogLevel %d, XDSLManager_RDKLogLevel %d, XDSLManager_RDKLogEnable %d\n",
                           RDKLogEnable, RDKLogLevel, XDSLManager_RDKLogLevel, XDSLManager_RDKLogEnable));
+#endif
+
     }
     else {
     	/* get stack trace first */
@@ -338,12 +342,15 @@ int main(int argc, char* argv[])
     //Needs to configure initial logger setup
     RDKLogEnable = GetLogInfo(bus_handle,"eRT.","Device.LogAgent.X_RDKCENTRAL-COM_LoggerEnable");
     RDKLogLevel = (char)GetLogInfo(bus_handle,"eRT.","Device.LogAgent.X_RDKCENTRAL-COM_LogLevel");
+
+#if defined(FEATURE_RDKB_XDSL_PPP_MANAGER)
     XDSLManager_RDKLogLevel = GetLogInfo(bus_handle,"eRT.","Device.LogAgent.X_RDKCENTRAL-COM_XDSLManager_LogLevel");
     XDSLManager_RDKLogEnable = (char)GetLogInfo(bus_handle,"eRT.","Device.LogAgent.X_RDKCENTRAL-COM_XDSLManager_LoggerEnable");
 
     CcspTraceInfo(("RDKLogEnable %d, RDKLogLevel %d, XDSLManager_RDKLogLevel %d, XDSLManager_RDKLogEnable %d\n",
                           RDKLogEnable, RDKLogLevel, XDSLManager_RDKLogLevel, XDSLManager_RDKLogEnable));
-    
+#endif
+
 #ifdef ENABLE_SD_NOTIFY
     sd_notifyf(0, "READY=1\n"
               "STATUS=xdslmanager is Successfully Initialized\n"
