@@ -1679,10 +1679,12 @@ ANSC_STATUS DmlXdslSetWanLinkStatusForWanManager( char *ifname, char *WanStatus 
     CcspTraceInfo(("%s %d WAN Instance:%d\n",__FUNCTION__, __LINE__,iWANInstance));
 
     //Set WAN Interface Name
-    snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, WAN_WAN_INTERFACE_PARAM_NAME, iWANInstance );
-    snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WAN_INTERFACE_NAME );
-    DmlXdslSetParamValues( WAN_COMPONENT_NAME, WAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
-
+    if(strcmp(WanStatus, "Up") == 0)
+    {
+        snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, WAN_WAN_INTERFACE_PARAM_NAME, iWANInstance );
+        snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WAN_INTERFACE_NAME );
+        DmlXdslSetParamValues( WAN_COMPONENT_NAME, WAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
+    }
     //Set WAN Link Status
     snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, WAN_LINK_STATUS_PARAM_NAME, iWANInstance );
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WanStatus );
