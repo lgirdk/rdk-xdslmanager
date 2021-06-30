@@ -165,10 +165,11 @@ static ANSC_STATUS DmlDeleteATMLink( char *ifname );
 int sysevent_fd = -1;
 token_t sysevent_token;
 
-#ifdef _HUB4_PRODUCT_REQ_
-#define SYSEVENT_WAN_LED_STATE "wan_led_state"
-#define FLASHING_AMBER "Flashing Amber"
-#define SOLID_GREEN "Solid Green"
+#ifdef FEATURE_RDKB_LED_MANAGER
+#define SYSEVENT_LED_STATE "led_event"
+#define WAN_IP4_UP                     "ipv4_up"
+#define WAN_IP6_UP                     "ipv6_up" 
+#define DSL_TRAINING_STATE             "rdkb_dsl_training"
 #endif
 
 /* *********************************************************************** */
@@ -996,11 +997,11 @@ static void *DmlXdslEventHandlerThread( void *arg )
            case XDSL_LINK_STATUS_Initializing:
            case XDSL_LINK_STATUS_EstablishingLink:
            {
-#ifdef _HUB4_PRODUCT_REQ_
-               sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_WAN_LED_STATE, ledStatus, sizeof(ledStatus));
-               if(strncmp(ledStatus, SOLID_GREEN, sizeof(ledStatus)) != 0)
+#ifdef FEATURE_RDKB_LED_MANAGER
+               sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_LED_STATE, ledStatus, sizeof(ledStatus));
+               if(!((strncmp(ledStatus, WAN_IP4_UP, sizeof(ledStatus)) == 0) || (strncmp(ledStatus, WAN_IP6_UP, sizeof(ledStatus)) == 0)))
                {
-                   sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_WAN_LED_STATE, FLASHING_AMBER, 0);
+                   sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LED_STATE, DSL_TRAINING_STATE, 0);
                    snprintf( acTmpPhyStatus, sizeof( acTmpPhyStatus ), "%s", "Initializing" );
                }
 #endif
