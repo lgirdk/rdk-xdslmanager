@@ -371,7 +371,7 @@ ANSC_STATUS DmlPtmCreateEthLink( PDML_PTM   pEntry )
         char acTableName[128] = {0};
         INT iNewTableInstance = -1;
     
-        sprintf(acTableName, "%s", VLAN_ETH_LINK_TABLE_NAME);
+        snprintf(acTableName, sizeof(acTableName), "%s", VLAN_ETH_LINK_TABLE_NAME);
         if (CCSP_SUCCESS != CcspBaseIf_AddTblRow(
                                 bus_handle,
                                 VLAN_COMPONENT_NAME,
@@ -459,7 +459,7 @@ ANSC_STATUS DmlPtmDeleteEthLink( char *pLowerLayer )
      * Delete Device.Ethernet.Link. Instance.
      * VLANAgent will delete the vlan interface as part table deletion process.
      */
-    sprintf(acTableName, "%s%d.", VLAN_ETH_LINK_TABLE_NAME, iVLANInstance);
+    snprintf(acTableName, sizeof(acTableName), "%s%d.", VLAN_ETH_LINK_TABLE_NAME, iVLANInstance);
     if (CCSP_SUCCESS != CcspBaseIf_DeleteTblRow(
                             bus_handle,
                             VLAN_COMPONENT_NAME,

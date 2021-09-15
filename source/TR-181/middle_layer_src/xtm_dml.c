@@ -1120,7 +1120,7 @@ ANSC_HANDLE ATMLink_AddEntry ( ANSC_HANDLE hInsContext, ULONG* pInsNumber )
 
     //Sets default configurations
     p_Atm->Status = Down;
-    strcpy(p_Atm->Alias, "dsl0");
+    strncpy(p_Atm->Alias, "dsl0", sizeof(p_Atm->Alias) - 1);
 
     /* Get ADSL Linktype */
     _ansc_sprintf(param_name, PSM_ADSL_LINKTYPE);
@@ -1178,7 +1178,7 @@ ANSC_HANDLE ATMLink_AddEntry ( ANSC_HANDLE hInsContext, ULONG* pInsNumber )
     retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
     if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
     {
-        strcpy(p_Atm->DestinationAddress, param_value);
+        strncpy(p_Atm->DestinationAddress, param_value, sizeof(p_Atm->DestinationAddress) - 1);
     }
 
     /* Get ADSL AAL */
@@ -1221,7 +1221,7 @@ ANSC_HANDLE ATMLink_AddEntry ( ANSC_HANDLE hInsContext, ULONG* pInsNumber )
     retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
     if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
     {
-        strcpy(p_Atm->VCSearchList, param_value);
+        strncpy(p_Atm->VCSearchList, param_value, sizeof(p_Atm->VCSearchList) - 1);
     }
 
     /* Get ADSL QOS Class */

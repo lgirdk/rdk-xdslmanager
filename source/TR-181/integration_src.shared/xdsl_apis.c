@@ -681,7 +681,7 @@ ANSC_STATUS DmlXdslLine_UpdateStandardUsedByGivenIfName(char* ifname, char* Stan
 
     //Get the data
     pthread_mutex_lock(&gmXdslGInfo_mutex);
-    strncpy(gpstLineGInfo[LineIndex].StandardUsed, StandardUsed, sizeof(gpstLineGInfo[LineIndex].StandardUsed));
+    strncpy(gpstLineGInfo[LineIndex].StandardUsed, StandardUsed, sizeof(gpstLineGInfo[LineIndex].StandardUsed) - 1);
     pthread_mutex_unlock(&gmXdslGInfo_mutex);
 
     return ( ANSC_STATUS_SUCCESS );

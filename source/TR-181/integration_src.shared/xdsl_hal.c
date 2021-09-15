@@ -1097,7 +1097,7 @@ static void *eventcb(const char *msg, const int len)
 
         if (json_object_object_get_ex(jsubs_param_array, "name", &msg_param_val))
         {
-            strcpy(event_name, json_object_get_string(msg_param_val));
+            strncpy(event_name, json_object_get_string(msg_param_val), sizeof(event_name)- 1);
             CcspTraceInfo(("Event name = %s \n", event_name));
         }
         else
@@ -1109,7 +1109,7 @@ static void *eventcb(const char *msg, const int len)
 
         if (json_object_object_get_ex(jsubs_param_array, "value", &msg_param_val))
         {
-            strcpy(event_val, json_object_get_string(msg_param_val));
+            strncpy(event_val, json_object_get_string(msg_param_val), sizeof(event_val) - 1);
             CcspTraceInfo(("Event value = %s \n", event_val));
         }
         else
@@ -2103,7 +2103,7 @@ static json_object *create_json_request_message(eActionType request_type, const 
          * As of now handled it only here.
          */
         jrequest = json_hal_client_get_request_header(SET_PARAMETER_METHOD);
-        strncpy(stParam.name, param_name, sizeof(stParam.name));
+        strncpy(stParam.name, param_name, sizeof(stParam.name) - 1);
         stParam.type = type;
         switch (type)
         {
@@ -2123,7 +2123,7 @@ static json_object *create_json_request_message(eActionType request_type, const 
         break;
     case GET_REQUEST_MESSAGE:
         jrequest = json_hal_client_get_request_header(GET_PARAMETER_METHOD);
-        strncpy(stParam.name, param_name, sizeof(stParam.name));
+        strncpy(stParam.name, param_name, sizeof(stParam.name) - 1);
         json_hal_add_param(jrequest, GET_REQUEST_MESSAGE, &stParam);
         break;
     }
@@ -2352,7 +2352,7 @@ static ANSC_STATUS getDestinationAddress(char *Interface, char *DestinationAddre
         p_Atm  = (PDML_ATM) pCxtLink->hContext;
         if (p_Atm)
         {
-            strcpy(DestinationAddress, p_Atm->DestinationAddress);
+            strncpy(DestinationAddress, p_Atm->DestinationAddress, sizeof(DestinationAddress) - 1);
         }
         else
         {

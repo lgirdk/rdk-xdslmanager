@@ -221,8 +221,8 @@ ssp_cancel
     )
 {
 	int                             nRet  = 0;
-    char                            CrName[256];
-    char                            CpName[256];
+    char                            CrName[256] = {0};
+    char                            CpName[256] = {0};
 
     if(  g_pComponent_COMMON_xdslmanager == NULL)
     {
@@ -231,13 +231,13 @@ ssp_cancel
 
     if ( g_Subsystem[0] != 0 )
     {
-        _ansc_sprintf(CrName, "%s%s", g_Subsystem, CCSP_DBUS_INTERFACE_CR);
-        _ansc_sprintf(CpName, "%s%s", g_Subsystem, CCSP_COMPONENT_NAME_XDSLMANAGER);
+        snprintf(CrName, sizeof(CrName), "%s%s", g_Subsystem, CCSP_DBUS_INTERFACE_CR);
+        snprintf(CpName, sizeof(CpName), "%s%s", g_Subsystem, CCSP_COMPONENT_NAME_XDSLMANAGER);
     }
     else
     {
-        _ansc_sprintf(CrName, "%s", CCSP_DBUS_INTERFACE_CR);
-        _ansc_sprintf(CpName, "%s", CCSP_COMPONENT_NAME_XDSLMANAGER);
+        snprintf(CrName, sizeof(CrName), "%s", CCSP_DBUS_INTERFACE_CR);
+        snprintf(CpName, sizeof(CpName), "%s", CCSP_COMPONENT_NAME_XDSLMANAGER);
     }
     /* unregister component */
     nRet = CcspBaseIf_unregisterComponent(bus_handle, CrName, CpName );  

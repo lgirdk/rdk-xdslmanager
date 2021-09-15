@@ -378,8 +378,8 @@ PtmGenForTriggerEntry
     pEntry->InstanceNumber            = pPTM->ulPtNextInstanceNumber;
 
     //Init all memory
-    _ansc_sprintf( pEntry->Name, "%s", "ptm0" );
-    _ansc_sprintf( pEntry->Path, "%s%d", PTM_LINK_PATH, pEntry->InstanceNumber );
+    snprintf( pEntry->Name, sizeof(pEntry->Name), "%s", "ptm0" );
+    snprintf( pEntry->Path, sizeof(pEntry->Path), "%s%d", PTM_LINK_PATH, pEntry->InstanceNumber );
     pEntry->Status = XTM_IF_STATUS_NOT_PRESENT;
 
     pPTM->ulPtNextInstanceNumber++;
@@ -723,7 +723,7 @@ AtmGenForTriggerEntry
     pEntry->InstanceNumber            = pATM->ulPtNextInstanceNumber;
 
     //Init all memory
-    _ansc_sprintf( pEntry->Name, "%s", "atm0" );
+    snprintf( pEntry->Name, sizeof(pEntry->Name), "%s", "atm0" );
     //_ansc_sprintf( pEntry->Path, "%s%d", ATM_LINK_PATH, pEntry->InstanceNumber );
     pEntry->Status = XTM_IF_STATUS_NOT_PRESENT;
 

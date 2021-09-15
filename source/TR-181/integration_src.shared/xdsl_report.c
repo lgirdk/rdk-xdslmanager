@@ -172,7 +172,7 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int channel_id, XdslReport
     rc = xdsl_hal_dslGetLineInfo(line_id, &stLineInfo);
     if (rc == ANSC_STATUS_SUCCESS)
     {
-        strncpy(stReportData->StandardUsed, stLineInfo.StandardUsed, sizeof(stReportData->StandardUsed));
+        strncpy(stReportData->StandardUsed, stLineInfo.StandardUsed, sizeof(stReportData->StandardUsed) - 1);
         stReportData->DownstreamAttenuation = stLineInfo.DownstreamAttenuation;
         stReportData->DownstreamMaxBitRate = stLineInfo.DownstreamMaxBitRate;
         stReportData->DownstreamNoiseMargin = stLineInfo.DownstreamNoiseMargin;
@@ -182,8 +182,8 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int channel_id, XdslReport
         stReportData->UpstreamNoiseMargin = stLineInfo.UpstreamNoiseMargin;
         stReportData->Upstream = stLineInfo.Upstream;
         stReportData->UpstreamPower = stLineInfo.UpstreamPower;
-        strncpy(stReportData->AllowedProfiles, stLineInfo.AllowedProfiles, sizeof(stReportData->AllowedProfiles));
-        strncpy(stReportData->CurrentProfile, stLineInfo.CurrentProfile, sizeof(stReportData->CurrentProfile));
+        strncpy(stReportData->AllowedProfiles, stLineInfo.AllowedProfiles, sizeof(stReportData->AllowedProfiles) - 1);
+        strncpy(stReportData->CurrentProfile, stLineInfo.CurrentProfile, sizeof(stReportData->CurrentProfile) - 1);
     }
     else
     {
@@ -1287,7 +1287,7 @@ void macToLower(char macValue[])
     int j;
     char *token[32];
     char tmp[32];
-    strncpy(tmp, macValue, sizeof(tmp));
+    strncpy(tmp, macValue, sizeof(tmp) - 1);
     token[i] = strtok(tmp, ":");
     if (token[i] != NULL)
     {
