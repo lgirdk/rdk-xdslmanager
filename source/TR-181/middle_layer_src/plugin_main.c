@@ -368,6 +368,9 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "LineStatsQuarterHour_GetParamUlongValue",  LineStatsQuarterHour_GetParamUlongValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "LineStatsCurrentDay_GetParamUlongValue",  LineStatsCurrentDay_GetParamUlongValue);
 
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "LineTestParams_GetParamUlongValue", LineTestParams_GetParamUlongValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "LineTestParams_GetParamStringValue", LineTestParams_GetParamStringValue);
+
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "Channel_Synchronize",  Channel_Synchronize);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "Channel_IsUpdated",  Channel_IsUpdated);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "Channel_GetEntryCount",  Channel_GetEntryCount);

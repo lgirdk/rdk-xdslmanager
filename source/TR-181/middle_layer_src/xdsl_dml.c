@@ -1864,6 +1864,328 @@ LineStatsQuarterHour_GetParamUlongValue
 
  APIs for Object:
 
+    DSL.Line.{i}.TestParams.
+
+    *  LineTestParams_GetParamUlongValue
+    *  LineTestParams_GetParamStringValue
+
+***********************************************************************/
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        LineTestParams_GetParamUlongValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                ULONG*                      puLong
+            );
+
+    description:
+
+        This function is called to retrieve ULONG parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                ULONG*                      puLong
+                The buffer of returned ULONG value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+BOOL
+LineTestParams_GetParamUlongValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        ULONG*                      puLong
+    )
+{
+    PDML_XDSL_LINE             pXDSLLine               = (PDML_XDSL_LINE)hInsContext;
+    PDML_XDSL_LINE_TESTPARAMS  pXDSLLineTestParams     = &(pXDSLLine->stLineTestParams);
+
+    /* check the parameter name and set the corresponding value */
+    if(AnscEqualString(ParamName, "HLOGGds", TRUE))
+    {
+        *puLong = pXDSLLineTestParams->HLOGGds;
+        return TRUE;
+    }
+    if(AnscEqualString(ParamName, "HLOGGus", TRUE))
+    {
+        *puLong = pXDSLLineTestParams->HLOGGus;
+        return TRUE;
+    }
+    if(AnscEqualString(ParamName, "HLOGMTds", TRUE))
+    {
+        *puLong = pXDSLLineTestParams->HLOGMTds;
+        return TRUE;
+    }
+    if(AnscEqualString(ParamName, "HLOGMTus", TRUE))
+    {
+        *puLong = pXDSLLineTestParams->HLOGMTus;
+        return TRUE;
+    }
+    if(AnscEqualString(ParamName, "QLNGds", TRUE))
+    {
+        *puLong = pXDSLLineTestParams->QLNGds;
+        return TRUE;
+    }
+    if(AnscEqualString(ParamName, "QLNGus", TRUE))
+    {
+        *puLong = pXDSLLineTestParams->QLNGus;
+        return TRUE;
+    }
+    if(AnscEqualString(ParamName, "QLNMTds", TRUE))
+    {
+        *puLong = pXDSLLineTestParams->QLNMTds;
+        return TRUE;
+    }
+    if(AnscEqualString(ParamName, "QLNMTus", TRUE))
+    {
+        *puLong = pXDSLLineTestParams->QLNMTus;
+        return TRUE;
+    }
+    if(AnscEqualString(ParamName, "SNRGds", TRUE))
+    {
+        *puLong = pXDSLLineTestParams->SNRGds;
+        return TRUE;
+    }
+    if(AnscEqualString(ParamName, "SNRGus", TRUE))
+    {
+        *puLong = pXDSLLineTestParams->SNRGus;
+        return TRUE;
+    }
+    if(AnscEqualString(ParamName, "SNRMTds", TRUE))
+    {
+        *puLong = pXDSLLineTestParams->SNRMTds;
+        return TRUE;
+    }
+    if(AnscEqualString(ParamName, "SNRMTus", TRUE))
+    {
+        *puLong = pXDSLLineTestParams->SNRMTus;
+        return TRUE;
+    }
+
+    /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
+    return FALSE;
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+   prototype:
+
+        ULONG
+       LineTestParams_GetParamStringValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                char*                       pValue,
+                ULONG*                      pUlSize
+            );
+
+    description:
+
+        This function is called to retrieve string parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                char*                       pValue,
+                The string value buffer;
+
+                ULONG*                      pUlSize
+                The buffer of length of string value;
+                Usually size of 1023 will be used.
+                If it's not big enough, put required size here and return 1;
+
+    return:     0 if succeeded;
+                1 if short of buffer size; (*pUlSize = required size)
+                -1 if not supported.
+
+**********************************************************************/
+ULONG
+LineTestParams_GetParamStringValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        char*                       pValue,
+        ULONG*                      pUlSize
+    )
+{
+    PDML_XDSL_LINE              pXDSLLine              = (PDML_XDSL_LINE)hInsContext;
+    PDML_XDSL_LINE_TESTPARAMS  pXDSLLineTestParams     = &(pXDSLLine->stLineTestParams);
+
+    /* check the parameter name and return the corresponding value */
+    if( AnscEqualString(ParamName, "HLOGpsds", TRUE) )
+    {
+       /* collect value */
+       if ( ( sizeof( pXDSLLineTestParams->HLOGpsds ) - 1 ) < *pUlSize )
+       {
+           AnscCopyString( pValue, pXDSLLineTestParams->HLOGpsds );
+           return 0;
+       }
+       else
+       {
+           *pUlSize = sizeof( pXDSLLineTestParams->HLOGpsds );
+           return 1;
+       }
+    }
+
+    if( AnscEqualString(ParamName, "HLOGpsus", TRUE) )
+    {
+       /* collect value */
+       if ( ( sizeof( pXDSLLineTestParams->HLOGpsus ) - 1 ) < *pUlSize )
+       {
+           AnscCopyString( pValue, pXDSLLineTestParams->HLOGpsus );
+           return 0;
+       }
+       else
+       {
+           *pUlSize = sizeof( pXDSLLineTestParams->HLOGpsus );
+           return 1;
+       }
+    }
+
+    if( AnscEqualString(ParamName, "QLNpsds", TRUE) )
+    {
+       /* collect value */
+       if ( ( sizeof( pXDSLLineTestParams->QLNpsds ) - 1 ) < *pUlSize )
+       {
+           AnscCopyString( pValue, pXDSLLineTestParams->QLNpsds );
+           return 0;
+       }
+       else
+       {
+           *pUlSize = sizeof( pXDSLLineTestParams->QLNpsds );
+           return 1;
+       }
+    }
+
+    if( AnscEqualString(ParamName, "QLNpsus", TRUE) )
+    {
+       /* collect value */
+       if ( ( sizeof( pXDSLLineTestParams->QLNpsus ) - 1 ) < *pUlSize )
+       {
+           AnscCopyString( pValue, pXDSLLineTestParams->QLNpsus );
+           return 0;
+       }
+       else
+       {
+           *pUlSize = sizeof( pXDSLLineTestParams->QLNpsus );
+           return 1;
+       }
+    }
+
+    if( AnscEqualString(ParamName, "SNRpsds", TRUE) )
+    {
+       /* collect value */
+       if ( ( sizeof( pXDSLLineTestParams->SNRpsds ) - 1 ) < *pUlSize )
+       {
+           AnscCopyString( pValue, pXDSLLineTestParams->SNRpsds );
+           return 0;
+       }
+       else
+       {
+           *pUlSize = sizeof( pXDSLLineTestParams->SNRpsds );
+           return 1;
+       }
+    }
+
+    if( AnscEqualString(ParamName, "SNRpsus", TRUE) )
+    {
+       /* collect value */
+       if ( ( sizeof( pXDSLLineTestParams->SNRpsus ) - 1 ) < *pUlSize )
+       {
+           AnscCopyString( pValue, pXDSLLineTestParams->SNRpsus );
+           return 0;
+       }
+       else
+       {
+           *pUlSize = sizeof( pXDSLLineTestParams->SNRpsus );
+           return 1;
+       }
+    }
+
+    if( AnscEqualString(ParamName, "LATNds", TRUE) )
+    {
+       /* collect value */
+       if ( ( sizeof( pXDSLLineTestParams->LATNds ) - 1 ) < *pUlSize )
+       {
+           AnscCopyString( pValue, pXDSLLineTestParams->LATNds );
+           return 0;
+       }
+       else
+       {
+           *pUlSize = sizeof( pXDSLLineTestParams->LATNds );
+           return 1;
+       }
+    }
+
+    if( AnscEqualString(ParamName, "LATNus", TRUE) )
+    {
+       /* collect value */
+       if ( ( sizeof( pXDSLLineTestParams->LATNus ) - 1 ) < *pUlSize )
+       {
+           AnscCopyString( pValue, pXDSLLineTestParams->LATNus );
+           return 0;
+       }
+       else
+       {
+           *pUlSize = sizeof( pXDSLLineTestParams->LATNus );
+           return 1;
+       }
+    }
+
+    if( AnscEqualString(ParamName, "SATNds", TRUE) )
+    {
+       /* collect value */
+       if ( ( sizeof( pXDSLLineTestParams->SATNds ) - 1 ) < *pUlSize )
+       {
+           AnscCopyString( pValue, pXDSLLineTestParams->SATNds );
+           return 0;
+       }
+       else
+       {
+           *pUlSize = sizeof( pXDSLLineTestParams->SATNds );
+           return 1;
+       }
+    }
+
+    if( AnscEqualString(ParamName, "SATNus", TRUE) )
+    {
+       /* collect value */
+       if ( ( sizeof( pXDSLLineTestParams->SATNus ) - 1 ) < *pUlSize )
+       {
+           AnscCopyString( pValue, pXDSLLineTestParams->SATNus );
+           return 0;
+       }
+       else
+       {
+           *pUlSize = sizeof( pXDSLLineTestParams->SATNus );
+           return 1;
+       }
+    }
+
+    /* AnscTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
+    return -1;
+}
+
+/***********************************************************************
+
+ APIs for Object:
+
     DSL.Channel.{i}
 
     *  Channel_Synchronize

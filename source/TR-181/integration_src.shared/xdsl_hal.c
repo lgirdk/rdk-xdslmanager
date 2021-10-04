@@ -55,6 +55,7 @@
 #define XDSL_LINE_INFO "Device.DSL.Line.%d."
 #define XDSL_LINE_STANDARD_USED "Device.DSL.Line.%d.StandardUsed"
 #define XDSL_LINE_STATS "Device.DSL.Line.%d.Stats."
+#define XDSL_LINE_TESTPARAMS "Device.DSL.Line.%d.TestParams."
 #define XDSL_LINE_LINKSTATUS "Device.DSL.Line.1.LinkStatus"
 #define XDSL_LINE_PROFILE "Device.DSL.Line.1.AllowedProfiles"
 #define XDSL_LINE_DATA_GATHERING_ENABLE "Device.DSL.Line.%d.EnableDataGathering"
@@ -1343,6 +1344,140 @@ int xdsl_hal_dslGetLineStats(int lineNo, PDML_XDSL_LINE_STATS pstLineStats)
         }
         else if (strstr (resp_param.name, "Stats.QuarterHour.SeverelyErroredSecs")) {
             pstLineStats->stQuarterHour.SeverelyErroredSecs = atoi(resp_param.value);
+        }
+    }
+
+    // Free json objects
+    FREE_JSON_OBJECT(jmsg);
+    FREE_JSON_OBJECT(jreply_msg);
+
+    return rc;
+}
+
+/* * xdsl_hal_dslGetLineTestParams() */
+int xdsl_hal_dslGetLineTestParams(int lineNo, PDML_XDSL_LINE_TESTPARAMS pstLineTestParams)
+{
+    int rc = RETURN_OK;
+    int total_param_count = 0;
+
+    json_object *jmsg = NULL;
+    json_object *jreply_msg = NULL;
+    json_object *jparams = NULL;
+
+    hal_param_t req_param;
+    hal_param_t resp_param;
+
+    memset(&req_param, 0, sizeof(req_param));
+    memset(&resp_param, 0, sizeof(resp_param));
+
+    jmsg = json_hal_client_get_request_header(RPC_GET_PARAMETERS_REQUEST);
+    CHECK(jmsg);
+    snprintf(req_param.name, sizeof(req_param.name), XDSL_LINE_TESTPARAMS, lineNo);
+    if( json_hal_add_param(jmsg, GET_REQUEST_MESSAGE, &req_param) != RETURN_OK) {
+        FREE_JSON_OBJECT(jmsg);
+       return RETURN_ERR;
+    }
+
+
+    if( json_hal_client_send_and_get_reply(jmsg, &jreply_msg) != RETURN_OK)
+    {
+        CcspTraceInfo(("[%s][%d] RPC message failed \n", __FUNCTION__, __LINE__));
+        FREE_JSON_OBJECT(jmsg);
+        FREE_JSON_OBJECT(jreply_msg);
+        return RETURN_ERR;
+    }
+
+    if(jreply_msg == NULL) {
+        FREE_JSON_OBJECT(jmsg);
+        return RETURN_ERR;
+    }
+
+    if (json_object_object_get_ex(jreply_msg, JSON_RPC_FIELD_PARAMS, &jparams))
+    {
+        total_param_count = json_object_array_length(jparams);
+    }
+
+    if(jparams == NULL) {
+        FREE_JSON_OBJECT(jmsg);
+        FREE_JSON_OBJECT(jreply_msg);
+        return RETURN_ERR;
+    }
+
+    for (int index = 0; index < total_param_count; index++)
+    {
+        if (json_hal_get_param(jreply_msg, index, GET_RESPONSE_MESSAGE, &resp_param) != RETURN_OK)
+        {
+            CcspTraceError(("%s - %d Failed to get required params from the response message \n", __FUNCTION__, __LINE__));
+            FREE_JSON_OBJECT(jmsg);
+            FREE_JSON_OBJECT(jreply_msg);
+            return RETURN_ERR;
+        }
+
+        if (strstr (resp_param.name, "HLOGGds")) {
+            pstLineTestParams->HLOGGds = atoi(resp_param.value);
+        }
+        else if (strstr (resp_param.name, "HLOGGus")) {
+            pstLineTestParams->HLOGGus = atoi(resp_param.value);
+        }
+        else if (strstr (resp_param.name, "HLOGpsds")) {
+        snprintf(pstLineTestParams->HLOGpsds, sizeof(pstLineTestParams->HLOGpsds), "%s", resp_param.value);
+        }
+        else if (strstr (resp_param.name, "HLOGpsus")) {
+        snprintf(pstLineTestParams->HLOGpsus, sizeof(pstLineTestParams->HLOGpsus), "%s", resp_param.value);
+        }
+        else if (strstr (resp_param.name, "HLOGMTds")) {
+            pstLineTestParams->HLOGMTds = atoi(resp_param.value);
+        }
+        else if (strstr (resp_param.name, "HLOGMTus")) {
+            pstLineTestParams->HLOGMTus = atoi(resp_param.value);
+        }
+        else if (strstr (resp_param.name, "QLNGds")) {
+            pstLineTestParams->QLNGds = atoi(resp_param.value);
+        }
+        else if (strstr (resp_param.name, "QLNGus")) {
+            pstLineTestParams->QLNGus = atoi(resp_param.value);
+        }
+        else if (strstr (resp_param.name, "QLNpsds")) {
+        snprintf(pstLineTestParams->QLNpsds, sizeof(pstLineTestParams->QLNpsds), "%s", resp_param.value);
+        }
+        else if (strstr (resp_param.name, "QLNpsus")) {
+        snprintf(pstLineTestParams->QLNpsus, sizeof(pstLineTestParams->QLNpsus), "%s", resp_param.value);
+        }
+        else if (strstr (resp_param.name, "QLNMTds")) {
+            pstLineTestParams->QLNMTds = atoi(resp_param.value);
+       }
+        else if (strstr (resp_param.name, "QLNMTus")) {
+            pstLineTestParams->QLNMTus = atoi(resp_param.value);
+        }
+        else if (strstr (resp_param.name, "SNRGds")) {
+            pstLineTestParams->SNRGds = atoi(resp_param.value);
+        }
+        else if (strstr (resp_param.name, "SNRGus")) {
+            pstLineTestParams->SNRGus = atoi(resp_param.value);
+        }
+        else if (strstr (resp_param.name, "SNRpsds")) {
+        snprintf(pstLineTestParams->SNRpsds, sizeof(pstLineTestParams->SNRpsds), "%s", resp_param.value);
+        }
+        else if (strstr (resp_param.name, "SNRpsus")) {
+        snprintf(pstLineTestParams->SNRpsus, sizeof(pstLineTestParams->SNRpsus), "%s", resp_param.value);
+        }
+        else if (strstr (resp_param.name, "SNRMTds")) {
+            pstLineTestParams->SNRMTds = atoi(resp_param.value);
+        }
+        else if (strstr (resp_param.name, "SNRMTus")) {
+            pstLineTestParams->SNRMTus = atoi(resp_param.value);
+        }
+        else if (strstr (resp_param.name, "LATNds")) {
+        snprintf(pstLineTestParams->LATNds, sizeof(pstLineTestParams->LATNds), "%s", resp_param.value);
+        }
+        else if (strstr (resp_param.name, "LATNus")) {
+        snprintf(pstLineTestParams->LATNus, sizeof(pstLineTestParams->LATNus), "%s", resp_param.value);
+        }
+        else if (strstr (resp_param.name, "SATNds")) {
+        snprintf(pstLineTestParams->SATNds, sizeof(pstLineTestParams->SATNds), "%s", resp_param.value);
+        }
+        else if (strstr (resp_param.name, "SATNus")) {
+        snprintf(pstLineTestParams->SATNus, sizeof(pstLineTestParams->SATNus), "%s", resp_param.value);
         }
     }
 

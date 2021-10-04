@@ -167,6 +167,34 @@ _DML_XDSL_LINE_STATS
 DML_XDSL_LINE_STATS, *PDML_XDSL_LINE_STATS;
 
 typedef  struct
+_DML_XDSL_LINE_TESTPARAMS
+{
+    UINT        HLOGGds;
+    UINT        HLOGGus;
+    CHAR        HLOGpsds[2559];
+    CHAR        HLOGpsus[2559];
+    UINT        HLOGMTds;
+    UINT        HLOGMTus;
+    UINT        QLNGds;
+    UINT        QLNGus;
+    CHAR        QLNpsds[2047];
+    CHAR        QLNpsus[2047];
+    UINT        QLNMTds;
+    UINT        QLNMTus;
+    UINT        SNRGds;
+    UINT        SNRGus;
+    CHAR        SNRpsds[2047];
+    CHAR        SNRpsus[2047];
+    UINT        SNRMTds;
+    UINT        SNRMTus;
+    CHAR        LATNds[35];
+    CHAR        LATNus[35];
+    CHAR        SATNds[35];
+    CHAR        SATNus[35];
+}
+DML_XDSL_LINE_TESTPARAMS, *PDML_XDSL_LINE_TESTPARAMS;
+
+typedef  struct
 _DML_XDSL_LINE
 {	
     BOOL                              Enable;
@@ -237,7 +265,8 @@ _DML_XDSL_LINE
     CHAR                              XTUCCountry[5];
     UINT                              XTUCANSIStd;
     UINT                              XTUCANSIRev;
-    DML_XDSL_LINE_STATS                stLineStats;
+    DML_XDSL_LINE_STATS               stLineStats;
+    DML_XDSL_LINE_TESTPARAMS          stLineTestParams;
 }
 DML_XDSL_LINE, *PDML_XDSL_LINE;              
 

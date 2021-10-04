@@ -69,6 +69,7 @@ typedef struct _XdslReportData
         UINT    QuarterHourStart;
         char    AllowedProfiles[256];
         char    CurrentProfile[64];
+        UINT    HLOGGus;
 
 }XdslReportData;
 

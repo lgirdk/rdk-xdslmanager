@@ -226,6 +226,16 @@ XDSL_LINE_ENCODING_ENUM LineEncoding_string_to_int(const char *str);
 int xdsl_hal_dslGetLineStats(int lineNo, PDML_XDSL_LINE_STATS pstLineInfo);
 
 /**
+ * This function gets the Test Params values of a DSL line
+ *
+ * @param[in] lineNo - The line number which starts with 0
+ * @param[out] lineTestParams The output parameter to receive the data
+ *
+ * @return 0 on success. Otherwise a negative value is returned
+ */
+int xdsl_hal_dslGetLineTestParams(int lineNo, PDML_XDSL_LINE_TESTPARAMS pstLineInfo);
+
+/**
  * This function gets the DSL channel information
  *
  * @param[in] lineNo - The line number which starts with 0

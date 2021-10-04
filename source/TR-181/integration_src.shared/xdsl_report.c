@@ -248,6 +248,21 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int channel_id, XdslReport
         CcspTraceError(("%s Failed to get xDSL line statistics information \n", __FUNCTION__));
     }
 
+    /**
+     * Get DSL line test params information.
+     */
+    DML_XDSL_LINE_TESTPARAMS stLineTestParams;
+    memset(&stLineTestParams, 0, sizeof(stLineTestParams));
+    rc = xdsl_hal_dslGetLineTestParams(line_id, &stLineTestParams);
+    if (rc == ANSC_STATUS_SUCCESS)
+    {
+        stReportData->HLOGGus = stLineTestParams.HLOGGus;
+    }
+    else
+    {
+        CcspTraceError(("%s Failed to get xDSL line test params information \n", __FUNCTION__));
+    }
+
     return ANSC_STATUS_SUCCESS;
 }
 

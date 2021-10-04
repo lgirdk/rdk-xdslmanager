@@ -236,6 +236,24 @@ LineStatsQuarterHour_GetParamUlongValue
         char*                       ParamName,
         ULONG*                      puLong
     );
+
+BOOL
+LineTestParams_GetParamUlongValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        ULONG*                      puLong
+    );
+
+ULONG
+LineTestParams_GetParamStringValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        char*                       pValue,
+        ULONG*                      pUlSize
+    );
+
 /***********************************************************************
 
  APIs for Object:

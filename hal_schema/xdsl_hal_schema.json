@@ -257,28 +257,28 @@
         { "$ref": "#/definitions/dslLineStatsAllErroredSecs" },
 
         { "$ref": "#/definitions/dslLineTestParamsObjectName" },
-        { "$ref": "#/definitions/lineTestParamsHLOGGds" },
-        { "$ref": "#/definitions/lineTestParamsHLOGGus" },
-        { "$ref": "#/definitions/lineTestParamsHLOGpsds" },
-        { "$ref": "#/definitions/lineTestParamsHLOGpsus" },
-        { "$ref": "#/definitions/lineTestParamsHLOGMTds" },
-        { "$ref": "#/definitions/lineTestParamsHLOGMTus" },
-        { "$ref": "#/definitions/lineTestParamsQLNGds" },
-        { "$ref": "#/definitions/lineTestParamsQLNGus" },
-        { "$ref": "#/definitions/lineTestParamsQLNpsds" },
-        { "$ref": "#/definitions/lineTestParamsQLNpsus" },
-        { "$ref": "#/definitions/lineTestParamsQLNMTds" },
-        { "$ref": "#/definitions/lineTestParamsQLNMTus" },
-        { "$ref": "#/definitions/lineTestParamsSNRGds" },
-        { "$ref": "#/definitions/lineTestParamsSNRGus" },
-        { "$ref": "#/definitions/lineTestParamsSNRpsds" },
-        { "$ref": "#/definitions/lineTestParamsSNRpsus" },
-        { "$ref": "#/definitions/lineTestParamsSNRMTds" },
-        { "$ref": "#/definitions/lineTestParamsSNRMTus" },
-        { "$ref": "#/definitions/lineTestParamsLATNds" },
-        { "$ref": "#/definitions/lineTestParamsLATNus" },
-        { "$ref": "#/definitions/lineTestParamsSATNds" },
-        { "$ref": "#/definitions/lineTestParamsSATNus" },
+        { "$ref": "#/definitions/dslLineTestParamsHLOGGds" },
+        { "$ref": "#/definitions/dslLineTestParamsHLOGGus" },
+        { "$ref": "#/definitions/dslLineTestParamsHLOGpsds" },
+        { "$ref": "#/definitions/dslLineTestParamsHLOGpsus" },
+        { "$ref": "#/definitions/dslLineTestParamsHLOGMTds" },
+        { "$ref": "#/definitions/dslLineTestParamsHLOGMTus" },
+        { "$ref": "#/definitions/dslLineTestParamsQLNGds" },
+        { "$ref": "#/definitions/dslLineTestParamsQLNGus" },
+        { "$ref": "#/definitions/dslLineTestParamsQLNpsds" },
+        { "$ref": "#/definitions/dslLineTestParamsQLNpsus" },
+        { "$ref": "#/definitions/dslLineTestParamsQLNMTds" },
+        { "$ref": "#/definitions/dslLineTestParamsQLNMTus" },
+        { "$ref": "#/definitions/dslLineTestParamsSNRGds" },
+        { "$ref": "#/definitions/dslLineTestParamsSNRGus" },
+        { "$ref": "#/definitions/dslLineTestParamsSNRpsds" },
+        { "$ref": "#/definitions/dslLineTestParamsSNRpsus" },
+        { "$ref": "#/definitions/dslLineTestParamsSNRMTds" },
+        { "$ref": "#/definitions/dslLineTestParamsSNRMTus" },
+        { "$ref": "#/definitions/dslLineTestParamsLATNds" },
+        { "$ref": "#/definitions/dslLineTestParamsLATNus" },
+        { "$ref": "#/definitions/dslLineTestParamsSATNds" },
+        { "$ref": "#/definitions/dslLineTestParamsSATNus" },
 
         { "$ref": "#/definitions/dslChannelObjectName" },
         { "$ref": "#/definitions/dslChannelEnable" },
@@ -2312,7 +2312,7 @@
       }
     },
 
-    "lineTestParamsHLOGGds": {
+    "dslLineTestParamsHLOGGds": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2331,7 +2331,7 @@
       }
     },
 
-    "lineTestParamsHLOGGus": {
+    "dslLineTestParamsHLOGGus": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2350,7 +2350,7 @@
       }
     },
 
-    "lineTestParamsHLOGpsds": {
+    "dslLineTestParamsHLOGpsds": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2369,7 +2369,7 @@
       }
     },
 
-    "lineTestParamsHLOGpsus": {
+    "dslLineTestParamsHLOGpsus": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2388,7 +2388,7 @@
       }
     },
 
-    "lineTestParamsHLOGMTds": {
+    "dslLineTestParamsHLOGMTds": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2407,7 +2407,7 @@
       }
     },
 
-    "lineTestParamsHLOGMTus": {
+    "dslLineTestParamsHLOGMTus": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2426,7 +2426,7 @@
       }
     },
 
-    "lineTestParamsQLNGds": {
+    "dslLineTestParamsQLNGds": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2445,7 +2445,7 @@
       }
     },
 
-    "lineTestParamsQLNGus": {
+    "dslLineTestParamsQLNGus": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2464,7 +2464,7 @@
       }
     },
 
-    "lineTestParamsQLNpsds": {
+    "dslLineTestParamsQLNpsds": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2483,7 +2483,7 @@
       }
     },
 
-    "lineTestParamsQLNpsus": {
+    "dslLineTestParamsQLNpsus": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2502,7 +2502,7 @@
       }
     },
 
-    "lineTestParamsQLNMTds": {
+    "dslLineTestParamsQLNMTds": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2521,7 +2521,7 @@
       }
     },
 
-    "lineTestParamsQLNMTus": {
+    "dslLineTestParamsQLNMTus": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2540,7 +2540,7 @@
       }
     },
 
-    "lineTestParamsSNRGds": {
+    "dslLineTestParamsSNRGds": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2559,7 +2559,7 @@
       }
     },
 
-    "lineTestParamsSNRGus": {
+    "dslLineTestParamsSNRGus": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2578,7 +2578,7 @@
       }
     },
 
-    "lineTestParamsSNRpsds": {
+    "dslLineTestParamsSNRpsds": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2597,7 +2597,7 @@
       }
     },
 
-    "lineTestParamsSNRpsus": {
+    "dslLineTestParamsSNRpsus": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2616,7 +2616,7 @@
       }
     },
 
-    "lineTestParamsSNRMTds": {
+    "dslLineTestParamsSNRMTds": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2635,7 +2635,7 @@
       }
     },
 
-    "lineTestParamsSNRMTus": {
+    "dslLineTestParamsSNRMTus": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2654,7 +2654,7 @@
       }
     },
 
-    "lineTestParamsLATNds": {
+    "dslLineTestParamsLATNds": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2673,7 +2673,7 @@
       }
     },
 
-    "lineTestParamsLATNus": {
+    "dslLineTestParamsLATNus": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2692,7 +2692,7 @@
       }
     },
 
-    "lineTestParamsSATNds": {
+    "dslLineTestParamsSATNds": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -2711,7 +2711,7 @@
       }
     },
 
-    "lineTestParamsSATNus": {
+    "dslLineTestParamsSATNus": {
       "type": "object",
       "additionalProperties": false,
       "properties": {

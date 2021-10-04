@@ -381,6 +381,16 @@ ANSC_STATUS DmlXdslGetLineCfg( INT LineIndex, PDML_XDSL_LINE pstLineInfo )
          return ANSC_STATUS_FAILURE;
     }
 
+    //Initialize Test Params
+    memset( &pstLineInfo->stLineTestParams, 0, sizeof(DML_XDSL_LINE_TESTPARAMS ));
+
+    //Collect Line Test Params
+    if ( RETURN_OK != xdsl_hal_dslGetLineTestParams( LineIndex, &pstLineInfo->stLineTestParams ) )
+    {
+         CcspTraceError(("%s Failed to get line Test Params value\n", __FUNCTION__));
+         return ANSC_STATUS_FAILURE;
+    }
+
     return ANSC_STATUS_SUCCESS;
 }
 
