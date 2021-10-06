@@ -161,6 +161,7 @@ static ANSC_STATUS DmlCreatePTMLink( char *ifname );
 static ANSC_STATUS DmlDeletePTMLink( char *ifname );
 static ANSC_STATUS DmlCreateATMLink( char *ifname );
 static ANSC_STATUS DmlDeleteATMLink( char *ifname );
+static int SetPhyifname(char *phyifname);
 
 int sysevent_fd = -1;
 token_t sysevent_token;
@@ -1407,6 +1408,7 @@ ANSC_STATUS DmlCreatePTMLink( char *ifname )
     DML_XDSL_LINE_GLOBALINFO stGlobalInfo   = { 0 };
     PCONTEXT_LINK_OBJECT pPtmCxtLink = NULL;
     ULONG                        iPTMInstance   = -1;
+    char                         phyname[64] = {'\0'};
 
     //Validate buffer
     if( NULL == ifname )
@@ -1438,6 +1440,16 @@ ANSC_STATUS DmlCreatePTMLink( char *ifname )
     }
     CcspTraceInfo(("%s %d Successfully Created PTM Link Table Entry for %s interface, Instance=%lu \n", __FUNCTION__,__LINE__,ifname, iPTMInstance));
 
+
+    if (PTMLink_GetParamStringValue(pPtmCxtLink, "Name", phyname, NULL))
+    {
+        CcspTraceError(("%s %d Failed to get param value\n", __FUNCTION__, __LINE__));
+    }
+    else
+    {
+        SetPhyifname(phyname);
+    }
+
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -1447,6 +1459,7 @@ ANSC_STATUS DmlCreateATMLink( char *ifname )
     DML_XDSL_LINE_GLOBALINFO   stGlobalInfo   = { 0 };
     PCONTEXT_LINK_OBJECT pAtmCxtLink = NULL;
     ULONG                        iATMInstance   = -1;
+    char                       phyname[64] = {'\0'};
 
     //Validate buffer
     if( NULL == ifname )
@@ -1478,6 +1491,16 @@ ANSC_STATUS DmlCreateATMLink( char *ifname )
         CcspTraceError(("%s Failed to Add VLAN for ATM Link, Instance=%lu \n", __FUNCTION__, iATMInstance));
     }    
     CcspTraceInfo(("%s %d Successfully Created ATM Link Table Entry for %s interface, Instance=%lu \n", __FUNCTION__,__LINE__,ifname, iATMInstance));
+
+
+    if (ATMLink_GetParamStringValue(pAtmCxtLink, "Name", phyname, NULL))
+    {
+        CcspTraceError(("%s %d Failed to get param value\n", __FUNCTION__, __LINE__));
+    }
+    else
+    {
+        SetPhyifname(phyname);
+    }
 
     return ANSC_STATUS_SUCCESS;
 }
@@ -1995,4 +2018,14 @@ ANSC_STATUS DmlXdslGetXRDKNlm( PDML_XDSL_X_RDK_NLNM  pstXRdkNlm )
     }
 
     return ANSC_STATUS_SUCCESS;
+}
+
+static int SetPhyifname(char *phyifname)
+{
+    if ( syscfg_set(NULL, "wan_physical_ifname",phyifname) == 0 )
+    {
+        if (syscfg_commit() != 0)
+            CcspTraceInfo(("syscfg_set failed for syscfg_commit\n"));
+    }
+    return 0;
 }
