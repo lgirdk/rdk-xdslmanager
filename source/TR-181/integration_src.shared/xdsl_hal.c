@@ -730,6 +730,31 @@ static ANSC_STATUS xdsl_hal_setXtse(char *standardsSupported, char *xtseBuf, int
     }
 }
 
+XDSL_LINE_ENCODING_ENUM LineEncoding_string_to_int(const char *str)
+{
+   if(strcmp(str, "DMT") == 0 ){
+       return DML_LINE_ENCODING_DMT;
+   }
+   else if(strcmp(str, "CAP") == 0){
+       return DML_LINE_ENCODING_CAP;
+   }
+   else if(strcmp(str, "2B1Q") == 0){
+       return DML_LINE_ENCODING_2B1Q;
+   }
+   else if(strcmp(str, "43BT") == 0){
+       return DML_LINE_ENCODING_43BT;
+   }
+   else if(strcmp(str, "PAM") == 0){
+       return DML_LINE_ENCODING_PAM;
+   }
+   else if (strcmp(str, "QAM") == 0){
+       return DML_LINE_ENCODING_QAM;
+   }
+   else{
+	return 0;
+  }
+}
+
 /* xdsl_hal_dslGetLineInfo() */
 int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
 {
@@ -941,7 +966,7 @@ int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
             pstLineInfo->DownstreamPower = atoi(resp_param.value);
         }
         else if (strstr (resp_param.name, "LineEncoding")) {
-            pstLineInfo->LineEncoding = atoi(resp_param.value);
+            pstLineInfo->LineEncoding = LineEncoding_string_to_int(resp_param.value);
         }
         else if (strstr (resp_param.name, "TRELLISds")) {
             pstLineInfo->TRELLISds = atoi(resp_param.value);

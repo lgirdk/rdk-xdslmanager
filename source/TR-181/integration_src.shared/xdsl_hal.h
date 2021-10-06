@@ -208,6 +208,13 @@ int xdsl_hal_getTotalNoOfChannels(int lineNo);
  */
 int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo);
 
+/*
+ * This Function converts the LineEncoding string to corresponding Enum inerger.
+ * @param[in] str - String returned by hal layer.
+ * @param[out] enum - integer corresponding to string in enum XDSL_LINE_ENCODING_ENUM
+*/
+XDSL_LINE_ENCODING_ENUM LineEncoding_string_to_int(const char *str);
+
 /**
  * This function gets the statistics counters of a DSL line
  *
