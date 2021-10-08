@@ -754,6 +754,25 @@ XDSL_LINE_ENCODING_ENUM LineEncoding_string_to_int(const char *str)
   }
 }
 
+XDSL_LINE_POWER_MGMT_ENUM PowerManagementState_string_to_int(const char *str)
+{
+   if(strcmp(str, "L0") == 0 ){
+       return PM_STATE_L0;
+   }
+    else if(strcmp(str, "L1") == 0 ){
+       return PM_STATE_L1;
+   }
+    else if(strcmp(str, "L2") == 0 ){
+       return PM_STATE_L2;
+   }
+    else if(strcmp(str, "L3") == 0 ){
+       return PM_STATE_L3;
+   }
+    else if(strcmp(str, "L4") == 0 ){
+       return PM_STATE_L4;
+   }
+}
+
 /* xdsl_hal_dslGetLineInfo() */
 int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
 {
@@ -886,17 +905,7 @@ int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
             pstLineInfo->LastChange = atoi(resp_param.value);
         }
         else if (strstr (resp_param.name, "PowerManagementState")) {
-            if (strcmp(resp_param.value, "L0") == 0) {
-                pstLineInfo->PowerManagementState = PM_STATE_L0;
-            }else if (strcmp(resp_param.value, "L1") == 0) {
-                pstLineInfo->PowerManagementState = PM_STATE_L1;
-            }else if (strcmp(resp_param.value, "L2") == 0) {
-                pstLineInfo->PowerManagementState = PM_STATE_L2;
-            }else if (strcmp(resp_param.value, "L3") == 0) {
-                pstLineInfo->PowerManagementState = PM_STATE_L3;
-            }else if (strcmp(resp_param.value, "L4") == 0) {
-                pstLineInfo->PowerManagementState = PM_STATE_L4;
-            }
+            pstLineInfo->PowerManagementState = PowerManagementState_string_to_int(resp_param.value);
         }
         else if (strstr (resp_param.name, "UpstreamMaxBitRate")) {
             pstLineInfo->UpstreamMaxBitRate= atoi(resp_param.value);

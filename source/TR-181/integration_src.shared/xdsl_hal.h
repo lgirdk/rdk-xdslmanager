@@ -236,6 +236,13 @@ int xdsl_hal_dslGetLineStats(int lineNo, PDML_XDSL_LINE_STATS pstLineInfo);
  */
 int xdsl_hal_dslGetChannelInfo(int lineNo, int channelNo, PDML_XDSL_CHANNEL pstChannelInfo);
 
+/*
+ * This Function converts the PowerManagementState string to corresponding Enum integer.
+ * @param[in] str - String returned by hal layer.
+ * @param[out] enum - integer corresponding to string in enum XDSL_LINE_POWER_MGMT_ENUM
+*/
+XDSL_LINE_POWER_MGMT_ENUM PowerManagementState_string_to_int(const char *str);
+
 /**
  * This function gets the statistics counters of a DSL channel
  *
