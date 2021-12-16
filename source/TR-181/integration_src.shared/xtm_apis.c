@@ -896,7 +896,7 @@ ANSC_STATUS DmlDelAtm (ANSC_HANDLE hContext, PDML_ATM pEntry )
         returnStatus = DmlAtmDeletePPPLink( pEntry->Path );
 
         //Remove actual intergace
-        returnStatus = DmlSetAtmIfEnable( pEntry, hContext );
+        returnStatus = DmlSetAtmIfEnable( hContext, pEntry );
     }
 
     return returnStatus;

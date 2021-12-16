@@ -979,7 +979,7 @@ static void *DmlXdslEventHandlerThread( void *arg )
        XDSLMSGQWanData MSGQWanData        = { 0 };
        char               acTmpPhyStatus[32] = { 0 };
        BOOL               IsValidStatus      = TRUE;
-#ifdef _HUB4_PRODUCT_REQ_
+#ifdef FEATURE_RDKB_LED_MANAGER
        char               ledStatus[32]      = { 0 };
 #endif
 
@@ -1002,6 +1002,7 @@ static void *DmlXdslEventHandlerThread( void *arg )
                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_LED_STATE, ledStatus, sizeof(ledStatus));
                if(!((strncmp(ledStatus, WAN_IP4_UP, sizeof(ledStatus)) == 0) || (strncmp(ledStatus, WAN_IP6_UP, sizeof(ledStatus)) == 0)))
                {
+                   CcspTraceInfo(("%s- Setting LED to DSL Training  \n", __FUNCTION__));
                    sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LED_STATE, DSL_TRAINING_STATE, 0);
                    snprintf( acTmpPhyStatus, sizeof( acTmpPhyStatus ), "%s", "Initializing" );
                }
@@ -1335,6 +1336,18 @@ ANSC_STATUS DmlXdslCreateXTMLink( char *ifname )
         CcspTraceError(("%s Invalid ifname Argument\n",__FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
+
+    /* For adsl, SR300 driver will update the DML "StandardUsed" only after training phase is completed.
+       Once training is completed, it will return the standard "G.992.5". So just get the latest value 
+       of DML by querying it and update it in xdslmanager*/
+    if (ANSC_STATUS_SUCCESS == DmlGetXdslStandardUsed(StandardUsed))
+    {
+        if (StandardUsed[0] != '\0')
+        {
+            DmlXdslLine_UpdateStandardUsedByGivenIfName(ifname, StandardUsed);
+        }
+    }
+    memset(StandardUsed, 0, sizeof(StandardUsed));
 
     if (ANSC_STATUS_SUCCESS == DmlXdslLine_GetStandardUsedByGivenIfName(ifname, StandardUsed))
     {

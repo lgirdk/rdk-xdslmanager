@@ -55,11 +55,7 @@
 #define XDSL_LINE_INFO "Device.DSL.Line.%d."
 #define XDSL_LINE_STANDARD_USED "Device.DSL.Line.%d.StandardUsed"
 #define XDSL_LINE_STATS "Device.DSL.Line.%d.Stats."
-#if defined _SR300_PRODUCT_REQ_ || defined  _DT_WAN_Manager_Enable_
-#define XDSL_LINE_LINKSTATUS "Device.DSL.Line.1.Status"
-#else
 #define XDSL_LINE_LINKSTATUS "Device.DSL.Line.1.LinkStatus"
-#endif //_SR300_PRODUCT_REQ_
 #define XDSL_LINE_PROFILE "Device.DSL.Line.1.AllowedProfiles"
 #define XDSL_LINE_DATA_GATHERING_ENABLE "Device.DSL.Line.%d.EnableDataGathering"
 
@@ -99,9 +95,10 @@
 #define HAL_CONNECTION_RETRY_MAX_COUNT 10
 
 #define XDSL_LOWER_LAYER_IFACE "dsl0"
-#define XDSL_LINK_UP "up"
-#define XDSL_LINK_DOWN "down"
-#define XDSL_LINK_TRAINING "training"
+#define XDSL_LINK_UP "Up"
+#define XDSL_LINK_DOWN "NoSignal"
+#define XDSL_LINK_INITIALIZING "Initializing"
+#define XDSL_LINK_ESTABLISHING "EstablishingLink"
 
 #define CHECK(expr)                                                \
     if (!(expr))                                                   \
@@ -1153,18 +1150,24 @@ static void *eventcb(const char *msg, const int len)
         if (dsl_link_status_cb)
         {
             DslLinkStatus_t link_status;
-            if (strncasecmp(event_val, XDSL_LINK_UP, 2) == 0 )
+            if (strncmp(event_val, XDSL_LINK_UP, strlen(XDSL_LINK_UP)) == 0 )
             {
                 link_status = LINK_UP;
                 g_successful_retrains = g_successful_retrains + 1;
             }
-            else if (strncasecmp(event_val,XDSL_LINK_TRAINING,8) == 0 )
+            else if (strncmp(event_val, XDSL_LINK_INITIALIZING, strlen(XDSL_LINK_INITIALIZING)) == 0  ||
+                     strncmp(event_val, XDSL_LINK_ESTABLISHING, strlen(XDSL_LINK_ESTABLISHING)) == 0)
             {
                 link_status = LINK_INITIALIZING ;
             }
-            else if (strncasecmp(event_val, XDSL_LINK_DOWN,4) == 0 )
+            else if (strncmp(event_val, XDSL_LINK_DOWN, strlen(XDSL_LINK_DOWN)) == 0 ) 
             {
                 link_status = LINK_DISABLED ;
+            }
+            else  
+            {
+                FREE_JSON_OBJECT(jobj);
+                return;
             }
             CcspTraceInfo(("Notifying DSLManager for the link event \n"));
             dsl_link_status_cb(XDSL_LOWER_LAYER_IFACE, link_status);
@@ -2185,141 +2188,146 @@ ANSC_STATUS atm_hal_setLinkInfoParam(PDML_ATM config)
     param.type = PARAM_BOOLEAN;
     json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
 
+    if (config->Enable)
+    {
+        /* At this point json message has been set with atm enabled or disabled parameter 
+           based on link establishment or link disconnection. Set remianing params 
+           if this is an atm interface addition/enabled case */
 #ifndef _SR300_PRODUCT_REQ_
-    memset(&param, 0, sizeof(param));
-    snprintf(param.name, sizeof(param), ATM_LINK_NAME, config->InstanceNumber);
-    snprintf(param.value, sizeof(param.value), "%s", config->Name);
-    param.type = PARAM_STRING;
-    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+        memset(&param, 0, sizeof(param));
+        snprintf(param.name, sizeof(param), ATM_LINK_NAME, config->InstanceNumber);
+        snprintf(param.value, sizeof(param.value), "%s", config->Name);
+        param.type = PARAM_STRING;
+        json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
 #endif // _SR300_PRODUCT_REQ_
 
-    memset(&param, 0, sizeof(param));
-    snprintf(param.name, sizeof(param), ATM_LINK_DESTINATIONADDRESS, config->InstanceNumber);
-    snprintf(param.value, sizeof(param.value), "%s", config->DestinationAddress);
-    param.type = PARAM_STRING;
-    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
-    
-    memset(&param, 0, sizeof(param));
-    snprintf(param.name, sizeof(param), ATM_LINK_ENCAPSULATION, config->InstanceNumber);
-    switch(config->Encapsulation)
-    {
-        case LLC:
-            snprintf(param.value, sizeof(param.value), "%s", "LLC");
-            break;
-        case VCMUX:
-            snprintf(param.value, sizeof(param.value), "%s", "VCMUX");
-            break;
-    }
-    param.type = PARAM_STRING;
-    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+        memset(&param, 0, sizeof(param));
+        snprintf(param.name, sizeof(param), ATM_LINK_DESTINATIONADDRESS, config->InstanceNumber);
+        snprintf(param.value, sizeof(param.value), "%s", config->DestinationAddress);
+        param.type = PARAM_STRING;
+        json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+        memset(&param, 0, sizeof(param));
+        snprintf(param.name, sizeof(param), ATM_LINK_ENCAPSULATION, config->InstanceNumber);
+        switch(config->Encapsulation)
+        {
+            case LLC:
+                snprintf(param.value, sizeof(param.value), "%s", "LLC");
+                break;
+            case VCMUX:
+                snprintf(param.value, sizeof(param.value), "%s", "VCMUX");
+                break;
+        }
+        param.type = PARAM_STRING;
+        json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
 
 #ifndef _SR300_PRODUCT_REQ_
-    memset(&param, 0, sizeof(param));
-    snprintf(param.name, sizeof(param), ATM_LINK_AAL, config->InstanceNumber);
-    switch(config->AAL)
-    {
-        case AAL1:
-           snprintf(param.value, sizeof(param.value), "%s", "AAL1");
-           break;
-        case AAL2:
-           snprintf(param.value, sizeof(param.value), "%s", "AAL2");
-           break;
-        case AAL3:
-           snprintf(param.value, sizeof(param.value), "%s", "AAL3");
-           break;
-        case AAL4:
-           snprintf(param.value, sizeof(param.value), "%s", "AAL4");
-           break;
-        case AAL5:
-           snprintf(param.value, sizeof(param.value), "%s", "AAL5");
-           break;
-    }
-    param.type = PARAM_STRING;
-    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+        memset(&param, 0, sizeof(param));
+        snprintf(param.name, sizeof(param), ATM_LINK_AAL, config->InstanceNumber);
+        switch(config->AAL)
+        {
+            case AAL1:
+                snprintf(param.value, sizeof(param.value), "%s", "AAL1");
+                break;
+            case AAL2:
+                snprintf(param.value, sizeof(param.value), "%s", "AAL2");
+                break;
+            case AAL3:
+                snprintf(param.value, sizeof(param.value), "%s", "AAL3");
+                break;
+            case AAL4:
+                snprintf(param.value, sizeof(param.value), "%s", "AAL4");
+                break;
+            case AAL5:
+                snprintf(param.value, sizeof(param.value), "%s", "AAL5");
+                break;
+        }
+        param.type = PARAM_STRING;
+        json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
 #endif // _SR300_PRODUCT_REQ_
 
-    memset(&param, 0, sizeof(param));
-    snprintf(param.name, sizeof(param), ATM_LINK_LINKTYPE, config->InstanceNumber);
-    switch(config->LinkType)
-    {
+        memset(&param, 0, sizeof(param));
+        snprintf(param.name, sizeof(param), ATM_LINK_LINKTYPE, config->InstanceNumber);
+        switch(config->LinkType)
+        {
 #ifdef _SR300_PRODUCT_REQ_
-        case EOA:
-           snprintf(param.value, sizeof(param.value), "%s", "EoA");
-           break;
-        case IPOA:
-           snprintf(param.value, sizeof(param.value), "%s", "IPoA");
-           break;
-        case PPPOA:
-           snprintf(param.value, sizeof(param.value), "%s", "PPPoA");
-           break;
+            case EOA:
+                snprintf(param.value, sizeof(param.value), "%s", "EoA");
+                break;
+            case IPOA:
+                snprintf(param.value, sizeof(param.value), "%s", "IPoA");
+                break;
+            case PPPOA:
+                snprintf(param.value, sizeof(param.value), "%s", "PPPoA");
+                break;
 #else
-        case EOA:
-           snprintf(param.value, sizeof(param.value), "%s", "EOA");
-           break;
-        case IPOA:
-           snprintf(param.value, sizeof(param.value), "%s", "IPOA");
-           break;
-        case PPPOA:
-           snprintf(param.value, sizeof(param.value), "%s", "PPPOA");
-           break;
+            case EOA:
+                snprintf(param.value, sizeof(param.value), "%s", "EOA");
+                break;
+            case IPOA:
+                snprintf(param.value, sizeof(param.value), "%s", "IPOA");
+                break;
+            case PPPOA:
+                snprintf(param.value, sizeof(param.value), "%s", "PPPOA");
+                break;
 #endif //_SR300_PRODUCT_REQ_
-        case CIP:
-           snprintf(param.value, sizeof(param.value), "%s", "CIP");
-           break;
-        case UNCONFIGURED:
-           snprintf(param.value, sizeof(param.value), "%s", "UNCONFIGURED");
-           break;
+            case CIP:
+                snprintf(param.value, sizeof(param.value), "%s", "CIP");
+                break;
+            case UNCONFIGURED:
+                snprintf(param.value, sizeof(param.value), "%s", "UNCONFIGURED");
+                break;
+        }
+        param.type = PARAM_STRING;
+        json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+        memset(&param, 0, sizeof(param));
+        snprintf(param.name, sizeof(param), ATM_LINK_QOS_QOSCLASS, config->InstanceNumber);
+        switch(config->Qos.QoSClass)
+        {
+            case UBR:
+                snprintf(param.value, sizeof(param.value), "%s", "UBR");
+                break;
+            case CBR:
+                snprintf(param.value, sizeof(param.value), "%s", "CBR");
+                break;
+            case GFR:
+                snprintf(param.value, sizeof(param.value), "%s", "GFR");
+                break;
+            case VBR_NRT:
+                snprintf(param.value, sizeof(param.value), "%s", "VBR-nrt");
+                break;
+            case VBR_RT:
+                snprintf(param.value, sizeof(param.value), "%s", "VBR-rt");
+                break;
+            case UBR_PLUS:
+                snprintf(param.value, sizeof(param.value), "%s", "UBR+");
+                break;
+            case ABR:
+                snprintf(param.value, sizeof(param.value), "%s", "ABR");
+                break;
+        }
+        param.type = PARAM_STRING;
+        json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+        memset(&param, 0, sizeof(param));
+        snprintf(param.name, sizeof(param), ATM_LINK_QOS_PEAKCELLRATE, config->InstanceNumber);
+        snprintf(param.value, sizeof(param.value), "%d", config->Qos.PeakCellRate);
+        param.type = PARAM_UNSIGNED_INTEGER;
+        json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+        memset(&param, 0, sizeof(param));
+        snprintf(param.name, sizeof(param), ATM_LINK_QOS_MAXBURSTSIZE, config->InstanceNumber);
+        snprintf(param.value, sizeof(param.value), "%d", config->Qos.MaximumBurstSize);
+        param.type = PARAM_UNSIGNED_INTEGER;
+        json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
+
+        memset(&param, 0, sizeof(param));
+        snprintf(param.name, sizeof(param), ATM_LINK_QOS_SUSCELLRATE, config->InstanceNumber);
+        snprintf(param.value, sizeof(param.value), "%d", config->Qos.SustainableCellRate);
+        param.type = PARAM_UNSIGNED_INTEGER;
+        json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
     }
-    param.type = PARAM_STRING;
-    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
-
-    memset(&param, 0, sizeof(param));
-    snprintf(param.name, sizeof(param), ATM_LINK_QOS_QOSCLASS, config->InstanceNumber);
-    switch(config->Qos.QoSClass)
-    {
-        case UBR:
-           snprintf(param.value, sizeof(param.value), "%s", "UBR");
-           break;
-        case CBR:
-           snprintf(param.value, sizeof(param.value), "%s", "CBR");
-           break;
-        case GFR:
-           snprintf(param.value, sizeof(param.value), "%s", "GFR");
-           break;
-        case VBR_NRT:
-           snprintf(param.value, sizeof(param.value), "%s", "VBR-nrt");
-           break;
-        case VBR_RT:
-           snprintf(param.value, sizeof(param.value), "%s", "VBR-rt");
-           break;
-        case UBR_PLUS:
-           snprintf(param.value, sizeof(param.value), "%s", "UBR+");
-           break;
-        case ABR:
-           snprintf(param.value, sizeof(param.value), "%s", "ABR");
-           break;
-    }
-    param.type = PARAM_STRING;
-    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
-
-    memset(&param, 0, sizeof(param));
-    snprintf(param.name, sizeof(param), ATM_LINK_QOS_PEAKCELLRATE, config->InstanceNumber);
-    snprintf(param.value, sizeof(param.value), "%d", config->Qos.PeakCellRate);
-    param.type = PARAM_UNSIGNED_INTEGER;
-    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
-
-    memset(&param, 0, sizeof(param));
-    snprintf(param.name, sizeof(param), ATM_LINK_QOS_MAXBURSTSIZE, config->InstanceNumber);
-    snprintf(param.value, sizeof(param.value), "%d", config->Qos.MaximumBurstSize);
-    param.type = PARAM_UNSIGNED_INTEGER;
-    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
-
-    memset(&param, 0, sizeof(param));
-    snprintf(param.name, sizeof(param), ATM_LINK_QOS_SUSCELLRATE, config->InstanceNumber);
-    snprintf(param.value, sizeof(param.value), "%d", config->Qos.SustainableCellRate);
-    param.type = PARAM_UNSIGNED_INTEGER;
-    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &param);
-
     CcspTraceInfo(("JSON Request message = %s \n", json_object_to_json_string_ext(jmsg, JSON_C_TO_STRING_PRETTY)));
 
     if( json_hal_client_send_and_get_reply(jmsg, &jreply_msg) != RETURN_OK)
