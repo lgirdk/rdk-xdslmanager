@@ -55,7 +55,7 @@
 #define XDSL_LINE_INFO "Device.DSL.Line.%d."
 #define XDSL_LINE_STANDARD_USED "Device.DSL.Line.%d.StandardUsed"
 #define XDSL_LINE_STATS "Device.DSL.Line.%d.Stats."
-#ifdef _SR300_PRODUCT_REQ_
+#if defined _SR300_PRODUCT_REQ_ || defined  _DT_WAN_Manager_Enable_
 #define XDSL_LINE_LINKSTATUS "Device.DSL.Line.1.Status"
 #else
 #define XDSL_LINE_LINKSTATUS "Device.DSL.Line.1.LinkStatus"
@@ -127,7 +127,9 @@ dsl_link_status_callback dsl_link_status_cb = NULL;
 static int subscribe_dsl_link_event();
 static int g_successful_retrains = -1;
 static void *eventcb(const char *msg, const int len);
+#if !defined  _DT_WAN_Manager_Enable_
 static ANSC_STATUS configure_xdsl_driver();
+#endif
 static ANSC_STATUS xtse_get_bit_position(char *StandardUsed, int *bit_position, int *bit_range);
 static ANSC_STATUS compare_with_standards_supported( char *standardsSupported, char *Xtse, int size);
 static ANSC_STATUS xdsl_hal_setXtsUsed(char *standardUsed, char *xtsUsedBuf, int size);
@@ -231,7 +233,7 @@ int xdsl_hal_init( void )
         CcspTraceError(("Failed to subscribe DSL link event \n"));
     }
 
-#ifndef _SR300_PRODUCT_REQ_
+#if !defined  _SR300_PRODUCT_REQ_ && !defined  _DT_WAN_Manager_Enable_
     /**
      * Configure xDSL driver.
      */
@@ -1792,6 +1794,8 @@ int xdsl_hal_dslGetXRdk_Nlm( PDML_XDSL_X_RDK_NLNM pstNlmInfo )
 
     return rc;
 }
+
+#if !defined  _DT_WAN_Manager_Enable_
 static ANSC_STATUS configure_xdsl_driver()
 {
     int rc = RETURN_OK;
@@ -1842,6 +1846,7 @@ static ANSC_STATUS configure_xdsl_driver()
 
     return rc;
 }
+#endif
 
 ANSC_STATUS xtm_hal_setLinkInfoParam(hal_param_t *set_param)
 {
