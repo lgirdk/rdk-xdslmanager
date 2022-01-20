@@ -72,6 +72,7 @@
 #include <errno.h>
 #include <mqueue.h>
 #include <sysevent/sysevent.h>
+#include <syscfg/syscfg.h>
 
 //Specific includes
 #include "xdsl_apis.h"
