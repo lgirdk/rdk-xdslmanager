@@ -166,7 +166,6 @@ static ANSC_STATUS DmlCreatePTMLink( char *ifname );
 static ANSC_STATUS DmlDeletePTMLink( char *ifname );
 static ANSC_STATUS DmlCreateATMLink( char *ifname );
 static ANSC_STATUS DmlDeleteATMLink( char *ifname );
-static int SetPhyifname(char *phyifname);
 
 int sysevent_fd = -1;
 token_t sysevent_token;
@@ -1473,10 +1472,6 @@ ANSC_STATUS DmlCreatePTMLink( char *ifname )
     {
         CcspTraceError(("%s %d Failed to get param value\n", __FUNCTION__, __LINE__));
     }
-    else
-    {
-        SetPhyifname(phyname);
-    }
 
     return ANSC_STATUS_SUCCESS;
 }
@@ -1524,10 +1519,6 @@ ANSC_STATUS DmlCreateATMLink( char *ifname )
     if (ATMLink_GetParamStringValue(pAtmCxtLink, "Name", phyname, NULL))
     {
         CcspTraceError(("%s %d Failed to get param value\n", __FUNCTION__, __LINE__));
-    }
-    else
-    {
-        SetPhyifname(phyname);
     }
 
     return ANSC_STATUS_SUCCESS;
@@ -2089,12 +2080,3 @@ ANSC_STATUS DmlXdslGetXRDKNlm( PDML_XDSL_X_RDK_NLNM  pstXRdkNlm )
     return ANSC_STATUS_SUCCESS;
 }
 
-static int SetPhyifname(char *phyifname)
-{
-    if ( syscfg_set(NULL, "wan_physical_ifname",phyifname) == 0 )
-    {
-        if (syscfg_commit() != 0)
-            CcspTraceInfo(("syscfg_set failed for syscfg_commit\n"));
-    }
-    return 0;
-}
