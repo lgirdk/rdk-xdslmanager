@@ -231,7 +231,7 @@ int xdsl_hal_init( void )
         CcspTraceError(("Failed to subscribe DSL link event \n"));
     }
 
-#if !defined  _SR300_PRODUCT_REQ_ && !defined  _DT_WAN_Manager_Enable_
+#if !defined  _DT_WAN_Manager_Enable_
     /**
      * Configure xDSL driver.
      */
