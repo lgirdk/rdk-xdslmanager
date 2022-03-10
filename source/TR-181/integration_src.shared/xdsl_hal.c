@@ -56,9 +56,9 @@
 #define XDSL_LINE_STANDARD_USED "Device.DSL.Line.%d.StandardUsed"
 #define XDSL_LINE_STATS "Device.DSL.Line.%d.Stats."
 #ifdef _SR300_PRODUCT_REQ_
-#define XDSL_LINE_LINKSTATUS "Device.DSL.Line.1.Status"
+#define XDSL_LINE_LINKSTATUS "Device.DSL.Line.%d.Status"
 #else
-#define XDSL_LINE_LINKSTATUS "Device.DSL.Line.1.LinkStatus"
+#define XDSL_LINE_LINKSTATUS "Device.DSL.Line.%d.LinkStatus"
 #endif //_SR300_PRODUCT_REQ_
 #define XDSL_LINE_PROFILE "Device.DSL.Line.1.AllowedProfiles"
 #define XDSL_LINE_DATA_GATHERING_ENABLE "Device.DSL.Line.%d.EnableDataGathering"
@@ -71,6 +71,7 @@
 #define ATM_LINK_ENABLE "Device.ATM.Link.%d.Enable"
 #define ATM_LINK_INFO "Device.ATM.Link.%d."
 #define ATM_LINK_NAME "Device.ATM.Link.%d.Name"
+#define ATM_LINK_STATUS "Device.ATM.Link.%d.Status"
 #define ATM_LINK_DESTINATIONADDRESS "Device.ATM.Link.%d.DestinationAddress"
 #define ATM_LINK_ENCAPSULATION "Device.ATM.Link.%d.Encapsulation"
 #define ATM_LINK_AAL "Device.ATM.Link.%d.AAL"
@@ -90,6 +91,8 @@
 #define ATM_LINK_DIAGNOSTICS_STATE       "Device.ATM.Diagnostics.F5Loopback.DiagnosticsState"
 #define ATM_LINK_DIAGNOSTICS_REPETITIONS "Device.ATM.Diagnostics.F5Loopback.NumberOfRepetitions"
 #define ATM_LINK_DIAGNOSTICS_TIMEOUT     "Device.ATM.Diagnostics.F5Loopback.Timeout"
+
+#define PTM_LINK_STATUS "Device.PTM.Link.%d.Status"
 
 #define RPC_GET_PARAMETERS_REQUEST "getParameters"
 #define RPC_SET_PARAMETERS_REQUEST "setParameters"
@@ -124,6 +127,8 @@
 extern PBACKEND_MANAGER_OBJECT g_pBEManager;
 
 dsl_link_status_callback dsl_link_status_cb = NULL;
+xtm_status_callback atm_status_cb = NULL;
+xtm_status_callback ptm_status_cb = NULL;
 static int subscribe_dsl_link_event();
 static int g_successful_retrains = -1;
 static void *eventcb(const char *msg, const int len);
@@ -801,6 +806,7 @@ int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
              */
             if (strstr(resp_param.name, "Link"))
             {
+#ifdef _SR300_PRODUCT_REQ_
                 if (strcmp(resp_param.value, "Up") == 0)
                 {
                     pstLineInfo->LinkStatus = XDSL_LINK_STATUS_Up;
@@ -825,9 +831,11 @@ int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
                 {
                     pstLineInfo->LinkStatus = XDSL_LINK_STATUS_Error;
                 }
+#endif
             }
             else //IfStatus
             {
+#ifndef _SR300_PRODUCT_REQ_
                 if (strcmp(resp_param.value, "Up") == 0)
                 {
                     pstLineInfo->Status = XDSL_IF_STATUS_Up;
@@ -856,6 +864,7 @@ int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
                 {
                     pstLineInfo->Status = XDSL_IF_STATUS_Error;
                 }
+#endif
             }
         }
         else if (strstr (resp_param.name, "LastChange")) {
@@ -994,9 +1003,6 @@ int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
         else if (strstr (resp_param.name, "FirmwareVersion")) {
             snprintf(pstLineInfo->FirmwareVersion, sizeof(pstLineInfo->FirmwareVersion), "%s", resp_param.value);
         }
-        else if (strstr (resp_param.name, "StandardUsed")) {
-            snprintf(pstLineInfo->StandardUsed, sizeof(pstLineInfo->StandardUsed), "%s", resp_param.value);
-        }
         else if (strstr (resp_param.name, "SNRMpbus")) {
             snprintf(pstLineInfo->SNRMpbus, sizeof(pstLineInfo->SNRMpbus), "%s", resp_param.value);
         }
@@ -1076,6 +1082,7 @@ static void *eventcb(const char *msg, const int len)
     json_object *msg_param_val = NULL;
     char event_name[256] = {'\0'};
     char event_val[256] = {'\0'};
+    int id = 0, n = 0;
 
     if(msg == NULL) {
         return;
@@ -1120,28 +1127,25 @@ static void *eventcb(const char *msg, const int len)
         }
     }
 
-    if (strncmp(event_name, XDSL_LINE_LINKSTATUS, sizeof(XDSL_LINE_LINKSTATUS)) == 0)
-    {
-        CcspTraceInfo(("Event got for %s and its value =%s \n", event_name, event_val));
+    CcspTraceInfo(("Event got for %s and its value =%s \n", event_name, event_val));
+    if (sscanf(event_name, XDSL_LINE_LINKSTATUS "%n", &id, &n) > 0 && event_name[n] == '\0')
+    { 
+	if (strncasecmp(event_val, XDSL_LINK_UP, 2) == 0 )
+	{
+	    g_successful_retrains = g_successful_retrains + 1;
+	}
         if (dsl_link_status_cb)
         {
-            DslLinkStatus_t link_status;
-            if (strncasecmp(event_val, XDSL_LINK_UP, 2) == 0 )
-            {
-                link_status = LINK_UP;
-                g_successful_retrains = g_successful_retrains + 1;
-            }
-            else if (strncasecmp(event_val,XDSL_LINK_TRAINING,8) == 0 )
-            {
-                link_status = LINK_INITIALIZING ;
-            }
-            else if (strncasecmp(event_val, XDSL_LINK_DOWN,4) == 0 )
-            {
-                link_status = LINK_DISABLED ;
-            }
-            CcspTraceInfo(("Notifying DSLManager for the link event \n"));
-            dsl_link_status_cb(XDSL_LOWER_LAYER_IFACE, link_status);
+            dsl_link_status_cb(id, event_val);
         }
+    }
+    else if (atm_status_cb && sscanf(event_name, ATM_LINK_STATUS "%n", &id, &n) > 0 && event_name[n] == '\0')
+    {
+	atm_status_cb(id, event_val);
+    }
+    else if (ptm_status_cb && sscanf(event_name, PTM_LINK_STATUS "%n", &id, &n) > 0 && event_name[n] == '\0')
+    {
+	ptm_status_cb(id, event_val);
     }
 
     FREE_JSON_OBJECT(jobj);
@@ -1149,8 +1153,19 @@ static void *eventcb(const char *msg, const int len)
 
 static int subscribe_dsl_link_event()
 {
-    int rc = RETURN_ERR;
-    rc = json_hal_client_subscribe_event(eventcb, XDSL_LINE_LINKSTATUS, "onChange");
+    int rc = RETURN_OK;
+    char name[256] = {'\0'};
+
+    for (int line_id = 1; line_id <= XDSL_MAX_LINES; line_id++)
+    {
+	snprintf(name, sizeof(name), XDSL_LINE_LINKSTATUS, line_id);
+	if (json_hal_client_subscribe_event(eventcb, name, "onChange") != RETURN_OK)
+	{
+	    CcspTraceError(("Failed to subscribe DSL link event: %s \n", name));
+	    rc = RETURN_ERR;
+	}
+    }
+
     return rc;
 }
 
@@ -2332,8 +2347,6 @@ static ANSC_STATUS getDestinationAddress(char *Interface, char *DestinationAddre
 {
     int                     rc             = RETURN_OK;
     PDATAMODEL_ATM          pMyObject      = (PDATAMODEL_ATM)g_pBEManager->hATM;
-    PSINGLE_LINK_ENTRY      pSListEntry    = NULL;
-    PCONTEXT_LINK_OBJECT    pCxtLink       = NULL;
     PDML_ATM                p_Atm          = NULL;
 
     if (Interface == NULL || DestinationAddress == NULL)
@@ -2345,19 +2358,11 @@ static ANSC_STATUS getDestinationAddress(char *Interface, char *DestinationAddre
     int index = 0;
     sscanf(Interface, "%*[^0-9]%d", &index);
 
-    pSListEntry  = AnscSListGetEntryByIndex(&pMyObject->Q_AtmList, (index-1));
-    if ( pSListEntry )
+    if (index - 1 < pMyObject->ulAtmLinkNumberOfEntries)
     {
-        pCxtLink  = ACCESS_CONTEXT_LINK_OBJECT(pSListEntry);
-        p_Atm  = (PDML_ATM) pCxtLink->hContext;
-        if (p_Atm)
-        {
-            strncpy(DestinationAddress, p_Atm->DestinationAddress, sizeof(DestinationAddress) - 1);
-        }
-        else
-        {
-            rc = RETURN_ERR;
-        }
+	p_Atm = &pMyObject->AtmLink[index - 1];
+
+	strncpy(DestinationAddress, p_Atm->DestinationAddress, sizeof(DestinationAddress) - 1);
     }
     else
     {
@@ -2691,6 +2696,52 @@ static ANSC_STATUS get_atm_link_stats(const json_object *reply_msg, PDML_ATM_STA
     CcspTraceDebug(("UnknownProtoPacketsReceived = %d \n", link_stats->UnknownProtoPacketsReceived));
 
     return ANSC_STATUS_SUCCESS;
+}
+
+int atm_hal_registerStatusCallback(xtm_status_callback status_cb)
+{
+    //Register or deregister
+    if( NULL != status_cb )
+    {
+        atm_status_cb = status_cb;
+    }
+    else
+    {
+        atm_status_cb = NULL;
+    }
+    return RETURN_OK;
+}
+
+int ptm_hal_registerStatusCallback(xtm_status_callback status_cb)
+{
+    //Register or deregister
+    if( NULL != status_cb )
+    {
+        ptm_status_cb = status_cb;
+    }
+    else
+    {
+        ptm_status_cb = NULL;
+    }
+    return RETURN_OK;
+}
+
+int atm_hal_subscribeStatusEvent(int link_id)
+{
+    char name[256] = {'\0'};
+
+    snprintf(name, sizeof(name), ATM_LINK_STATUS, link_id);
+
+    return json_hal_client_subscribe_event(eventcb, name, "onChange");
+}
+
+int ptm_hal_subscribeStatusEvent(int link_id)
+{
+    char name[256] = {'\0'};
+
+    snprintf(name, sizeof(name), PTM_LINK_STATUS, link_id);
+
+    return json_hal_client_subscribe_event(eventcb, name, "onChange");
 }
 
 

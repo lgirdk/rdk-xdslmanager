@@ -43,36 +43,6 @@
     #include <ccsp_syslog.h>
 #endif
 
-#define PSM_ADSL_LINKTYPE           "dmsb.xdslmanager.atm.linktype"    
-#define PSM_ADSL_ENCAPSULATION      "dmsb.xdslmanager.atm.encapsulation"
-#define PSM_ADSL_AUTOCONFIG         "dmsb.xdslmanager.atm.autoconfig"
-#define PSM_ADSL_PVC                "dmsb.xdslmanager.atm.pvc"
-#define PSM_ADSL_AAL                "dmsb.xdslmanager.atm.aal"
-#define PSM_ADSL_FCSPRESERVED       "dmsb.xdslmanager.atm.fcspreserved"
-#define PSM_ADSL_VCSEARCHLIST       "dmsb.xdslmanager.atm.vcsearchlist"
-#define PSM_ADSL_QOS_CLASS          "dmsb.xdslmanager.atm.qos.class"
-#define PSM_ADSL_QOS_PEAKCELLRATE   "dmsb.xdslmanager.atm.qos.peakcellrate"
-#define PSM_ADSL_QOS_MAXBURSTSIZE   "dmsb.xdslmanager.atm.qos.maxburstsize"
-#define PSM_ADSL_QOS_CELLRATE       "dmsb.xdslmanager.atm.qos.cellrate"
-
-extern char                g_Subsystem[32];
-extern ANSC_HANDLE         bus_handle;
-
-#define _PSM_WRITE_PARAM(_PARAM_NAME) { \
-    _ansc_sprintf(param_name, _PARAM_NAME); \
-    retPsmSet = PSM_Set_Record_Value2(bus_handle,g_Subsystem, param_name, ccsp_string, param_value); \
-    if (retPsmSet != CCSP_SUCCESS) { \
-        AnscTraceFlow(("%s Error %d writing %s %s\n", __FUNCTION__, retPsmSet, param_name, param_value));\
-    } \
-    else \
-    { \
-        /*AnscTraceFlow(("%s: retPsmSet == CCSP_SUCCESS writing %s = %s \n", __FUNCTION__,param_name,param_value)); */\
-    } \
-    _ansc_memset(param_name, 0, sizeof(param_name)); \
-    _ansc_memset(param_value, 0, sizeof(param_value)); \
-}
-
-
 /***********************************************************************
  IMPORTANT NOTE:
 
@@ -116,8 +86,6 @@ extern ANSC_HANDLE         bus_handle;
     *  PTMLink_IsUpdated
     *  PTMLink_GetEntryCount
     *  PTMLink_GetEntry
-    *  PTMLink_AddEntry
-    *  PTMLink_DelEntry
     *  PTMLink_GetParamBoolValue
     *  PTMLink_GetParamUlongValue
     *  PTMLink_GetParamStringValue
@@ -218,7 +186,7 @@ PTMLink_Synchronize
 ULONG PTMLink_GetEntryCount( ANSC_HANDLE hInsContext )
 {
     PDATAMODEL_PTM             pPTM         = (PDATAMODEL_PTM)g_pBEManager->hPTM;
-    return AnscSListQueryDepth( &pPTM->Q_PtmList );
+    return pPTM->ulPtmLinkNumberOfEntries;
 }
 
 /**********************************************************************
@@ -255,143 +223,14 @@ ULONG PTMLink_GetEntryCount( ANSC_HANDLE hInsContext )
 ANSC_HANDLE PTMLink_GetEntry (ANSC_HANDLE  hInsContext, ULONG nIndex, ULONG*  pInsNumber )
 {
     PDATAMODEL_PTM             pMyObject         = (PDATAMODEL_PTM)g_pBEManager->hPTM;
-    PSINGLE_LINK_ENTRY              pSListEntry       = NULL;
-    PCONTEXT_LINK_OBJECT       pCxtLink          = NULL;
 
-    pSListEntry       = AnscSListGetEntryByIndex(&pMyObject->Q_PtmList, nIndex);
-
-    if ( pSListEntry )
+    if ( pMyObject->PtmLink && nIndex < pMyObject->ulPtmLinkNumberOfEntries )
     {
-        pCxtLink      = ACCESS_CONTEXT_LINK_OBJECT(pSListEntry);
-        *pInsNumber   = pCxtLink->InstanceNumber;
+        *pInsNumber = pMyObject->PtmLink[nIndex].InstanceNumber;
+         return pMyObject->PtmLink + nIndex;
     }
-
-    return (ANSC_HANDLE)pSListEntry;
-}
-
-/**********************************************************************
-
-    caller:     owner of this object
-
-    prototype:
-
-        ANSC_HANDLE
-        PTMLink_AddEntry
-            (
-                ANSC_HANDLE                 hInsContext,
-                ULONG*                      pInsNumber
-            );
-
-    description:
-
-        This function is called to add a new entry.
-
-    argument:   ANSC_HANDLE                 hInsContext,
-                The instance handle;
-
-                ULONG*                      pInsNumber
-                The output instance number;
-
-    return:     The handle of new added entry.
-
-**********************************************************************/
-
-ANSC_HANDLE PTMLink_AddEntry ( ANSC_HANDLE hInsContext, ULONG* pInsNumber )
-{
-    ANSC_STATUS                          returnStatus      = ANSC_STATUS_SUCCESS;
-    PDATAMODEL_PTM                  pPTM              = (PDATAMODEL_PTM)g_pBEManager->hPTM;
-    PDML_PTM                  p_Ptm      = NULL;
-    PCONTEXT_LINK_OBJECT            pPtmCxtLink  = NULL;
-    PSINGLE_LINK_ENTRY                   pSListEntry       = NULL;
-    BOOL                                      bridgeMode;
-
-    p_Ptm = (PDML_PTM)AnscAllocateMemory(sizeof(DML_PTM));
-
-    if ( !p_Ptm )
-    {
-        return NULL;
-    }
-
-    pPtmCxtLink = (PCONTEXT_LINK_OBJECT)AnscAllocateMemory(sizeof(CONTEXT_LINK_OBJECT));
-    if ( !pPtmCxtLink )
-    {
-        goto EXIT;
-    }
-
-    /* now we have this link content */
-    pPtmCxtLink->hContext = (ANSC_HANDLE)p_Ptm;
-    pPtmCxtLink->bNew     = TRUE;
-
-    /* Get InstanceNumber and Alias */
-    memset( p_Ptm, 0, sizeof( DML_PTM ) );
-    PtmGenForTriggerEntry(NULL, p_Ptm);
-
-    pPtmCxtLink->InstanceNumber = p_Ptm->InstanceNumber ;
-    *pInsNumber                      = p_Ptm->InstanceNumber ;
-
-    SListPushEntryByInsNum(&pPTM->Q_PtmList, (PCONTEXT_LINK_OBJECT)pPtmCxtLink);
-   
-    return (ANSC_HANDLE)pPtmCxtLink;
-
-EXIT:
-    AnscFreeMemory(p_Ptm);
 
     return NULL;
-}
-
-/**********************************************************************
-
-    caller:     owner of this object
-
-    prototype:
-
-        ULONG
-        PTMLink_DelEntry
-            (
-                ANSC_HANDLE                 hInsContext,
-                ANSC_HANDLE                 hInstance
-            );
-
-    description:
-
-        This function is called to delete an exist entry.
-
-    argument:   ANSC_HANDLE                 hInsContext,
-                The instance handle;
-
-                ANSC_HANDLE                 hInstance
-                The exist entry handle;
-
-    return:     The status of the operation.
-
-**********************************************************************/
-
-ULONG PTMLink_DelEntry ( ANSC_HANDLE hInsContext, ANSC_HANDLE hInstance )
-{
-    ANSC_STATUS                returnStatus      = ANSC_STATUS_SUCCESS;
-    PDATAMODEL_PTM             pPTM              = (PDATAMODEL_PTM)g_pBEManager->hPTM;
-    PCONTEXT_LINK_OBJECT       pPtmCxtLink       = (PCONTEXT_LINK_OBJECT)hInstance;
-    PDML_PTM                   p_Ptm             = (PDML_PTM)pPtmCxtLink->hContext;
-
-    if ( pPtmCxtLink->bNew )
-    {
-        /* Set bNew to FALSE to indicate this node is not going to save to SysRegistry */
-        pPtmCxtLink->bNew = FALSE;
-    }
-    else
-    {
-        returnStatus = DmlDelPtm( NULL, p_Ptm );
-    }
-
-    if ( returnStatus == ANSC_STATUS_SUCCESS )
-    {
-        AnscSListPopEntryByLink(&pPTM->Q_PtmList, &pPtmCxtLink->Linkage);
-
-        AnscFreeMemory(pPtmCxtLink->hContext);
-        AnscFreeMemory(pPtmCxtLink);
-    }
-
-    return returnStatus;
 }
 
 /**********************************************************************
@@ -427,20 +266,12 @@ ULONG PTMLink_DelEntry ( ANSC_HANDLE hInsContext, ANSC_HANDLE hInstance )
 
 BOOL PTMLink_GetParamBoolValue ( ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool )
 {
-    PCONTEXT_LINK_OBJECT       pCxtLink      = (PCONTEXT_LINK_OBJECT)hInsContext;
-    PDML_PTM             p_Ptm  = (PDML_PTM   )pCxtLink->hContext;
+    PDML_PTM             p_Ptm  = (PDML_PTM   )hInsContext;
 
     /* check the parameter name and return the corresponding value */
     if( AnscEqualString(ParamName, "Enable", TRUE))
     {
-        BOOLEAN  bEnable = FALSE;
-
-        if ( ANSC_STATUS_SUCCESS == DmlGetPtmIfEnable( &bEnable ) )
-        {
-            p_Ptm->Enable = bEnable;
-            *pBool        = p_Ptm->Enable;
-        }
-
+        *pBool        = p_Ptm->Enable;
         return TRUE;
     }
 
@@ -482,8 +313,7 @@ BOOL PTMLink_GetParamBoolValue ( ANSC_HANDLE hInsContext, char* ParamName, BOOL*
 **********************************************************************/
 BOOL PTMLink_GetParamIntValue ( ANSC_HANDLE  hInsContext, char* ParamName, int* pInt )
 {
-    PCONTEXT_LINK_OBJECT        pCxtLink      = (PCONTEXT_LINK_OBJECT)hInsContext;
-    PDML_PTM              p_Ptm  = (PDML_PTM   )pCxtLink->hContext;
+    PDML_PTM              p_Ptm  = (PDML_PTM   )hInsContext;
 
     /* check the parameter name and return the corresponding value */
 
@@ -523,16 +353,13 @@ BOOL PTMLink_GetParamIntValue ( ANSC_HANDLE  hInsContext, char* ParamName, int* 
 
 BOOL PTMLink_GetParamUlongValue  ( ANSC_HANDLE  hInsContext, char*  ParamName, ULONG* puLong )
 {
-    PCONTEXT_LINK_OBJECT        pCxtLink      = (PCONTEXT_LINK_OBJECT)hInsContext;
-    PDML_PTM           p_Ptm  = (PDML_PTM   )pCxtLink->hContext;
+    PDML_PTM           p_Ptm  = (PDML_PTM   )hInsContext;
 
     /* check the parameter name and return the corresponding value */
 
     if( AnscEqualString(ParamName, "Status", TRUE))
     {
-        if(ANSC_STATUS_SUCCESS == DmlGetPtmIfStatus(NULL, p_Ptm)) {
-            *puLong = p_Ptm->Status;
-        }
+	*puLong = p_Ptm->Status;
         return TRUE;
     }
     if( AnscEqualString(ParamName, "LastChange", TRUE))
@@ -585,8 +412,7 @@ BOOL PTMLink_GetParamUlongValue  ( ANSC_HANDLE  hInsContext, char*  ParamName, U
 
 ULONG PTMLink_GetParamStringValue ( ANSC_HANDLE hInsContext, char*  ParamName, char* pValue, ULONG* pUlSize )
 {
-    PCONTEXT_LINK_OBJECT       pCxtLink      = (PCONTEXT_LINK_OBJECT)hInsContext;
-    PDML_PTM             p_Ptm      = (PDML_PTM   )pCxtLink->hContext;
+    PDML_PTM             p_Ptm      = (PDML_PTM   )hInsContext;
     PUCHAR                          pString       = NULL;
 
     /* check the parameter name and return the corresponding value */
@@ -655,8 +481,7 @@ ULONG PTMLink_GetParamStringValue ( ANSC_HANDLE hInsContext, char*  ParamName, c
 **********************************************************************/
 BOOL PTMLinkStats_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong )
 {
-    PCONTEXT_LINK_OBJECT  pCxtLink = (PCONTEXT_LINK_OBJECT)hInsContext;
-    PDML_PTM  p_Ptm = (PDML_PTM   )pCxtLink->hContext;
+    PDML_PTM  p_Ptm = (PDML_PTM   )hInsContext;
 
     //Get PTM statistics
     DmlGetPtmIfStatistics( NULL, p_Ptm );
@@ -818,30 +643,10 @@ BOOL PTMLink_Validate ( ANSC_HANDLE hInsContext, char*  pReturnParamName,  ULONG
 ULONG PTMLink_Commit ( ANSC_HANDLE  hInsContext )
 {
     ANSC_STATUS                     returnStatus  = ANSC_STATUS_SUCCESS;
-    PCONTEXT_LINK_OBJECT       pCxtLink      = (PCONTEXT_LINK_OBJECT)hInsContext;
-    PDML_PTM          p_Ptm  = (PDML_PTM   )pCxtLink->hContext;
-    PDATAMODEL_PTM             pPTM          = (PDATAMODEL_PTM      )g_pBEManager->hPTM;
+    PDML_PTM          p_Ptm  = (PDML_PTM)hInsContext;
 
-    if ( pCxtLink->bNew )
-    {
-        returnStatus = DmlAddPtm(NULL, p_Ptm );
+    return DmlSetPtm( NULL, p_Ptm );
 
-        if ( returnStatus == ANSC_STATUS_SUCCESS)
-        {
-            pCxtLink->bNew = FALSE;
-        }
-    }
-    else 
-    {
-        returnStatus = DmlSetPtm( NULL, p_Ptm );
-    
-        if ( returnStatus != ANSC_STATUS_SUCCESS ) 
-        {
-            CcspTraceError(("%s %d - Failed to set PTM entry\n",__FUNCTION__,__LINE__));
-        }
-    }
-
-    return returnStatus;
 }
 
 /**********************************************************************
@@ -871,22 +676,6 @@ ULONG PTMLink_Commit ( ANSC_HANDLE  hInsContext )
 ULONG PTMLink_Rollback ( ANSC_HANDLE hInsContext )
 {
     ANSC_STATUS                returnStatus  = ANSC_STATUS_SUCCESS;
-    PDATAMODEL_PTM             pPTM          = (PDATAMODEL_PTM) g_pBEManager->hPTM;
-    PCONTEXT_LINK_OBJECT       pCxtLink      = (PCONTEXT_LINK_OBJECT)hInsContext;
-    PDML_PTM                   p_Ptm         = (PDML_PTM   )pCxtLink->hContext;
-
-    if ( p_Ptm->Alias )
-        AnscCopyString( p_Ptm->Alias, p_Ptm->Alias );
-
-    if ( !pCxtLink->bNew )
-    {
-        /* We have nothing to do with this case unless we have one getbyEntry() */
-    }
-    else
-    {
-        DML_PTM_INIT(p_Ptm);
-        _ansc_sprintf(p_Ptm->Name, "ptm%d", p_Ptm->InstanceNumber);
-    }
 
     return returnStatus;
 }
@@ -900,8 +689,6 @@ ULONG PTMLink_Rollback ( ANSC_HANDLE hInsContext )
     *  ATMLink_IsUpdated
     *  ATMLink_GetEntryCount
     *  ATMLink_GetEntry
-    *  ATMLink_AddEntry
-    *  ATMLink_DelEntry
     *  ATMLink_GetParamBoolValue
     *  ATMLink_GetParamUlongValue
     *  ATMLink_GetParamStringValue
@@ -1003,7 +790,7 @@ ATMLink_Synchronize
 ULONG ATMLink_GetEntryCount ( ANSC_HANDLE hInsContext )
 {
     PDATAMODEL_ATM pATM = (PDATAMODEL_ATM)g_pBEManager->hATM;
-    return AnscSListQueryDepth( &pATM->Q_AtmList );
+    return pATM->ulAtmLinkNumberOfEntries;
 }
 
 /**********************************************************************
@@ -1040,316 +827,14 @@ ULONG ATMLink_GetEntryCount ( ANSC_HANDLE hInsContext )
 ANSC_HANDLE ATMLink_GetEntry ( ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber )
 {
     PDATAMODEL_ATM             pMyObject         = (PDATAMODEL_ATM)g_pBEManager->hATM;
-    PSINGLE_LINK_ENTRY         pSListEntry       = NULL;
-    PCONTEXT_LINK_OBJECT       pCxtLink          = NULL;
 
-    pSListEntry       = AnscSListGetEntryByIndex(&pMyObject->Q_AtmList, nIndex);
-
-    if ( pSListEntry )
+    if ( pMyObject->AtmLink && nIndex < pMyObject->ulAtmLinkNumberOfEntries )
     {
-        pCxtLink      = ACCESS_CONTEXT_LINK_OBJECT(pSListEntry);
-        *pInsNumber   = pCxtLink->InstanceNumber;
+        *pInsNumber = pMyObject->AtmLink[nIndex].InstanceNumber;
+        return pMyObject->AtmLink + nIndex;
     }
-
-    return (ANSC_HANDLE)pSListEntry;
-}
-
-/**********************************************************************
-
-    caller:     owner of this object
-
-    prototype:
-
-        ANSC_HANDLE
-        ATMLink_AddEntry
-            (
-                ANSC_HANDLE                 hInsContext,
-                ULONG*                      pInsNumber
-            );
-
-    description:
-
-        This function is called to add a new entry.
-
-    argument:   ANSC_HANDLE                 hInsContext,
-                The instance handle;
-
-                ULONG*                      pInsNumber
-                The output instance number;
-
-    return:     The handle of new added entry.
-
-**********************************************************************/
-
-ANSC_HANDLE ATMLink_AddEntry ( ANSC_HANDLE hInsContext, ULONG* pInsNumber )
-{
-    ANSC_STATUS                     returnStatus      = ANSC_STATUS_SUCCESS;
-    PDATAMODEL_ATM                  pATM              = (PDATAMODEL_ATM)g_pBEManager->hATM;
-    PDML_ATM                        p_Atm             = NULL;
-    PCONTEXT_LINK_OBJECT            pAtmCxtLink       = NULL;
-    PSINGLE_LINK_ENTRY              pSListEntry       = NULL;
-    BOOL                            bridgeMode;
-    INT                             ret_val           = ANSC_STATUS_SUCCESS;
-    INT                             retPsmGet         = CCSP_SUCCESS;
-    CHAR                            param_name[256]   = {0};
-    CHAR                            *param_value      = NULL;
-
-    p_Atm = (PDML_ATM)AnscAllocateMemory(sizeof(DML_ATM));
-
-    if ( !p_Atm )
-    {
-        return NULL;
-    }
-
-    pAtmCxtLink = (PCONTEXT_LINK_OBJECT)AnscAllocateMemory(sizeof(CONTEXT_LINK_OBJECT));
-    if ( !pAtmCxtLink )
-    {
-        goto EXIT;
-    }
-
-    /* now we have this link content */
-    pAtmCxtLink->hContext = (ANSC_HANDLE)p_Atm;
-    pAtmCxtLink->bNew     = TRUE;
-
-    /* Get InstanceNumber and Alias */
-    memset( p_Atm, 0, sizeof( DML_ATM ) );
-    AtmGenForTriggerEntry(NULL, p_Atm);
-
-    pAtmCxtLink->InstanceNumber = p_Atm->InstanceNumber ;
-    *pInsNumber                 = p_Atm->InstanceNumber ;
-
-    //Sets default configurations
-    p_Atm->Status = Down;
-    strncpy(p_Atm->Alias, "dsl0", sizeof(p_Atm->Alias) - 1);
-
-    /* Get ADSL Linktype */
-    _ansc_sprintf(param_name, PSM_ADSL_LINKTYPE);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
-    {
-        if (strcmp(param_value, "EoA") == 0)
-        {
-            p_Atm->LinkType = EOA;
-        }
-        else if (strcmp(param_value, "IPoA") == 0)
-        {
-            p_Atm->LinkType = IPOA;
-        }
-        else if (strcmp(param_value, "PPPoA") == 0)
-        {
-            p_Atm->LinkType = PPPOA;
-        }
-        else if (strcmp(param_value, "CIP") == 0)
-        {
-            p_Atm->LinkType = CIP;
-        }
-        else if (strcmp(param_value, "Unconfigured") == 0)
-        {
-            p_Atm->LinkType = UNCONFIGURED;
-        }
-    }
-
-    /* Get ADSL Encapsulation */
-    _ansc_sprintf(param_name, PSM_ADSL_ENCAPSULATION);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
-    {
-        if (strcmp(param_value, "LLC") == 0)
-        {
-            p_Atm->Encapsulation = LLC;
-        }
-        else if (strcmp(param_value, "VCMUX") == 0)
-        {
-            p_Atm->Encapsulation = VCMUX;
-        }
-    }
-
-    /* Get ADSL Autoconfig */
-    memset(param_name, 0, sizeof(param_name));
-    _ansc_sprintf(param_name, PSM_ADSL_AUTOCONFIG);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
-    {
-        p_Atm->AutoConfig = atoi(param_value);
-    }
-
-    /* Get ADSL PVC */
-    _ansc_sprintf(param_name, PSM_ADSL_PVC);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
-    {
-        strncpy(p_Atm->DestinationAddress, param_value, sizeof(p_Atm->DestinationAddress) - 1);
-    }
-
-    /* Get ADSL AAL */
-    _ansc_sprintf(param_name, PSM_ADSL_AAL);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
-    {
-        if (strcmp(param_value, "AAL1") == 0)
-        {
-            p_Atm->AAL = AAL1;
-        }
-        else if (strcmp(param_value, "AAL2") == 0)
-        {
-            p_Atm->AAL = AAL2;
-        }
-        else if (strcmp(param_value, "AAL3") == 0)
-        {
-            p_Atm->AAL = AAL3;
-        }
-        else if (strcmp(param_value, "AAL4") == 0)
-        {
-            p_Atm->AAL = AAL4;
-        }
-        else if (strcmp(param_value, "AAL5") == 0)
-        {
-            p_Atm->AAL = AAL5;
-        }
-    }
-
-    /* Get ADSL FCSPreserved */
-    _ansc_sprintf(param_name, PSM_ADSL_FCSPRESERVED);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
-    {
-        p_Atm->FCSPreserved = atoi(param_value);
-    }
-
-    /* Get ADSL VCSearchList */
-    _ansc_sprintf(param_name, PSM_ADSL_VCSEARCHLIST);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
-    {
-        strncpy(p_Atm->VCSearchList, param_value, sizeof(p_Atm->VCSearchList) - 1);
-    }
-
-    /* Get ADSL QOS Class */
-    _ansc_sprintf(param_name, PSM_ADSL_QOS_CLASS);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
-    {
-        if (strcmp(param_value, "UBR") == 0)
-        {
-            p_Atm->Qos.QoSClass = UBR;
-        }
-        else if (strcmp(param_value, "CBR") == 0)
-        {
-            p_Atm->Qos.QoSClass = CBR;
-        }
-        else if (strcmp(param_value, "GFR") == 0)
-        {
-            p_Atm->Qos.QoSClass = GFR;
-        }
-        else if (strcmp(param_value, "VBR-nrt") == 0)
-        {
-            p_Atm->Qos.QoSClass = VBR_NRT;
-        }
-        else if (strcmp(param_value, "VBR-rt") == 0)
-        {
-            p_Atm->Qos.QoSClass = VBR_RT;
-        }
-        else if (strcmp(param_value, "UBR+") == 0)
-        {
-            p_Atm->Qos.QoSClass = UBR_PLUS;
-        }
-        else if (strcmp(param_value, "ABR") == 0)
-        {
-            p_Atm->Qos.QoSClass = ABR;
-        }
-    }
-
-    /* Get ADSL QOS Peak cell rate */
-    _ansc_sprintf(param_name, PSM_ADSL_QOS_PEAKCELLRATE);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
-    {
-        p_Atm->Qos.PeakCellRate = atoi(param_value);
-    }
-
-    /* Get ADSL QOS Max. burst rate */
-    _ansc_sprintf(param_name, PSM_ADSL_QOS_MAXBURSTSIZE);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
-    {
-        p_Atm->Qos.MaximumBurstSize = atoi(param_value);
-    }
-
-    /* Get ADSL QOS cell rate */
-    _ansc_sprintf(param_name, PSM_ADSL_QOS_CELLRATE);
-    retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
-    if (retPsmGet == CCSP_SUCCESS && param_value != NULL)
-    {
-        p_Atm->Qos.SustainableCellRate = atoi(param_value);
-    }
-
-    if(param_value != NULL)
-    {
-        ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
-    }
-
-    SListPushEntryByInsNum(&pATM->Q_AtmList, (PCONTEXT_LINK_OBJECT)pAtmCxtLink);
-   
-    return (ANSC_HANDLE)pAtmCxtLink;
-
-EXIT:
-    AnscFreeMemory(p_Atm);
 
     return NULL;
-}
-
-/**********************************************************************
-
-    caller:     owner of this object
-
-    prototype:
-
-        ULONG
-        ATMLink_DelEntry
-            (
-                ANSC_HANDLE                 hInsContext,
-                ANSC_HANDLE                 hInstance
-            );
-
-    description:
-
-        This function is called to delete an exist entry.
-
-    argument:   ANSC_HANDLE                 hInsContext,
-                The instance handle;
-
-                ANSC_HANDLE                 hInstance
-                The exist entry handle;
-
-    return:     The status of the operation.
-
-**********************************************************************/
-
-ULONG ATMLink_DelEntry ( ANSC_HANDLE hInsContext, ANSC_HANDLE hInstance )
-{
-    ANSC_STATUS                returnStatus      = ANSC_STATUS_SUCCESS;
-    PDATAMODEL_ATM             pATM              = (PDATAMODEL_ATM)g_pBEManager->hATM;
-    PCONTEXT_LINK_OBJECT       pAtmCxtLink       = (PCONTEXT_LINK_OBJECT)hInstance;
-    PDML_ATM                   p_Atm             = (PDML_ATM)pAtmCxtLink->hContext;
-
-    if ( pAtmCxtLink->bNew )
-    {
-        /* Set bNew to FALSE to indicate this node is not going to save to SysRegistry */
-        pAtmCxtLink->bNew = FALSE;
-    }
-    else
-    {
-        returnStatus = DmlDelAtm( NULL, p_Atm );
-    }
-
-    if ( returnStatus == ANSC_STATUS_SUCCESS )
-    {
-        AnscSListPopEntryByLink(&pATM->Q_AtmList, &pAtmCxtLink->Linkage);
-        AnscFreeMemory(pAtmCxtLink->hContext);
-        AnscFreeMemory(pAtmCxtLink);
-    }
-
-    return returnStatus;
 }
 
 /**********************************************************************
@@ -1385,20 +870,12 @@ ULONG ATMLink_DelEntry ( ANSC_HANDLE hInsContext, ANSC_HANDLE hInstance )
 
 BOOL ATMLink_GetParamBoolValue (  ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool )
 {
-    PCONTEXT_LINK_OBJECT       pCxtLink   = (PCONTEXT_LINK_OBJECT) hInsContext;
-    PDML_ATM                   p_Atm      = (PDML_ATM) pCxtLink->hContext;
+    PDML_ATM                   p_Atm      = (PDML_ATM) hInsContext;
 
     /* check the parameter name and return the corresponding value */
     if( AnscEqualString(ParamName, "Enable", TRUE))
     {
-        BOOLEAN  bEnable = FALSE;
-
-        if ( ANSC_STATUS_SUCCESS == DmlGetAtmIfEnable( &bEnable ) )
-        {
-            p_Atm->Enable = bEnable;
-            *pBool        = p_Atm->Enable;
-        }
-
+        *pBool        = p_Atm->Enable;
         return TRUE;
     }
     if( AnscEqualString(ParamName, "AutoConfig", TRUE))
@@ -1450,16 +927,13 @@ BOOL ATMLink_GetParamBoolValue (  ANSC_HANDLE hInsContext, char* ParamName, BOOL
 
 BOOL ATMLink_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong )
 {
-    PCONTEXT_LINK_OBJECT        pCxtLink      = (PCONTEXT_LINK_OBJECT)hInsContext;
-    PDML_ATM                    p_Atm         = (PDML_ATM   )pCxtLink->hContext;
+    PDML_ATM                    p_Atm         = (PDML_ATM   )hInsContext;
 
     /* check the parameter name and return the corresponding value */
 
     if( AnscEqualString(ParamName, "Status", TRUE))
     {
-        if(ANSC_STATUS_SUCCESS == DmlGetAtmIfStatus(NULL, p_Atm)) {
-            *puLong = p_Atm->Status;
-        }
+	*puLong = p_Atm->Status;
         return TRUE;
     }
     if( AnscEqualString(ParamName, "LastChange", TRUE))
@@ -1528,8 +1002,7 @@ BOOL ATMLink_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULON
 
 ULONG ATMLink_GetParamStringValue ( ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize )
 {
-    PCONTEXT_LINK_OBJECT       pCxtLink      = (PCONTEXT_LINK_OBJECT)hInsContext;
-    PDML_ATM                   p_Atm         = (PDML_ATM) pCxtLink->hContext;
+    PDML_ATM                   p_Atm         = (PDML_ATM) hInsContext;
     PUCHAR                     pString       = NULL;
 
     /* check the parameter name and return the corresponding value */
@@ -1603,8 +1076,7 @@ ULONG ATMLink_GetParamStringValue ( ANSC_HANDLE hInsContext, char* ParamName, ch
 **********************************************************************/
 BOOL ATMLinkStats_GetParamUlongValue  ( ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong )
 {
-    PCONTEXT_LINK_OBJECT  pCxtLink = (PCONTEXT_LINK_OBJECT)hInsContext;
-    PDML_ATM  p_Atm                = (PDML_ATM) pCxtLink->hContext;
+    PDML_ATM  p_Atm                = (PDML_ATM) hInsContext;
 
     //Get ATM statistics
     DmlGetAtmIfStatistics( NULL, p_Atm );
@@ -1790,28 +1262,9 @@ BOOL ATMLink_Validate ( ANSC_HANDLE hInsContext, char* pReturnParamName, ULONG* 
 ULONG ATMLink_Commit ( ANSC_HANDLE hInsContext )
 {
     ANSC_STATUS                returnStatus  = ANSC_STATUS_SUCCESS;
-    PCONTEXT_LINK_OBJECT       pCxtLink      = (PCONTEXT_LINK_OBJECT)hInsContext;
-    PDML_ATM                   p_Atm         = (PDML_ATM) pCxtLink->hContext;
-    PDATAMODEL_ATM             pATM          = (PDATAMODEL_ATM) g_pBEManager->hATM;
+    PDML_ATM                   p_Atm         = (PDML_ATM)hInsContext;
 
-    if ( pCxtLink->bNew )
-    {
-        returnStatus = DmlAddAtm(NULL, p_Atm );
-        if ( returnStatus == ANSC_STATUS_SUCCESS)
-        {
-            pCxtLink->bNew = FALSE;
-        }
-    }
-    else 
-    {
-        returnStatus = DmlSetAtm( NULL, p_Atm );
-        if ( returnStatus != ANSC_STATUS_SUCCESS ) 
-        {
-            CcspTraceError(("%s %d - Failed to set ATM entry\n",__FUNCTION__,__LINE__));
-        }
-    }
-
-    return returnStatus;
+    return DmlSetAtm( NULL, p_Atm );
 }
 
 /**********************************************************************
@@ -1841,31 +1294,13 @@ ULONG ATMLink_Commit ( ANSC_HANDLE hInsContext )
 ULONG ATMLink_Rollback ( ANSC_HANDLE hInsContext )
 {
     ANSC_STATUS                     returnStatus  = ANSC_STATUS_SUCCESS;
-    PDATAMODEL_ATM                  pATM          = (PDATAMODEL_ATM) g_pBEManager->hATM;
-    PCONTEXT_LINK_OBJECT            pCxtLink      = (PCONTEXT_LINK_OBJECT) hInsContext;
-    PDML_ATM                        p_Atm         = (PDML_ATM) pCxtLink->hContext;
-
-    if ( p_Atm->Alias )
-        AnscCopyString( p_Atm->Alias, p_Atm->Alias );
-
-    if ( !pCxtLink->bNew )
-    {
-        /* We have nothing to do with this case unless we have one getbyEntry() */
-    }
-    else
-    {
-        DML_ATM_INIT(p_Atm);
-        _ansc_sprintf(p_Atm->Name, "atm%d", p_Atm->InstanceNumber);
-    }
 
     return returnStatus;
 }
 
 BOOL ATMLinkQOS_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong )
 {
-    PDATAMODEL_ATM pATM = (PDATAMODEL_ATM) g_pBEManager->hATM;
-    PCONTEXT_LINK_OBJECT pCxtLink = (PCONTEXT_LINK_OBJECT)hInsContext;
-    PDML_ATM p_Atm = (PDML_ATM) pCxtLink->hContext;
+    PDML_ATM p_Atm = (PDML_ATM) hInsContext;
 
     /* check the parameter name and set the corresponding value */
     if( AnscEqualString(ParamName, "QoSClass", TRUE))
@@ -1895,9 +1330,7 @@ BOOL ATMLinkQOS_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, U
 
 BOOL ATMLinkQOS_SetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULONG uValue )
 {
-    PDATAMODEL_ATM pATM = (PDATAMODEL_ATM) g_pBEManager->hATM;
-    PCONTEXT_LINK_OBJECT pCxtLink = (PCONTEXT_LINK_OBJECT)hInsContext;
-    PDML_ATM p_Atm = (PDML_ATM) pCxtLink->hContext;
+    PDML_ATM p_Atm = (PDML_ATM) hInsContext;
     int retPsmSet = CCSP_SUCCESS;
     char param_name[256]  = {0};
     char param_value[256] = {0};

@@ -41,7 +41,6 @@
             <func_GetParamUlongValue>Line_GetParamUlongValue</func_GetParamUlongValue>
             <func_GetParamStringValue>Line_GetParamStringValue</func_GetParamStringValue>
             <func_SetParamBoolValue>Line_SetParamBoolValue</func_SetParamBoolValue>
-            <func_SetParamUlongValue>Line_SetParamUlongValue</func_SetParamUlongValue>
             <func_SetParamStringValue>Line_SetParamStringValue</func_SetParamStringValue>
             <func_GetParamIntValue>Line_GetParamIntValue</func_GetParamIntValue>
             <func_Validate>Line_Validate</func_Validate>
@@ -382,12 +381,6 @@
               <name>XTUCANSIRev</name>
               <type>unsignedInt</type>
               <syntax>uint32</syntax>
-            </parameter>
-            <parameter>
-              <name>X_RDK_WanStatus</name>
-              <type>string: Up(1),Down(2)</type>
-              <syntax>uint32/mapped</syntax>
-              <writable>true</writable>
             </parameter>
           </parameters>
           <objects>
@@ -1493,7 +1486,7 @@
       <objects>
         <object>
           <name>Link</name>
-          <objectType>dynamicTable</objectType>
+          <objectType>staticTable</objectType>
           <maxInstance>128</maxInstance>
 	  <functions>
             <func_IsUpdated>PTMLink_IsUpdated</func_IsUpdated>
@@ -1644,7 +1637,7 @@
       <objects>
         <object>
           <name>Link</name>
-          <objectType>dynamicTable</objectType>
+          <objectType>staticTable</objectType>
           <maxInstance>128</maxInstance>
 	  <functions>
             <func_IsUpdated>ATMLink_IsUpdated</func_IsUpdated>

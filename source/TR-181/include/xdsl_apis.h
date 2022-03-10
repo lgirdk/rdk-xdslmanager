@@ -36,7 +36,6 @@
 #define  _XDSL_APIS_H
 
 #include "cosa_apis.h"
-#include "xdsl_manager.h"
 
 /* * Telemetry Markers */
 #define XDSL_MARKER_LINE_CFG_CHNG           "RDKB_XDSL_LINE_CFG_CHANGED"
@@ -50,6 +49,15 @@
 
 
 /* Collection */
+
+typedef enum
+_DML_XDSL_LINE_TYPE
+{
+    DML_XDSL_LINE_ADSL = 1,
+    DML_XDSL_LINE_VDSL,
+    DML_XDSL_LINE_GFAST,
+} DML_XDSL_LINE_TYPE;
+
 typedef enum
 _DML_XDSL_IF_STATUS
 {
@@ -73,13 +81,11 @@ _DML_XDSL_LINK_STATUS
     XDSL_LINK_STATUS_Error
 } DML_XDSL_LINK_STATUS;
 
-/** enum wan status */
-typedef enum
-_DML_XDSL_LINE_WAN_STATUS
-{
-    XDSL_LINE_WAN_UP          = 1,
-    XDSL_LINE_WAN_DOWN        = 2,
-} DML_XDSL_LINE_WAN_STATUS;
+#ifdef _SR300_PRODUCT_REQ_
+#define LINK_STATUS_UP XDSL_IF_STATUS_Up
+#else
+#define LINK_STATUS_UP XDSL_LINK_STATUS_Up
+#endif
 
 /** enum notify */
 typedef enum
@@ -190,7 +196,6 @@ _DML_XDSL_LINE
     UINT                              UpstreamMaxBitRate;
     UINT                              DownstreamMaxBitRate;
     UINT                              SuccessFailureCause;
-    DML_XDSL_LINE_WAN_STATUS          WanStatus;
     UINT                              UPBOKLER;
     CHAR                              UPBOKLEPb[256];
     CHAR                              UPBOKLERPb[256];
@@ -238,21 +243,9 @@ _DML_XDSL_LINE
     UINT                              XTUCANSIStd;
     UINT                              XTUCANSIRev;
     DML_XDSL_LINE_STATS                stLineStats;
+    pthread_mutex_t                   mDataMutex;
 }
 DML_XDSL_LINE, *PDML_XDSL_LINE;              
-
-typedef  struct
-_DML_XDSL_LINE_GLOBALINFO
-{
-    BOOL                              Upstream;
-    CHAR                              Name[64];
-    CHAR                              LowerLayers[128];
-    CHAR                              StandardUsed[XDSL_STANDARD_USED_STR_MAX];
-    DML_XDSL_LINE_WAN_STATUS           WanStatus;
-    DML_XDSL_LINK_STATUS               LinkStatus;
-    pthread_t                          iface_thread_id;
-}
-DML_XDSL_LINE_GLOBALINFO, *PDML_XDSL_LINE_GLOBALINFO;
 
 /* * Channel */
 
@@ -532,35 +525,15 @@ ANSC_STATUS DmlXdslLineSetEnable( INT LineIndex, BOOL Enable );
 
 ANSC_STATUS DmlXdslLineSetDataGatheringEnable( INT LineIndex, BOOL Enable );
 
-ANSC_STATUS DmlXdslLineSetUpstream( INT LineIndex, BOOL Upstream );
+ANSC_STATUS DmlXdslDeleteXTMLink( INT LineIndex );
 
-ANSC_STATUS DmlXdslLineGetWanStatus( INT LineIndex, DML_XDSL_LINE_WAN_STATUS *wan_state );
+ANSC_STATUS DmlXdslCreateXTMLink( INT LineIndex );
 
-ANSC_STATUS DmlXdslLineSetWanStatus( INT LineIndex, DML_XDSL_LINE_WAN_STATUS wan_state );
+ANSC_STATUS DmlXdslSetLineLinkStatus( INT LineIndex, INT Status);
 
-ANSC_STATUS DmlXdslLineGetLinkStatus( INT LineIndex, DML_XDSL_LINK_STATUS *LinkStatus );
+ANSC_STATUS DmlXdslGetLineLinkStatus( INT LineIndex, INT *Status);
 
-ANSC_STATUS DmlXdslLineGetIndexFromIfName( char *ifname, INT *LineIndex );
-
-ANSC_STATUS DmlXdslDeleteXTMLink( char *ifname );
-
-ANSC_STATUS DmlXdslCreateXTMLink( char *ifname );
-
-ANSC_STATUS DmlXdslLine_GetStandardUsedByGivenIfName(char* ifname, char* StandardUsed);
-
-ANSC_STATUS DmlXdslLine_UpdateStandardUsedByGivenIfName(char* ifname, char* StandardUsed);
-
-ANSC_STATUS DmlXdslLine_GetIfaceTidByGivenIfName(char* ifname, pthread_t* thread_id);
-
-ANSC_STATUS DmlXdslLine_UpdateIfaceTidByGivenIfName(char* ifname, pthread_t new_thread_id);
-
-ANSC_STATUS DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( char *ifname, PDML_XDSL_LINE_GLOBALINFO pGlobalInfo );
-
-ANSC_STATUS DmlXdslLineUpdateLinkStatusAndGetGlobalInfoForGivenIfName( char *ifname, DML_XDSL_LINK_STATUS enLinkStatus, PDML_XDSL_LINE_GLOBALINFO pGlobalInfo );
-
-ANSC_STATUS DmlXdslSetWanLinkStatusForWanManager( char *ifname, char *WanStatus );
-
-ANSC_STATUS DmlXdslSetPhyStatusForWanManager( char *ifname, char *PhyStatus );
+ANSC_STATUS DmlXdslSetLinkStatusForWanManager( char *BaseInterface, char *LinkStatus );
 
 INT DmlXdslGetTotalNoofChannels( INT LineIndex );
 
@@ -568,7 +541,7 @@ ANSC_STATUS DmlXdslGetChannelCfg( INT LineIndex, INT ChannelIndex, PDML_XDSL_CHA
 
 ANSC_STATUS DmlXdslChannelSetEnable( INT LineIndex, INT ChannelIndex, BOOL Enable );
 
-ANSC_STATUS DmlGetXdslStandardUsed( char *standard_used);
+ANSC_STATUS DmlXdslLineTypeGetById( INT LineIndex, DML_XDSL_LINE_TYPE *LineType );
 
 ANSC_STATUS
 DmlXdslDiagnosticsInit

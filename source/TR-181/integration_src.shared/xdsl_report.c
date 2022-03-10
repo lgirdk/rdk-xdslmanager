@@ -126,7 +126,7 @@ char *XdslReportGetSchemaIDBuffer()
  * Returns:     TRUE if ReportingPeriod is valid
  *              FALSE if ReportingPeriod is not valid
  */
-bool XdslReportValidateReportingPeriod(UINT value)
+BOOL XdslReportValidateReportingPeriod(UINT value)
 {
     int arr[] = {0, 1, 5, 15, 30, 60, 300, 900, 1800, 3600, 10800, 21600, 43200, 86400};
     int i = 0;
@@ -134,10 +134,10 @@ bool XdslReportValidateReportingPeriod(UINT value)
     {
         if (arr[i] == value)
         {
-            return true;
+            return TRUE;
         }
     }
-    return false;
+    return FALSE;
 }
 
 /*
@@ -999,13 +999,14 @@ static int PrepareAndSendXdslReport()
     int line_id = 0;
     int channel_id = 0;
     XdslReportData ptr;
-    DML_XDSL_LINE_GLOBALINFO   stGlobalInfo   = { 0 };
-    char *ifname ="dsl0";
+    INT link_status;
 
-    memset(&stGlobalInfo, 0, sizeof(stGlobalInfo));
-    DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( ifname, &stGlobalInfo );
+    if (DmlXdslGetLineLinkStatus(line_id + 1, &link_status) == ANSC_STATUS_FAILURE)
+    {
+	return ANSC_STATUS_FAILURE;
+    }
 
-    if( stGlobalInfo.LinkStatus == XDSL_LINK_STATUS_Up ){
+    if( link_status == LINK_STATUS_UP ){
         memset(&ptr, 0, sizeof(XdslReportData));
         ret = XdslPrepareReportData(line_id, channel_id, &ptr);
         if (ret)

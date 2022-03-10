@@ -79,7 +79,6 @@
     *  Line_GetParamStringValue
     *  Line_SetParamBoolValue
     *  Line_GetParamIntValue
-    *  Line_SetParamUlongValue
     *  Line_SetParamStringValue
     *  Line_Validate
     *  Line_Commit
@@ -151,14 +150,6 @@ Line_GetParamUlongValue
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
         ULONG*                      pUlong
-    );
-
-BOOL
-Line_SetParamUlongValue
-    (
-        ANSC_HANDLE                 hInsContext,
-        char*                       ParamName,
-        ULONG                       uValuepUlong
     );
 
 BOOL
