@@ -34,7 +34,7 @@
 
 #include "../../RdkXdslManager/ssp_global.h"
 #include "stdlib.h"
-#include <libparodus.h>
+#include <libparodus/libparodus.h>
 #include "xdsl_report.h"
 
 static libpd_instance_t client_instance;
