@@ -1666,7 +1666,7 @@ int xdsl_hal_dslGetChannelStats(int lineNo, int channelNo, PDML_XDSL_CHANNEL_STA
     jmsg = json_hal_client_get_request_header(RPC_GET_PARAMETERS_REQUEST);
     CHECK(jmsg);
 
-    snprintf(req_param.name, sizeof(req_param.name), XDSL_CHANNEL_STATS, lineNo);
+    snprintf(req_param.name, sizeof(req_param.name), XDSL_CHANNEL_STATS, channelNo);
     if( json_hal_add_param(jmsg, GET_REQUEST_MESSAGE, &req_param) != RETURN_OK) {
         FREE_JSON_OBJECT(jmsg);
         return RETURN_ERR;
