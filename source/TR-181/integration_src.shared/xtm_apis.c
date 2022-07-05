@@ -32,11 +32,12 @@
 #define VLAN_COMPONENT_NAME               "eRT.com.cisco.spvtg.ccsp.vlanmanager"
 #define VLAN_ETH_LINK_TABLE_NAME          "Device.X_RDK_Ethernet.Link."
 #define VLAN_ETH_NOE_PARAM_NAME           "Device.X_RDK_Ethernet.LinkNumberOfEntries"
-#define VLAN_ETH_LINK_PARAM_ALIAS         "Device.X_RDK_Ethernet.Link.%d.Alias"
-#define VLAN_ETH_LINK_PARAM_NAME          "Device.X_RDK_Ethernet.Link.%d.Name"
-#define VLAN_ETH_LINK_PARAM_LOWERLAYERS   "Device.X_RDK_Ethernet.Link.%d.LowerLayers"
-#define VLAN_ETH_LINK_PARAM_BASEINTERFACE "Device.X_RDK_Ethernet.Link.%d.X_RDK_BaseInterface"
-#define VLAN_ETH_LINK_PARAM_ENABLE        "Device.X_RDK_Ethernet.Link.%d.Enable"
+#define VLAN_ETH_LINK_PARAM               "Device.X_RDK_Ethernet.Link.%d."
+#define VLAN_ETH_LINK_PARAM_ALIAS         VLAN_ETH_LINK_PARAM"Alias"
+#define VLAN_ETH_LINK_PARAM_NAME          VLAN_ETH_LINK_PARAM"Name"
+#define VLAN_ETH_LINK_PARAM_LOWERLAYERS   VLAN_ETH_LINK_PARAM"LowerLayers"
+#define VLAN_ETH_LINK_PARAM_BASEINTERFACE VLAN_ETH_LINK_PARAM"X_RDK_BaseInterface"
+#define VLAN_ETH_LINK_PARAM_ENABLE        VLAN_ETH_LINK_PARAM"Enable"
 
 #define PTM_LINK_ENABLE "Device.PTM.Link.%d.Enable"
 #define PTM_LINK_STATUS "Device.PTM.Link.%d.Status"
@@ -323,16 +324,14 @@ static ANSC_STATUS CosaDmlXtmGetLowerLayersInstanceInOtherAgent(PTM_NOTIFY_ENUM 
                 if (0 == strcmp(acTmpReturnValue, pLowerLayers))
                 {
                     char tmpTableParam[256] = {0};
-                    const char *last_two;
-                
+
                     //Copy table param
                     snprintf(tmpTableParam, sizeof(tmpTableParam), "%s", a2cTmpTableParams[iLoopCount]);
-                
-                    //Get last two chareters from return value and cut the instance
-                    last_two = &tmpTableParam[strlen(tmpTableParam) - 2];
-                    *piInstanceNumber = atoi(last_two);
+
+                    //Get the instance index
+                    sscanf(tmpTableParam, VLAN_ETH_LINK_PARAM , piInstanceNumber);
                     break;
-                 }
+                }
              }
           }
           break; /* * NOTIFY_TO_PTM_MANAGER */

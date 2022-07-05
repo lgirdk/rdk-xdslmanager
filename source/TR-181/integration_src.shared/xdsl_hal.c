@@ -1972,7 +1972,7 @@ static ANSC_STATUS configure_xdsl_driver()
     {
         if (status)
         {
-            CcspTraceInfo(("%s - %d configure request is successful ", __FUNCTION__, __LINE__));
+            CcspTraceInfo(("%s - %d configure request is successful\n", __FUNCTION__, __LINE__));
             rc = RETURN_OK;
         }
         else
