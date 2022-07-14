@@ -65,16 +65,16 @@ static size_t AvroRTSerializedSize;
 static size_t OneAvroRTSerializedSize;
 static char AvroRTSerializedBuf[WRITER_BUF_SIZE];
 
-// MD5SUM XdslReport.avsc = 5f2f0ce458e6b7c75faf7c0cf5a1d641
+// MD5SUM XdslReport.avsc = 61bd110e2971f6a61f5c2c6ff41b18b1 > version_2
 
-static uint8_t RT_HASH[16] = {0x5f,0x2f,0x0c,0xe4,0x58,0xe6,0xb7,0xc7,
-                              0x5f,0xaf,0x7c,0x0c,0xf5,0xa1,0xd6,0x41};
+static uint8_t RT_HASH[16] = {0x61,0xbd,0x11,0x0e,0x29,0x71,0xf6,0xa6,
+                              0x1f,0x5c,0x2c,0x6f,0xf4,0x1b,0x18,0xb1};
 
 // TODO: Need to check and include correct UUID below
 static uint8_t RT_UUID[16] = {0xc3,0x93,0x4a,0xec,0x72,0x3e,0x4c,0x98,
                               0x88,0xb5,0xaa,0x02,0x93,0x1d,0x5d,0xe5};
 
-char * XdslReportSchemaID = "c3934aec-723e-4c98-88b5-aa02931d5de5/5f2f0ce458e6b7c75faf7c0cf5a1d641";
+char * XdslReportSchemaID = "c3934aec-723e-4c98-88b5-aa02931d5de5/61bd110e2971f6a61f5c2c6ff41b18b1";
 
 #define DEFAULT_WAIT_TIME_1_SEC 1
 
@@ -224,6 +224,8 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int channel_id, XdslReport
         stReportData->CurrentDayXTURFECErrors = stChannelStats.stCurrentDay.XTURFECErrors;
         stReportData->CurrentDayXTURHECErrors = stChannelStats.stCurrentDay.XTURHECErrors;
         stReportData->CurrentDayXTURCRCErrors = stChannelStats.stCurrentDay.XTURCRCErrors;
+        stReportData->CurrentDayLinkRetrain = stChannelStats.stCurrentDay.X_RDK_LinkRetrain;
+        stReportData->QuarterHourLinkRetrain = stChannelStats.stQuarterHour.X_RDK_LinkRetrain;
     }
     else
     {
@@ -261,6 +263,20 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int channel_id, XdslReport
     else
     {
         CcspTraceError(("%s Failed to get xDSL line test params information \n", __FUNCTION__));
+    }
+    /**
+     * Get DSL nlm information.
+     */
+    DML_XDSL_X_RDK_NLNM   stXRdkNlm;
+    memset(&stXRdkNlm, 0, sizeof(stXRdkNlm));
+    rc = xdsl_hal_dslGetXRdk_Nlm( &stXRdkNlm );
+    if (rc == ANSC_STATUS_SUCCESS)
+    {
+        stReportData->EchotoNoiseRatio = stXRdkNlm.echotonoiseratio;
+    }
+    else
+    {
+        CcspTraceError(("%s Failed to get DSL Nlm information \n", __FUNCTION__));
     }
 
     return ANSC_STATUS_SUCCESS;
@@ -885,6 +901,46 @@ static int harvester_report_Xdsl(XdslReportData *head)
     CcspTraceInfo(("CurrentProfile\tType: %d\n", avro_value_get_type(&optional)));
     if (CHK_AVRO_ERR)
         CcspTraceInfo(("%s\n", avro_strerror()));
+
+    // CurrentDayLinkRetrain
+    avro_value_get_by_name(&adr, "data", &adrField, NULL);
+    if (CHK_AVRO_ERR)
+        CcspTraceInfo(("%s LINE %d\n", avro_strerror(), __LINE__));
+    avro_value_get_by_name(&adrField, "CurrentDayLinkRetrain", &adrField, NULL);
+    if (CHK_AVRO_ERR)
+        CcspTraceInfo(("%s LINE %d\n", avro_strerror(), __LINE__));
+    avro_value_set_branch(&adrField, 1, &optional);
+    avro_value_set_long(&optional, (long)ptr->CurrentDayLinkRetrain);
+    CcspTraceInfo(("CurrentDayLinkRetrain\tType: %d\n", avro_value_get_type(&optional)));
+    if (CHK_AVRO_ERR)
+        CcspTraceInfo(("%s\n", avro_strerror()));
+
+    // QuarterHourLinkRetrain
+    avro_value_get_by_name(&adr, "data", &adrField, NULL);
+    if (CHK_AVRO_ERR)
+        CcspTraceInfo(("%s LINE %d\n", avro_strerror(), __LINE__));
+    avro_value_get_by_name(&adrField, "QuarterHourLinkRetrain", &adrField, NULL);
+    if (CHK_AVRO_ERR)
+        CcspTraceInfo(("%s LINE %d\n", avro_strerror(), __LINE__));
+    avro_value_set_branch(&adrField, 1, &optional);
+    avro_value_set_long(&optional, (long)ptr->QuarterHourLinkRetrain);
+    CcspTraceInfo(("QuarterHourLinkRetrain\tType: %d\n", avro_value_get_type(&optional)));
+    if (CHK_AVRO_ERR)
+        CcspTraceInfo(("%s\n", avro_strerror()));
+
+    // EchotoNoiseRatio
+    avro_value_get_by_name(&adr, "data", &adrField, NULL);
+    if (CHK_AVRO_ERR)
+        CcspTraceInfo(("%s LINE %d\n", avro_strerror(), __LINE__));
+    avro_value_get_by_name(&adrField, "EchotoNoiseRatio", &adrField, NULL);
+    if (CHK_AVRO_ERR)
+        CcspTraceInfo(("%s LINE %d\n", avro_strerror(), __LINE__));
+    avro_value_set_branch(&adrField, 1, &optional);
+    avro_value_set_int(&optional, ptr->EchotoNoiseRatio);
+    CcspTraceInfo(("EchotoNoiseRatio\tType: %d\n", avro_value_get_type(&optional)));
+    if (CHK_AVRO_ERR)
+        CcspTraceInfo(("%s\n", avro_strerror()));
+
 
     /* check for writer size, if buffer is almost full, skip trailing linklist */
     avro_value_sizeof(&adr, &AvroRTSerializedSize);

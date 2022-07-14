@@ -70,6 +70,9 @@ typedef struct _XdslReportData
         char    AllowedProfiles[256];
         char    CurrentProfile[64];
         UINT    HLOGGus;
+        UINT    CurrentDayLinkRetrain;
+        UINT    QuarterHourLinkRetrain;
+        INT     EchotoNoiseRatio;
 
 }XdslReportData;
 

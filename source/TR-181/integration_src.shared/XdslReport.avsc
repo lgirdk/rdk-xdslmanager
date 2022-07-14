@@ -312,10 +312,33 @@
                     ],
                     "doc": "Indicates which VDSL2 profile is currently in use on the line. The value will be a member of the list reported by the AllowedProfiles parameter, or else be an empty string",
                     "default": null
+                },
+                {
+                    "name": "CurrentDayLinkRetrain",
+                    "type": [
+                        "null","long"
+                    ],
+                    "doc": "Total number of link retrains of the current Day.",
+                    "default": null
+                },
+                {
+                    "name": "QuarterHourLinkRetrain",
+                    "type": [
+                        "null","long"
+                    ],
+                    "doc": "Total number of link retrains during the current quarter hour",
+                    "default": null
+                },
+                {
+                    "name": "EchotoNoiseRatio",
+                    "type": [
+                        "null","long"
+                    ],
+                    "doc": "Total number of echo to noise ratio",
+                    "default": null
                 }
                 ]
             }
         }
     ]
 }
-
