@@ -112,7 +112,12 @@
 #define WAN_PPP_IPv6CP_PARAM_NAME         "Device.X_RDK_WanManager.CPEInterface.%d.PPP.IPv6CPEnable"
 #define WAN_PPP_LINKTYPE_PARAM_NAME       "Device.X_RDK_WanManager.CPEInterface.%d.PPP.LinkType"
 
-#define WAN_INTERFACE_NAME "erouter0"
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+#define WAN_INTERFACE_NAME_VDSL      "vdsl0"
+#define WAN_INTERFACE_NAME_ADSL      "pppoa0"
+#else
+#define WAN_INTERFACE_NAME      "erouter0"
+#endif
 
 //XDSL
 #define XDSL_LINE_ENABLE "Device.DSL.Line.%d.Enable"
@@ -1731,21 +1736,38 @@ ANSC_STATUS DmlXdslSetWanLinkStatusForWanManager( char *ifname, char *WanStatus 
     //Set WAN Interface Name
     if(strcmp(WanStatus, "Up") == 0)
     {
+
+        //Wan name
         snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, WAN_WAN_INTERFACE_PARAM_NAME, iWANInstance );
-        snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WAN_INTERFACE_NAME );
+        if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413")  ||
+                strstr(StandardUsed,"G.992.2") || strstr(StandardUsed,"G.992.3") ||
+                strstr(StandardUsed,"G.992.5")) /* ADSL */
+        {
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+            snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WAN_INTERFACE_NAME_ADSL );
+#else
+            snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WAN_INTERFACE_NAME);
+#endif
+        }else /* VDSL */
+        {
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+            snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WAN_INTERFACE_NAME_VDSL );
+#else
+            snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WAN_INTERFACE_NAME);
+#endif
+        }
         DmlXdslSetParamValues( WAN_COMPONENT_NAME, WAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
 
         CcspTraceInfo(("%s-%d: DSL Line StandardUsed(%s) and PrevStandardUsed(%s)\n",__FUNCTION__, __LINE__, StandardUsed, PrevStandardUsed));
         if (strcmp(StandardUsed, PrevStandardUsed) != 0)
         {
             if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413")  ||
-                strstr(StandardUsed,"G.992.2") || strstr(StandardUsed,"G.992.3") ||
-                strstr(StandardUsed,"G.992.5")) /* ADSL */
+                    strstr(StandardUsed,"G.992.2") || strstr(StandardUsed,"G.992.3") ||
+                    strstr(StandardUsed,"G.992.5")) /* ADSL */
             {
                 memset(StringValue, 0, 16);
                 strcpy(StringValue, "true");
             }
-
             memset(PrevStandardUsed, 0, XDSL_STANDARD_USED_STR_MAX);
             strcpy(PrevStandardUsed, StandardUsed);
 

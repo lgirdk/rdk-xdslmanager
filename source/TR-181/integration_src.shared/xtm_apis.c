@@ -49,7 +49,11 @@
 
 #define DATAMODEL_PARAM_LENGTH 256
 
+#if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
+#define WAN_INTERFACE_NAME "vdsl0"
+#else
 #define WAN_INTERFACE_NAME "erouter0"
+#endif
 
 extern char                g_Subsystem[32];
 extern ANSC_HANDLE         bus_handle;
