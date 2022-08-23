@@ -1234,7 +1234,20 @@ ULONG XdslReportGetReportingPeriod()
  */
 int XdslReportSetReportingPeriod(ULONG interval)
 {
+    int ret;
     XdslReportReportingPeriod = interval;
+    pthread_mutex_lock(&XdslReportMutex);
+    // Send signal to unblock thread that uses conditional variable XdslReportCond
+    ret = pthread_cond_signal(&XdslReportCond);
+    pthread_mutex_unlock(&XdslReportMutex);
+    if (ret == 0)
+    {
+        CcspTraceInfo(("XDSL REPORT %s : pthread_cond_signal success\n", __FUNCTION__));
+    }
+    else
+    {
+        CcspTraceInfo(("XDSL REPORT %s : pthread_cond_signal fail\n", __FUNCTION__));
+    }
     return 0;
 }
 
@@ -1251,7 +1264,20 @@ ULONG XdslReportGetDefaultReportingPeriod()
  */
 int XdslReportSetDefaultReportingPeriod(ULONG interval)
 {
+    int ret;
     XdslReportDfltReportingPeriod = interval;
+    pthread_mutex_lock(&XdslReportMutex);
+    // Send signal to unblock thread that uses conditional variable XdslReportCond
+    ret = pthread_cond_signal(&XdslReportCond);
+    pthread_mutex_unlock(&XdslReportMutex);
+    if (ret == 0)
+    {
+        CcspTraceInfo(("XDSL REPORT %s : pthread_cond_signal success\n", __FUNCTION__));
+    }
+    else
+    {
+        CcspTraceInfo(("XDSL REPORT %s : pthread_cond_signal fail\n", __FUNCTION__));
+    }
     return 0;
 }
 
@@ -1268,7 +1294,20 @@ ULONG XdslReportGetDefaultOverrideTTL()
  */
 int XdslReportSetDefaultOverrideTTL(ULONG interval)
 {
+    int ret;
     XdslReportOverrideTTL = interval;
+    pthread_mutex_lock(&XdslReportMutex);
+    // Send signal to unblock thread that uses conditional variable XdslReportCond
+    ret = pthread_cond_signal(&XdslReportCond);
+    pthread_mutex_unlock(&XdslReportMutex);
+    if (ret == 0)
+    {
+        CcspTraceInfo(("XDSL REPORT %s : pthread_cond_signal success\n", __FUNCTION__));
+    }
+    else
+    {
+        CcspTraceInfo(("XDSL REPORT %s : pthread_cond_signal fail\n", __FUNCTION__));
+    }
     return 0;
 }
 
