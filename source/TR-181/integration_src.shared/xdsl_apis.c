@@ -1700,6 +1700,8 @@ ANSC_STATUS DmlXdslSetWanLinkStatusForWanManager( char *ifname, char *WanStatus 
 
     INT                            iWANInstance   = -1;
     char StandardUsed[XDSL_STANDARD_USED_STR_MAX] = {'\0'};
+    static char PrevStandardUsed[XDSL_STANDARD_USED_STR_MAX] = {'\0'};
+    char StringValue[16] = "false";
 
     //Validate buffer
     if( ( NULL == ifname ) || ( NULL == WanStatus ) )
@@ -1733,30 +1735,39 @@ ANSC_STATUS DmlXdslSetWanLinkStatusForWanManager( char *ifname, char *WanStatus 
         snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WAN_INTERFACE_NAME );
         DmlXdslSetParamValues( WAN_COMPONENT_NAME, WAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
 
-        CcspTraceInfo(("%s-%d: DSL Line StandardUsed:%s\n",__FUNCTION__, __LINE__, StandardUsed));
-        if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413")  ||
-           strstr(StandardUsed,"G.992.2") || strstr(StandardUsed,"G.992.3") ||
-           strstr(StandardUsed,"G.992.5")) /* ADSL */
+        CcspTraceInfo(("%s-%d: DSL Line StandardUsed(%s) and PrevStandardUsed(%s)\n",__FUNCTION__, __LINE__, StandardUsed, PrevStandardUsed));
+        if (strcmp(StandardUsed, PrevStandardUsed) != 0)
         {
+            if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413")  ||
+                strstr(StandardUsed,"G.992.2") || strstr(StandardUsed,"G.992.3") ||
+                strstr(StandardUsed,"G.992.5")) /* ADSL */
+            {
+                memset(StringValue, 0, 16);
+                strcpy(StringValue, "true");
+            }
+
+            memset(PrevStandardUsed, 0, XDSL_STANDARD_USED_STR_MAX);
+            strcpy(PrevStandardUsed, StandardUsed);
+
             //Wan PPP Enable DML Setting
             memset(acSetParamName, 0, sizeof(acSetParamName));
             memset(acSetParamValue, 0, sizeof(acSetParamValue));
             snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, WAN_PPP_ENABLE_PARAM_NAME, iWANInstance );
-            snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "true" );
+            snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", StringValue );
             DmlXdslSetParamValues( WAN_COMPONENT_NAME, WAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
 
             //Wan PPP IPCP Enable DML Setting
             memset(acSetParamName, 0, sizeof(acSetParamName));
             memset(acSetParamValue, 0, sizeof(acSetParamValue));
             snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, WAN_PPP_IPCP_PARAM_NAME, iWANInstance );
-            snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "true" );
+            snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", StringValue );
             DmlXdslSetParamValues( WAN_COMPONENT_NAME, WAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
 
             //Wan PPP IPv6CP Enable DML Setting
             memset(acSetParamName, 0, sizeof(acSetParamName));
             memset(acSetParamValue, 0, sizeof(acSetParamValue));
             snprintf( acSetParamName, DATAMODEL_PARAM_LENGTH, WAN_PPP_IPv6CP_PARAM_NAME, iWANInstance );
-            snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "true" );
+            snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", StringValue );
             DmlXdslSetParamValues( WAN_COMPONENT_NAME, WAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE );
 
             //Wan PPP LinkType DML Setting
