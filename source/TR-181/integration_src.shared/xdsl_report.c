@@ -1128,13 +1128,20 @@ static void *StartXdslReporting()
                 {
                     CurrentOverrideReportingPeriod = 0;
                     XdslReportSetDefaultOverrideTTL(0);
-                    waitingTimePeriod = DEFAULT_WAIT_TIME_1_SEC; 
+                    // Do not wait here to send the report in Default ReportingPeriod.
+                    waitingTimePeriod = 0; 
                 }
                 else
                 {
                     CurrentOverrideReportingPeriod = CurrentOverrideReportingPeriod + uOverrideReportingPeriod;
                     CcspTraceInfo(("CurrentOverrideReportingPeriod[%ld]\n", CurrentOverrideReportingPeriod));
                     ret = PrepareAndSendXdslReport();
+		    
+		    /*
+		     * Needs to get current reporting period. Because in between if there any changes happen then
+                     * it would have not updated after report 
+		     */
+		    uOverrideReportingPeriod = XdslReportGetReportingPeriod();
                     waitingTimePeriod = uOverrideReportingPeriod;
                 }
             }
@@ -1145,6 +1152,14 @@ static void *StartXdslReporting()
             {
                 ret = PrepareAndSendXdslReport();
                 waitingTimePeriod = uDftReportingPeriod;
+
+		//We need to overwrite Waitingtime when overrideTTL value set case.
+		//Otherwise it will take previous default reporting time instead of overritten period
+		uDftOverrideTTL = XdslReportGetDefaultOverrideTTL();
+		if(uDftOverrideTTL != 0)
+		{
+		   waitingTimePeriod = DEFAULT_WAIT_TIME_1_SEC;
+		}
             }
             else
             {
@@ -1236,6 +1251,8 @@ int XdslReportSetReportingPeriod(ULONG interval)
 {
     int ret;
     XdslReportReportingPeriod = interval;
+    //Neeeds to reset this counter value when we configure new value to avoid TTL 0 after lower value than previous value
+    CurrentOverrideReportingPeriod = 0;
     pthread_mutex_lock(&XdslReportMutex);
     // Send signal to unblock thread that uses conditional variable XdslReportCond
     ret = pthread_cond_signal(&XdslReportCond);
@@ -1296,6 +1313,8 @@ int XdslReportSetDefaultOverrideTTL(ULONG interval)
 {
     int ret;
     XdslReportOverrideTTL = interval;
+    //Neeeds to reset this counter value when we configure new value to avoid TTL 0 after lower value than previous value
+    CurrentOverrideReportingPeriod = 0;
     pthread_mutex_lock(&XdslReportMutex);
     // Send signal to unblock thread that uses conditional variable XdslReportCond
     ret = pthread_cond_signal(&XdslReportCond);
