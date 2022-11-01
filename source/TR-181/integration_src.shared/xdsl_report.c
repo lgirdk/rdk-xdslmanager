@@ -327,7 +327,7 @@ static avro_writer_t prepare_rt_writer()
             fclose(fp);
             fputs("memory alloc fails", stderr);
             CcspTraceInfo(("Unable to allocate memory\n"));
-            return;
+            return NULL;
         }
         CcspTraceInfo(("XDSL REPORT %s : LINE %d \n", __FUNCTION__, __LINE__));
 
@@ -445,15 +445,12 @@ static int harvester_report_Xdsl(XdslReportData *head)
 
     struct timeval ts;
     gettimeofday(&ts, NULL);
-#ifndef UTC_ENABLE_ATOM
-    int64_t tstamp_av_main = ((int64_t)(ts.tv_sec - getTimeOffsetFromUtc()) * 1000000) + (int64_t)ts.tv_usec;
-#else
-    int64_t tstamp_av_main = ((int64_t)(ts.tv_sec) * 1000000) + (int64_t)ts.tv_usec;
-#endif
-    tstamp_av_main = tstamp_av_main / 1000;
+
+    uint64_t tstamp_av_main = ((uint64_t)(ts.tv_sec) * 1000000) + (uint64_t)ts.tv_usec;
+    tstamp_av_main = tstamp_av_main / 1000; //timestamp in ms
 
     avro_value_set_long(&optional, tstamp_av_main);
-    CcspTraceInfo(("timestamp = %ld\n", tstamp_av_main));
+    CcspTraceInfo(("timestamp = %llu\n", tstamp_av_main));
     CcspTraceInfo(("timestamp\tType: %d\n", avro_value_get_type(&optional)));
     if (CHK_AVRO_ERR)
         CcspTraceInfo(("%s LINE %d\n", avro_strerror(), __LINE__));
@@ -1329,43 +1326,6 @@ int XdslReportSetDefaultOverrideTTL(ULONG interval)
     }
     return 0;
 }
-
-#ifndef UTC_ENABLE_ATOM
-int getTimeOffsetFromUtc()
-{
-    static int tm_offset = 0;
-    static bool offset_available = false;
-
-    if (offset_available)
-    {
-        return tm_offset;
-    }
-    else
-    {
-        CcspTraceInfo((" XDSL REPORT %s ENTER\n", __FUNCTION__));
-        char timezonecmd[128] = {0};
-        char timezonearr[32] = {0};
-        int ret = 0;
-        sprintf(timezonecmd, "dmcli eRT getv Device.Time.TimeOffset | grep value | awk '{print $5}'");
-        ret = _syscmd(timezonecmd, timezonearr, sizeof(timezonearr));
-        if (ret)
-        {
-            CcspTraceWarning((" XDSL REPORT %s : Executing Syscmd for DMCLI TimeOffset [%d] \n", __FUNCTION__, ret));
-            return ret;
-        }
-
-        if (sscanf(timezonearr, "%d", &tm_offset) != 1)
-        {
-            CcspTraceWarning((" XDSL REPORT %s : Parsing Error for TimeOffset \n", __FUNCTION__));
-            return -1;
-        }
-
-        CcspTraceInfo((" XDSL REPORT %s TimeOffset[%d] EXIT \n", __FUNCTION__, tm_offset));
-        offset_available = true;
-        return tm_offset;
-    }
-}
-#endif
 
 int _syscmd(char *cmd, char *retBuf, int retBufSize)
 {

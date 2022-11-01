@@ -39,6 +39,7 @@
 
 static libpd_instance_t client_instance;
 extern  ANSC_HANDLE bus_handle;
+extern char deviceMAC[32];
 
 #ifdef ENABLE_SESHAT
 /*----------------------------------------------------------------------------*/
@@ -238,6 +239,8 @@ void sendWebpaMsg(char *serviceName, char *dest, char *trans_id, char *contentTy
         CcspTraceInfo((" payload :%s\n",payload));
     }
 
+    snprintf(source, sizeof(source), "mac:%s/%s", deviceMAC, serviceName);
+    CcspTraceInfo((" Received DeviceMAC is %s\n", deviceMAC));
     CcspTraceInfo((" Source derived is %s\n", source));
 
     wrp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
