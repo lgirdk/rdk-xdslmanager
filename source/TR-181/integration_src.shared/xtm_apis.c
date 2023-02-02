@@ -648,6 +648,17 @@ ANSC_STATUS DmlAddPtm (ANSC_HANDLE hContext, PDML_PTM pEntry)
     //Create actual interface
     returnStatus = DmlSetPtmIfEnable( pEntry->Enable );
 
+    //Wait for PTM interface
+    UINT MaxRetry = 0;
+    DmlGetPtmIfStatus(hContext, pEntry);
+    while((pEntry->Status != Up) && (MaxRetry < 8))
+    {
+        CcspTraceInfo(("%s %d - Wait fot PTM interface \n",__FUNCTION__,__LINE__));
+        usleep(250000);
+        DmlGetPtmIfStatus(hContext, pEntry);
+        MaxRetry++;
+    }
+
     //Create Ethernet.Link
     returnStatus = DmlPtmCreateEthLink( pEntry );
 
