@@ -19,19 +19,18 @@
 
 bin_PROGRAMS = xdslmanager
 
-AM_CPPFLAGS = -I$(top_srcdir)/hal/include \
-		-I$(top_srcdir)/source/LogComponent \
-		-I$(top_srcdir)/source/TR-181/middle_layer_src \
-		-I$(top_srcdir)/source/TR-181/include
-
-
 xdslmanager_DEPENDENCIES = \
-        $(EXTRA_DEPENDENCIES) \
-        ${top_builddir}/source/TR-181/middle_layer_src/libXdslManagermiddle_layer_src.la \
-        ${top_builddir}/source/TR-181/integration_src.shared/libXdslManagerintegration_src_shared.la
+    $(EXTRA_DEPENDENCIES) \
+    ${top_builddir}/source/TR-181/middle_layer_src/libXdslManagermiddle_layer_src.la \
+    ${top_builddir}/source/TR-181/integration_src.shared/libXdslManagerintegration_src_shared.la
 
-xdslmanager_CFLAGS = -D_ANSC_LINUX -D_ANSC_USER -D_ANSC_LITTLE_ENDIAN_ -DFEATURE_SUPPORT_RDKLOG $(DBUS_CFLAGS) $(SYSTEMD_CFLAGS)
+xdslmanager_CPPFLAGS = \
+    -I$(top_srcdir)/hal/include \
+    -I$(top_srcdir)/source/LogComponent \
+    -I$(top_srcdir)/source/TR-181/middle_layer_src \
+    -I$(top_srcdir)/source/TR-181/include
+
+xdslmanager_CFLAGS = -DFEATURE_SUPPORT_RDKLOG $(DBUS_CFLAGS) $(SYSTEMD_CFLAGS)
 xdslmanager_SOURCES = apis_xdslmanagerplugin.c ssp_action.c ssp_messagebus_interface.c ssp_main.c
 xdslmanager_LDFLAGS = -lccsp_common -lrdkloggers -lcm_mgnt -lsyscfg -lbreakpadwrapper $(DBUS_LIBS) $(SYSTEMD_LDFLAGS)
-xdslmanager_LDADD =  $(xdslmanager_DEPENDENCIES)
-
+xdslmanager_LDADD = $(xdslmanager_DEPENDENCIES)
