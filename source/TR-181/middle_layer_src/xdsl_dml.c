@@ -236,7 +236,7 @@ Line_GetEntry
     )
 {
     PDATAMODEL_XDSL    pMyObject  = (PDATAMODEL_XDSL)g_pBEManager->hDSL;
-	
+
     if ( ( pMyObject->pXDSLLine  ) && ( nIndex < pMyObject->ulTotalNoofDSLLines ) )
     {
     	PDML_XDSL_LINE      pXDSLLine = NULL;

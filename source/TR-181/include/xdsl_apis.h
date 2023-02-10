@@ -585,6 +585,8 @@ ANSC_STATUS DmlXdslLine_UpdateIfaceTidByGivenIfName(char* ifname, pthread_t new_
 
 ANSC_STATUS DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( char *ifname, PDML_XDSL_LINE_GLOBALINFO pGlobalInfo );
 
+ANSC_STATUS DmlXdslLineGetCopyOfGlobalInfoForGivenIndex( INT Index, PDML_XDSL_LINE_GLOBALINFO pGlobalInfo );
+
 ANSC_STATUS DmlXdslLineUpdateLinkStatusAndGetGlobalInfoForGivenIfName( char *ifname, DML_XDSL_LINK_STATUS enLinkStatus, PDML_XDSL_LINE_GLOBALINFO pGlobalInfo );
 
 ANSC_STATUS DmlXdslSetWanLinkStatusForWanManager( char *ifname, char *WanStatus );
@@ -618,4 +620,5 @@ DmlXdslXRdkNlmInit
     );
 
 ANSC_STATUS DmlXdslGetXRDKNlm( PDML_XDSL_X_RDK_NLNM pstXRdkNlm );
+BOOL DmlXdslLineGetUpstream( INT LineIndex);
 #endif /* _XDSL_APIS_H */

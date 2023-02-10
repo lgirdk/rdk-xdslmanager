@@ -443,6 +443,26 @@ ANSC_STATUS DmlXdslLineSetDataGatheringEnable( INT LineIndex, BOOL Enable )
     return ANSC_STATUS_SUCCESS;
 }
 
+/* DmlXdslLineGetUpstream() */
+BOOL DmlXdslLineGetUpstream( INT LineIndex)
+{
+     BOOL Upstream = FALSE;
+
+    //Validate index
+    if ( LineIndex < 0 )
+    {
+        CcspTraceError(("%s Invalid index[%d]\n", __FUNCTION__,LineIndex));
+        return Upstream;
+    }
+
+    //Get Upstream flag
+    pthread_mutex_lock(&gmXdslGInfo_mutex);
+    Upstream = gpstLineGInfo[LineIndex].Upstream;
+    pthread_mutex_unlock(&gmXdslGInfo_mutex);
+
+    return Upstream;
+}
+
 /* DmlXdslLineSetUpstream() */
 ANSC_STATUS DmlXdslLineSetUpstream( INT LineIndex, BOOL Upstream )
 {
@@ -729,6 +749,34 @@ ANSC_STATUS DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( char *ifname, PDML_XDS
         return ANSC_STATUS_FAILURE;
     }
 
+    //Copy of the data
+    pthread_mutex_lock(&gmXdslGInfo_mutex);
+    memcpy( pGlobalInfo, &gpstLineGInfo[LineIndex], sizeof(DML_XDSL_LINE_GLOBALINFO));
+    pthread_mutex_unlock(&gmXdslGInfo_mutex);
+
+    return ( ANSC_STATUS_SUCCESS );
+}
+
+/* DmlXdslLineGetCopyOfGlobalInfoForGivenIndex() */
+ANSC_STATUS DmlXdslLineGetCopyOfGlobalInfoForGivenIndex( INT Index, PDML_XDSL_LINE_GLOBALINFO pGlobalInfo )
+{
+    INT           LineIndex = -1;
+
+    //Validate index
+    if ( ( NULL == pGlobalInfo ) )
+    {
+        CcspTraceError(("%s Invalid Buffer\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    LineIndex = Index;
+    if( ( -1 == LineIndex ) )
+    {
+        CcspTraceError(("%s Failed the given index is %s\n", __FUNCTION__, LineIndex));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    CcspTraceInfo(("%sGet Line Global Info for LineIndex=%d\n", __FUNCTION__, LineIndex));
     //Copy of the data
     pthread_mutex_lock(&gmXdslGInfo_mutex);
     memcpy( pGlobalInfo, &gpstLineGInfo[LineIndex], sizeof(DML_XDSL_LINE_GLOBALINFO));

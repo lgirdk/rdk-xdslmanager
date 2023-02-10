@@ -155,7 +155,7 @@ BOOL XdslReportGetStatus()
  * This API communicates with HAL layer to retrieve different statistics information
  * and filled with incoming structure object.
  */
-static ANSC_STATUS XdslPrepareReportData(int line_id, int channel_id, XdslReportData *stReportData)
+static ANSC_STATUS XdslPrepareReportData(int line_id, int TotalChannels, XdslReportData *stReportData)
 {
     int rc = ANSC_STATUS_SUCCESS;
     if (NULL == stReportData)
@@ -163,13 +163,17 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int channel_id, XdslReport
         CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
-
+#if defined _SR300_PRODUCT_REQ_ || defined  _DT_WAN_Manager_Enable_
+    int LineID = (line_id + 1);
+#else
+    int LineID = line_id;
+#endif
     /**
      * Get xDSL Line Information
      */
     DML_XDSL_LINE stLineInfo;
     memset(&stLineInfo, 0, sizeof(stLineInfo));
-    rc = xdsl_hal_dslGetLineInfo(line_id, &stLineInfo);
+    rc = xdsl_hal_dslGetLineInfo(LineID, &stLineInfo);
     if (rc == ANSC_STATUS_SUCCESS)
     {
         strncpy(stReportData->StandardUsed, stLineInfo.StandardUsed, sizeof(stReportData->StandardUsed) - 1);
@@ -180,10 +184,11 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int channel_id, XdslReport
         stReportData->UpstreamAttenuation = stLineInfo.UpstreamAttenuation;
         stReportData->UpstreamMaxBitRate = stLineInfo.UpstreamMaxBitRate;
         stReportData->UpstreamNoiseMargin = stLineInfo.UpstreamNoiseMargin;
-        stReportData->Upstream = stLineInfo.Upstream;
         stReportData->UpstreamPower = stLineInfo.UpstreamPower;
         strncpy(stReportData->AllowedProfiles, stLineInfo.AllowedProfiles, sizeof(stReportData->AllowedProfiles) - 1);
         strncpy(stReportData->CurrentProfile, stLineInfo.CurrentProfile, sizeof(stReportData->CurrentProfile) - 1);
+
+        stReportData->Upstream = DmlXdslLineGetUpstream(line_id);
     }
     else
     {
@@ -191,53 +196,11 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int channel_id, XdslReport
     }
 
     /**
-     * Get xDSL channel information.
-     */
-    DML_XDSL_CHANNEL stChanneInfo;
-    memset(&stChanneInfo, 0, sizeof(stChanneInfo));
-    rc = xdsl_hal_dslGetChannelInfo(line_id, channel_id, &stChanneInfo);
-    if (rc == ANSC_STATUS_SUCCESS)
-    {
-        stReportData->DownstreamCurrRate = stChanneInfo.DownstreamCurrRate;
-        stReportData->UpstreamCurrRate = stChanneInfo.UpstreamCurrRate;
-    }
-    else
-    {
-        CcspTraceError(("%s Failed to get xDSL channel information \n", __FUNCTION__));
-    }
-
-    /**
-     * Get DSL Channel Statistics information.
-     */
-    DML_XDSL_CHANNEL_STATS stChannelStats;
-    memset(&stChannelStats, 0, sizeof(stChannelStats));
-    rc = xdsl_hal_dslGetChannelStats(line_id, channel_id, &stChannelStats);
-    if (rc == ANSC_STATUS_SUCCESS)
-    {
-
-        stReportData->CurrentDayStart = stChannelStats.CurrentDayStart;
-        stReportData->QuarterHourXTUCCRCErrors = stChannelStats.stQuarterHour.XTUCCRCErrors;
-        stReportData->QuarterHourXTURCRCErrors = stChannelStats.stQuarterHour.XTURCRCErrors;
-        stReportData->CurrentDayXTUCCRCErrors = stChannelStats.stCurrentDay.XTUCCRCErrors;
-        stReportData->CurrentDayXTUCFECErrors = stChannelStats.stCurrentDay.XTUCFECErrors;
-        stReportData->CurrentDayXTUCHECErrors = stChannelStats.stCurrentDay.XTUCHECErrors;
-        stReportData->CurrentDayXTURFECErrors = stChannelStats.stCurrentDay.XTURFECErrors;
-        stReportData->CurrentDayXTURHECErrors = stChannelStats.stCurrentDay.XTURHECErrors;
-        stReportData->CurrentDayXTURCRCErrors = stChannelStats.stCurrentDay.XTURCRCErrors;
-        stReportData->CurrentDayLinkRetrain = stChannelStats.stCurrentDay.X_RDK_LinkRetrain;
-        stReportData->QuarterHourLinkRetrain = stChannelStats.stQuarterHour.X_RDK_LinkRetrain;
-    }
-    else
-    {
-        CcspTraceError(("%s Failed to get xDSL statistics information \n", __FUNCTION__));
-    }
-
-    /**
      * Get DSL line statistics information.
      */
     DML_XDSL_LINE_STATS stLineStats;
     memset(&stLineStats, 0, sizeof(stLineStats));
-    rc = xdsl_hal_dslGetLineStats(line_id, &stLineStats);
+    rc = xdsl_hal_dslGetLineStats(LineID, &stLineStats);
     if (rc == ANSC_STATUS_SUCCESS)
     {
         stReportData->TotalStart = stLineStats.TotalStart;
@@ -255,7 +218,7 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int channel_id, XdslReport
      */
     DML_XDSL_LINE_TESTPARAMS stLineTestParams;
     memset(&stLineTestParams, 0, sizeof(stLineTestParams));
-    rc = xdsl_hal_dslGetLineTestParams(line_id, &stLineTestParams);
+    rc = xdsl_hal_dslGetLineTestParams(LineID, &stLineTestParams);
     if (rc == ANSC_STATUS_SUCCESS)
     {
         stReportData->HLOGGus = stLineTestParams.HLOGGus;
@@ -263,6 +226,58 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int channel_id, XdslReport
     else
     {
         CcspTraceError(("%s Failed to get xDSL line test params information \n", __FUNCTION__));
+    }
+
+    /**
+     * Get xDSL channel information.
+     */
+    DML_XDSL_CHANNEL stChannelInfo;
+    memset(&stChannelInfo, 0, sizeof(stChannelInfo));
+    
+    for (INT ChannelIdx = 0; ChannelIdx < TotalChannels; ChannelIdx++ )
+    {
+#if defined _SR300_PRODUCT_REQ_ || defined  _DT_WAN_Manager_Enable_
+        int ChannelID = (ChannelIdx + 1);
+#else
+        int ChannelID = ChannelIdx;
+#endif
+        rc = xdsl_hal_dslGetChannelInfo(line_id, ChannelID, &stChannelInfo);
+        if ( (rc == ANSC_STATUS_SUCCESS) && (stChannelInfo.Status == XDSL_IF_STATUS_Up))
+        {
+            stReportData->DownstreamCurrRate = stChannelInfo.DownstreamCurrRate;
+            stReportData->UpstreamCurrRate = stChannelInfo.UpstreamCurrRate;
+        }
+        else
+        {
+            if (rc != ANSC_STATUS_SUCCESS)
+                CcspTraceError(("%s Failed to get xDSL channel information \n", __FUNCTION__));
+             continue;
+        }
+
+        /**
+         * Get DSL Channel Statistics information.
+         */
+        DML_XDSL_CHANNEL_STATS stChannelStats;
+        memset(&stChannelStats, 0, sizeof(stChannelStats));
+        rc = xdsl_hal_dslGetChannelStats(line_id, ChannelID, &stChannelStats);
+        if (rc == ANSC_STATUS_SUCCESS)
+        {
+            stReportData->CurrentDayStart = stChannelStats.CurrentDayStart;
+            stReportData->QuarterHourXTUCCRCErrors = stChannelStats.stQuarterHour.XTUCCRCErrors;
+            stReportData->QuarterHourXTURCRCErrors = stChannelStats.stQuarterHour.XTURCRCErrors;
+            stReportData->CurrentDayXTUCCRCErrors = stChannelStats.stCurrentDay.XTUCCRCErrors;
+            stReportData->CurrentDayXTUCFECErrors = stChannelStats.stCurrentDay.XTUCFECErrors;
+            stReportData->CurrentDayXTUCHECErrors = stChannelStats.stCurrentDay.XTUCHECErrors;
+            stReportData->CurrentDayXTURFECErrors = stChannelStats.stCurrentDay.XTURFECErrors;
+            stReportData->CurrentDayXTURHECErrors = stChannelStats.stCurrentDay.XTURHECErrors;
+            stReportData->CurrentDayXTURCRCErrors = stChannelStats.stCurrentDay.XTURCRCErrors;
+            stReportData->CurrentDayLinkRetrain = stChannelStats.stCurrentDay.X_RDK_LinkRetrain;
+            stReportData->QuarterHourLinkRetrain = stChannelStats.stQuarterHour.X_RDK_LinkRetrain;
+        }
+        else
+        {
+            CcspTraceError(("%s Failed to get xDSL statistics information \n", __FUNCTION__));
+        }
     }
     /**
      * Get DSL nlm information.
@@ -1065,17 +1080,34 @@ static int PrepareAndSendXdslReport()
 {
     int ret = 0;
     int line_id = 0;
-    int channel_id = 0;
     XdslReportData ptr;
     DML_XDSL_LINE_GLOBALINFO   stGlobalInfo   = { 0 };
-    char *ifname ="dsl0";
+    INT iTotalLines = 0;
+    INT iTotalChannels = 0;
 
+    iTotalLines = DmlXdslGetTotalNoofLines( );
+    if (iTotalLines > 1)
+    {
+        AnscTraceError(("%s-%d: Error, Report support only one Line Info, but TotalLines=%d \n", __FUNCTION__, __LINE__, iTotalLines));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    iTotalChannels = DmlXdslGetTotalNoofChannels( iTotalLines );
+    if (iTotalChannels > 2)
+    {
+        AnscTraceError(("%s-%d: Error, Report support only Two Channel per Line Info, but TotalChannel=%d \n", __FUNCTION__, __LINE__, iTotalChannels));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    AnscTraceInfo(("%s-%d: TotalLines=%d, TotalChannels=%d \n", __FUNCTION__, __LINE__, iTotalLines, iTotalChannels));
     memset(&stGlobalInfo, 0, sizeof(stGlobalInfo));
-    DmlXdslLineGetCopyOfGlobalInfoForGivenIfName( ifname, &stGlobalInfo );
+    DmlXdslLineGetCopyOfGlobalInfoForGivenIndex( (iTotalLines - 1), &stGlobalInfo );
 
+    line_id = (iTotalLines - 1);
     if( stGlobalInfo.LinkStatus == XDSL_LINK_STATUS_Up ){
         memset(&ptr, 0, sizeof(XdslReportData));
-        ret = XdslPrepareReportData(line_id, channel_id, &ptr);
+
+        ret = XdslPrepareReportData(line_id, iTotalChannels, &ptr);
         if (ret)
         {
             CcspTraceWarning(("XdslReportGetData returned error [%d] \n", ret));
