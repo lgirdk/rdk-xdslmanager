@@ -1856,7 +1856,7 @@ ANSC_STATUS DmlXdslSetWanLinkStatusForWanManager( char *ifname, char *WanStatus 
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WanStatus );
     DmlXdslSetParamValues( WAN_COMPONENT_NAME, WAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
 
-    CcspTraceInfo(("%s %d Successfully notified %s event to WAN Agent for %s interface\n", __FUNCTION__, __LINE__, WanStatus, ifname));
+    CcspTraceInfo(("%s %d Successfully notified %s event to WAN Manager for %s interface\n", __FUNCTION__, __LINE__, WanStatus, ifname));
 
     return ANSC_STATUS_SUCCESS;
 }
@@ -1901,7 +1901,7 @@ ANSC_STATUS DmlXdslSetPhyStatusForWanManager( char *ifname, char *PhyStatus )
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", PhyStatus );
     DmlXdslSetParamValues( WAN_COMPONENT_NAME, WAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
 
-    CcspTraceInfo(("%s %d Successfully notified %s event to WAN Agent for %s interface\n", __FUNCTION__, __LINE__, PhyStatus, ifname));
+    CcspTraceInfo(("%s %d Successfully notified %s event to WAN Manager for %s interface\n", __FUNCTION__, __LINE__, PhyStatus, ifname));
 
     return ANSC_STATUS_SUCCESS;
 }
