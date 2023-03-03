@@ -248,11 +248,7 @@ Line_GetEntry
         *pInsNumber = pXDSLLine->ulInstanceNumber;
 
         //Sync with current information
-#if defined _SR300_PRODUCT_REQ_ || defined  _DT_WAN_Manager_Enable_
         DmlXdslGetLineCfg( (nIndex +1), pXDSLLine );
-#else
-        DmlXdslGetLineCfg( nIndex, pXDSLLine );
-#endif //_SR300_PRODUCT_REQ_
 
         return pXDSLLine;
     }
@@ -2353,11 +2349,7 @@ Channel_GetEntry
         *pInsNumber = pDSLChannel->ulInstanceNumber;
         
         //Sync with current information
-#if defined _SR300_PRODUCT_REQ_ || defined  _DT_WAN_Manager_Enable_
-        DmlXdslGetChannelCfg( pDSLChannel->LineIndex, (nIndex + 1), pDSLChannel );
-#else
-        DmlXdslGetChannelCfg( pDSLChannel->LineIndex, nIndex, pDSLChannel );
-#endif //_SR300_PRODUCT_REQ_
+        DmlXdslGetChannelCfg( (nIndex + 1), pDSLChannel );
 
 
         return pDSLChannel;

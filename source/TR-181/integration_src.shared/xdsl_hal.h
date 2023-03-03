@@ -238,13 +238,12 @@ int xdsl_hal_dslGetLineTestParams(int lineNo, PDML_XDSL_LINE_TESTPARAMS pstLineI
 /**
  * This function gets the DSL channel information
  *
- * @param[in] lineNo - The line number which starts with 0
  * @param[in] channelNo - The channel number which starts with 0
  * @param[out] channelInfo The output parameter to receive the data
  *
  * @return 0 on success. Otherwise a negative value is returned
  */
-int xdsl_hal_dslGetChannelInfo(int lineNo, int channelNo, PDML_XDSL_CHANNEL pstChannelInfo);
+int xdsl_hal_dslGetChannelInfo(int channelNo, PDML_XDSL_CHANNEL pstChannelInfo);
 
 /*
  * This Function converts the PowerManagementState string to corresponding Enum integer.
@@ -256,13 +255,12 @@ XDSL_LINE_POWER_MGMT_ENUM PowerManagementState_string_to_int(const char *str);
 /**
  * This function gets the statistics counters of a DSL channel
  *
- * @param[in] lineNo - The line number which starts with 0
  * @param[in] channelNo - The channel number which starts with 0
  * @param[out] channelStats The output parameter to receive the data
  *
  * @return 0 on success. Otherwise a negative value is returned
  */
-int xdsl_hal_dslGetChannelStats(int lineNo, int channelNo, PDML_XDSL_CHANNEL_STATS pstChannelStats);
+int xdsl_hal_dslGetChannelStats( int channelNo, PDML_XDSL_CHANNEL_STATS pstChannelStats);
 
 /* ADSL Diagnostis */
 

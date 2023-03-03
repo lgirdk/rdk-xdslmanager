@@ -595,7 +595,7 @@ ANSC_STATUS DmlXdslSetPhyStatusForWanManager( char *ifname, char *PhyStatus );
 
 INT DmlXdslGetTotalNoofChannels( INT LineIndex );
 
-ANSC_STATUS DmlXdslGetChannelCfg( INT LineIndex, INT ChannelIndex, PDML_XDSL_CHANNEL pstChannelInfo );
+ANSC_STATUS DmlXdslGetChannelCfg( INT ChannelIndex, PDML_XDSL_CHANNEL pstChannelInfo );
 
 ANSC_STATUS DmlXdslChannelSetEnable( INT LineIndex, INT ChannelIndex, BOOL Enable );
 

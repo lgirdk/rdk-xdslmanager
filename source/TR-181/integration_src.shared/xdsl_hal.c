@@ -1496,7 +1496,7 @@ int xdsl_hal_getTotalNoOfChannels(int lineNo)
 }
 
 /* * xdsl_hal_dslGetChannelInfo() */
-int xdsl_hal_dslGetChannelInfo(int lineNo, int channelNo, PDML_XDSL_CHANNEL pstChannelInfo)
+int xdsl_hal_dslGetChannelInfo(int channelNo, PDML_XDSL_CHANNEL pstChannelInfo)
 {
     int rc = RETURN_OK;
     int total_param_count = 0;
@@ -1648,7 +1648,7 @@ int xdsl_hal_dslGetChannelInfo(int lineNo, int channelNo, PDML_XDSL_CHANNEL pstC
 }
 
 /* * xdsl_hal_dslGetChannelStats() */
-int xdsl_hal_dslGetChannelStats(int lineNo, int channelNo, PDML_XDSL_CHANNEL_STATS pstChannelStats)
+int xdsl_hal_dslGetChannelStats(int channelNo, PDML_XDSL_CHANNEL_STATS pstChannelStats)
 {
     int rc = RETURN_OK;
     int total_param_count = 0;

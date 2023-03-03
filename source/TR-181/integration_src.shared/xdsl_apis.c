@@ -1986,7 +1986,7 @@ static ANSC_STATUS DmlXdslGetChannelStaticInfo( INT LineIndex, INT ChannelIndex,
 }
 
 /* DmlXdslGetChannelCfg() */
-ANSC_STATUS DmlXdslGetChannelCfg( INT LineIndex, INT ChannelIndex, PDML_XDSL_CHANNEL pstChannelInfo )
+ANSC_STATUS DmlXdslGetChannelCfg( INT ChannelIndex, PDML_XDSL_CHANNEL pstChannelInfo )
 {
     if( NULL == pstChannelInfo )
     {
@@ -1995,7 +1995,7 @@ ANSC_STATUS DmlXdslGetChannelCfg( INT LineIndex, INT ChannelIndex, PDML_XDSL_CHA
     }
 
     //Get channel full information
-    if ( RETURN_OK != xdsl_hal_dslGetChannelInfo( LineIndex, ChannelIndex, pstChannelInfo ) )
+    if ( RETURN_OK != xdsl_hal_dslGetChannelInfo( ChannelIndex, pstChannelInfo ) )
     {
          CcspTraceError(("%s Failed to get channel info value\n", __FUNCTION__));
          return ANSC_STATUS_FAILURE;
@@ -2005,7 +2005,7 @@ ANSC_STATUS DmlXdslGetChannelCfg( INT LineIndex, INT ChannelIndex, PDML_XDSL_CHA
     memset( &pstChannelInfo->stChannelStats, 0, sizeof(DML_XDSL_CHANNEL_STATS ));
 
     //Get channel statistics
-    if ( RETURN_OK != xdsl_hal_dslGetChannelStats( LineIndex, ChannelIndex, &pstChannelInfo->stChannelStats ) )
+    if ( RETURN_OK != xdsl_hal_dslGetChannelStats( ChannelIndex, &pstChannelInfo->stChannelStats ) )
     {
          CcspTraceError(("%s Failed to get channel statistics value\n", __FUNCTION__));
          return ANSC_STATUS_FAILURE;

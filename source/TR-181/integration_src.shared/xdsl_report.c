@@ -158,22 +158,18 @@ BOOL XdslReportGetStatus()
 static ANSC_STATUS XdslPrepareReportData(int line_id, int TotalChannels, XdslReportData *stReportData)
 {
     int rc = ANSC_STATUS_SUCCESS;
+
     if (NULL == stReportData)
     {
         CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
-#if defined _SR300_PRODUCT_REQ_ || defined  _DT_WAN_Manager_Enable_
-    int LineID = (line_id + 1);
-#else
-    int LineID = line_id;
-#endif
     /**
      * Get xDSL Line Information
      */
     DML_XDSL_LINE stLineInfo;
     memset(&stLineInfo, 0, sizeof(stLineInfo));
-    rc = xdsl_hal_dslGetLineInfo(LineID, &stLineInfo);
+    rc = xdsl_hal_dslGetLineInfo(line_id, &stLineInfo);
     if (rc == ANSC_STATUS_SUCCESS)
     {
         strncpy(stReportData->StandardUsed, stLineInfo.StandardUsed, sizeof(stReportData->StandardUsed) - 1);
@@ -200,7 +196,7 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int TotalChannels, XdslRep
      */
     DML_XDSL_LINE_STATS stLineStats;
     memset(&stLineStats, 0, sizeof(stLineStats));
-    rc = xdsl_hal_dslGetLineStats(LineID, &stLineStats);
+    rc = xdsl_hal_dslGetLineStats(line_id, &stLineStats);
     if (rc == ANSC_STATUS_SUCCESS)
     {
         stReportData->TotalStart = stLineStats.TotalStart;
@@ -218,7 +214,7 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int TotalChannels, XdslRep
      */
     DML_XDSL_LINE_TESTPARAMS stLineTestParams;
     memset(&stLineTestParams, 0, sizeof(stLineTestParams));
-    rc = xdsl_hal_dslGetLineTestParams(LineID, &stLineTestParams);
+    rc = xdsl_hal_dslGetLineTestParams(line_id, &stLineTestParams);
     if (rc == ANSC_STATUS_SUCCESS)
     {
         stReportData->HLOGGus = stLineTestParams.HLOGGus;
@@ -236,12 +232,7 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int TotalChannels, XdslRep
     
     for (INT ChannelIdx = 0; ChannelIdx < TotalChannels; ChannelIdx++ )
     {
-#if defined _SR300_PRODUCT_REQ_ || defined  _DT_WAN_Manager_Enable_
-        int ChannelID = (ChannelIdx + 1);
-#else
-        int ChannelID = ChannelIdx;
-#endif
-        rc = xdsl_hal_dslGetChannelInfo(line_id, ChannelID, &stChannelInfo);
+        rc = xdsl_hal_dslGetChannelInfo((ChannelIdx + 1), &stChannelInfo);
         if ( (rc == ANSC_STATUS_SUCCESS) && (stChannelInfo.Status == XDSL_IF_STATUS_Up))
         {
             stReportData->DownstreamCurrRate = stChannelInfo.DownstreamCurrRate;
@@ -259,7 +250,7 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int TotalChannels, XdslRep
          */
         DML_XDSL_CHANNEL_STATS stChannelStats;
         memset(&stChannelStats, 0, sizeof(stChannelStats));
-        rc = xdsl_hal_dslGetChannelStats(line_id, ChannelID, &stChannelStats);
+        rc = xdsl_hal_dslGetChannelStats((ChannelIdx + 1), &stChannelStats);
         if (rc == ANSC_STATUS_SUCCESS)
         {
             stReportData->CurrentDayStart = stChannelStats.CurrentDayStart;
@@ -1103,7 +1094,7 @@ static int PrepareAndSendXdslReport()
     memset(&stGlobalInfo, 0, sizeof(stGlobalInfo));
     DmlXdslLineGetCopyOfGlobalInfoForGivenIndex( (iTotalLines - 1), &stGlobalInfo );
 
-    line_id = (iTotalLines - 1);
+    line_id = iTotalLines;
     if( stGlobalInfo.LinkStatus == XDSL_LINK_STATUS_Up ){
         memset(&ptr, 0, sizeof(XdslReportData));
 
