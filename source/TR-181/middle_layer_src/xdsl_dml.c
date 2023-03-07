@@ -1238,7 +1238,7 @@ Line_GetParamIntValue
     if (strcmp(ParamName, "DownstreamAttenuation") == 0)
     {
         /* collect value */
-        *pInt = pXDSLLine->TRELLISus;
+        *pInt = pXDSLLine->DownstreamAttenuation;
         return TRUE;
     }
 
@@ -1413,7 +1413,7 @@ LineStats_GetParamUlongValue
 
     if (strcmp(ParamName, "BytesReceived") == 0)
     {
-        *puLong = pXDSLLineStats->BytesSent;
+        *puLong = pXDSLLineStats->BytesReceived;
         return TRUE;
     }
 
@@ -2993,7 +2993,7 @@ ChannelStats_GetParamUlongValue
 
     if (strcmp(ParamName, "BytesReceived") == 0)
     {
-        *puLong = pDSLChannelStats->BytesSent;
+        *puLong = pDSLChannelStats->BytesReceived;
         return TRUE;
     }
 

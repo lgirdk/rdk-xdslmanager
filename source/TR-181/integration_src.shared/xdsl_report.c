@@ -172,7 +172,9 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int TotalChannels, XdslRep
     rc = xdsl_hal_dslGetLineInfo(line_id, &stLineInfo);
     if (rc == ANSC_STATUS_SUCCESS)
     {
+
         strncpy(stReportData->StandardUsed, stLineInfo.StandardUsed, sizeof(stReportData->StandardUsed) - 1);
+        strncpy(stReportData->XTSUsed, stLineInfo.XTSUsed, sizeof(stReportData->XTSUsed) - 1);
         stReportData->DownstreamAttenuation = stLineInfo.DownstreamAttenuation;
         stReportData->DownstreamMaxBitRate = stLineInfo.DownstreamMaxBitRate;
         stReportData->DownstreamNoiseMargin = stLineInfo.DownstreamNoiseMargin;
