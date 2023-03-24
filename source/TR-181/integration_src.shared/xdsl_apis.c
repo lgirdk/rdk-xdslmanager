@@ -1070,8 +1070,6 @@ static void *DmlXdslEventHandlerThread( void *arg )
                sysevent_get(sysevent_fd, sysevent_token, SYSEVENT_LED_STATE, ledStatus, sizeof(ledStatus));
                if(!((strncmp(ledStatus, WAN_IP4_UP, sizeof(ledStatus)) == 0) || (strncmp(ledStatus, WAN_IP6_UP, sizeof(ledStatus)) == 0)))
                {
-                   CcspTraceInfo(("%s- Setting LED to DSL Training  \n", __FUNCTION__));
-                   sysevent_set(sysevent_fd, sysevent_token, SYSEVENT_LED_STATE, DSL_TRAINING_STATE, 0);
                    snprintf( acTmpPhyStatus, sizeof( acTmpPhyStatus ), "%s", "Initializing" );
                }
 #endif
