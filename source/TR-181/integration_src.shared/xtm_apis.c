@@ -30,14 +30,10 @@
 //VLAN Agent
 #define VLAN_DBUS_PATH                    "/com/cisco/spvtg/ccsp/vlanmanager"
 #define VLAN_COMPONENT_NAME               "eRT.com.cisco.spvtg.ccsp.vlanmanager"
-#define VLAN_ETH_LINK_TABLE_NAME          "Device.X_RDK_Ethernet.Link."
-#define VLAN_ETH_NOE_PARAM_NAME           "Device.X_RDK_Ethernet.LinkNumberOfEntries"
 #define VLAN_ETH_LINK_PARAM               "Device.X_RDK_Ethernet.Link.%d."
-#define VLAN_ETH_LINK_PARAM_ALIAS         VLAN_ETH_LINK_PARAM"Alias"
-#define VLAN_ETH_LINK_PARAM_NAME          VLAN_ETH_LINK_PARAM"Name"
-#define VLAN_ETH_LINK_PARAM_LOWERLAYERS   VLAN_ETH_LINK_PARAM"LowerLayers"
-#define VLAN_ETH_LINK_PARAM_BASEINTERFACE VLAN_ETH_LINK_PARAM"X_RDK_BaseInterface"
 #define VLAN_ETH_LINK_PARAM_ENABLE        VLAN_ETH_LINK_PARAM"Enable"
+
+#define VLAN_TERM_PARAM_ENABLE            "Device.X_RDK_Ethernet.VLANTermination.%d.Enable"
 
 #define PTM_LINK_ENABLE "Device.PTM.Link.%d.Enable"
 #define PTM_LINK_STATUS "Device.PTM.Link.%d.Status"
@@ -61,7 +57,6 @@ extern ANSC_HANDLE         bus_handle;
 static ANSC_STATUS CosaDmlXtmGetParamValues(char *pComponent, char *pBus, char *pParamName, char *pReturnVal);
 static ANSC_STATUS CosaDmlXtmSetParamValues(const char *pComponent, const char *pBus, const char *pParamName, const char *pParamVal, enum dataType_e type, unsigned int bCommitFlag);
 static ANSC_STATUS CosaDmlXtmGetParamNames(char *pComponent, char *pBus, char *pParamName, char a2cReturnVal[][256], int *pReturnSize);
-static ANSC_STATUS CosaDmlXtmGetLowerLayersInstanceInOtherAgent(PTM_NOTIFY_ENUM enNotifyAgent, char *pLowerLayers, INT *piInstanceNumber);
 /* ******************************************************************* */
 
 /* * SListPushEntryByInsNum() */
@@ -262,100 +257,15 @@ static ANSC_STATUS CosaDmlXtmSetParamValues(const char *pComponent, const char *
     return ANSC_STATUS_SUCCESS;
 }
 
-/* * CosaDmlXtmGetLowerLayersInstanceInOtherAgent() */
-static ANSC_STATUS CosaDmlXtmGetLowerLayersInstanceInOtherAgent(PTM_NOTIFY_ENUM enNotifyAgent, char *pLowerLayers, INT *piInstanceNumber)
-{
-    //Validate buffer
-    if ((NULL == pLowerLayers) || (NULL == piInstanceNumber))
-    {
-        CcspTraceError(("%s Invalid Buffer\n", __FUNCTION__));
-        return ANSC_STATUS_FAILURE;
-    }
-
-    //Initialise default value
-    *piInstanceNumber = -1;
-    
-    switch (enNotifyAgent)
-    {
-        case NOTIFY_TO_VLAN_AGENT:
-        {
-           char acTmpReturnValue[256] = {0},
-                a2cTmpTableParams[10][256] = {0};
-           INT iLoopCount,
-               iTotalNoofEntries;
-        
-            if (ANSC_STATUS_FAILURE == CosaDmlXtmGetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, VLAN_ETH_NOE_PARAM_NAME, acTmpReturnValue))
-            {
-               CcspTraceError(("%s %d Failed to get param value\n", __FUNCTION__, __LINE__));
-               return ANSC_STATUS_FAILURE;
-            }
-
-            //Total count
-            iTotalNoofEntries = atoi(acTmpReturnValue);
-       
-            CcspTraceInfo(("%s %d - TotalNoofEntries:%d\n", __FUNCTION__, __LINE__, iTotalNoofEntries));
-        
-            if (0 >= iTotalNoofEntries)
-            {
-              return ANSC_STATUS_SUCCESS;
-            }
-
-            //Get table names
-            iTotalNoofEntries = 0;
-        
-            if (ANSC_STATUS_FAILURE == CosaDmlXtmGetParamNames(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, VLAN_ETH_LINK_TABLE_NAME, a2cTmpTableParams, &iTotalNoofEntries))
-            {
-                CcspTraceError(("%s %d Failed to get param value\n", __FUNCTION__, __LINE__));
-                return ANSC_STATUS_FAILURE;
-            }
-
-            //Traverse from loop
-            for (iLoopCount = 0; iLoopCount < iTotalNoofEntries; iLoopCount++)
-            {
-                char acTmpQueryParam[256] = {0};
-                
-                //Query
-                snprintf(acTmpQueryParam, sizeof(acTmpQueryParam), "%sLowerLayers", a2cTmpTableParams[iLoopCount]);
-                memset(acTmpReturnValue, 0, sizeof(acTmpReturnValue));
-                
-                if (ANSC_STATUS_FAILURE == CosaDmlXtmGetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acTmpQueryParam, acTmpReturnValue))
-                {
-                   CcspTraceError(("%s %d Failed to get param value\n", __FUNCTION__, __LINE__));
-                   continue;
-                }
-
-                //Compare lowerlayers
-                if (0 == strcmp(acTmpReturnValue, pLowerLayers))
-                {
-                    char tmpTableParam[256] = {0};
-
-                    //Copy table param
-                    snprintf(tmpTableParam, sizeof(tmpTableParam), "%s", a2cTmpTableParams[iLoopCount]);
-
-                    //Get the instance index
-                    sscanf(tmpTableParam, VLAN_ETH_LINK_PARAM , piInstanceNumber);
-                    break;
-                }
-             }
-          }
-          break; /* * NOTIFY_TO_PTM_MANAGER */
-   
-          default:
-          {
-               CcspTraceError(("%s Invalid Case\n", __FUNCTION__));
-          }
-          break; /* * default */
-       }
-
-   return ANSC_STATUS_SUCCESS;
-}
-
 /* Create and Enable Ethernet.Link. */
 ANSC_STATUS DmlPtmCreateEthLink( PDML_PTM   pEntry )
 {
     char acSetParamName[256] = { 0 };
     char acSetParamValue[256] = { 0 };
-    INT  iVLANInstance = -1;
+    /*TODO:
+    * Need to be Reviewed,For More Info Refer US: RDKB-48040
+    */
+    INT  iVLANInstance = 1;
     
     //Validate buffer
     if ( NULL == pEntry )
@@ -363,62 +273,15 @@ ANSC_STATUS DmlPtmCreateEthLink( PDML_PTM   pEntry )
         CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
-    
-    //Get Instance for corresponding lower layer
-    CosaDmlXtmGetLowerLayersInstanceInOtherAgent( NOTIFY_TO_VLAN_AGENT, pEntry->Path, &iVLANInstance );
-    
-    //Create VLAN Link.
-    //Index is not present. so needs to create a PTM instance
-    if (-1 == iVLANInstance)
-    {
-        char acTableName[128] = {0};
-        INT iNewTableInstance = -1;
-    
-        snprintf(acTableName, sizeof(acTableName), "%s", VLAN_ETH_LINK_TABLE_NAME);
-        if (CCSP_SUCCESS != CcspBaseIf_AddTblRow(
-                                bus_handle,
-                                VLAN_COMPONENT_NAME,
-                                VLAN_DBUS_PATH,
-                                0, /* session id */
-                                acTableName,
-                                &iNewTableInstance))
-        {
-            CcspTraceError(("%s Failed to add table %s\n", __FUNCTION__, acTableName));
-            return ANSC_STATUS_FAILURE;
-        }
-    
-        //Assign new instance
-        iVLANInstance = iNewTableInstance;
-    }
 
     CcspTraceInfo(("%s %d VLANAgent -> Device.Ethernet.Link Instance:%d\n", __FUNCTION__, __LINE__, iVLANInstance));
 
-    //Set Alias
-    snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_ETH_LINK_PARAM_ALIAS, iVLANInstance);
-    snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", pEntry->Name);
-    CosaDmlXtmSetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string,FALSE);
-    
-    //Set Name
-    snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_ETH_LINK_PARAM_NAME, iVLANInstance);
-    snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", WAN_INTERFACE_NAME);
-    CosaDmlXtmSetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string,FALSE);
-
-    //Set Lowerlayers
-    snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_ETH_LINK_PARAM_LOWERLAYERS, iVLANInstance);
-    snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", pEntry->Path);
-    CosaDmlXtmSetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string,FALSE);
-
-    //Set Base interface
-    snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_ETH_LINK_PARAM_BASEINTERFACE, iVLANInstance);
-    snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", pEntry->Alias);
-    CosaDmlXtmSetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string,FALSE);
-    
     //Set Enable
-    snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_ETH_LINK_PARAM_ENABLE, iVLANInstance);
+    snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_TERM_PARAM_ENABLE, iVLANInstance);
     snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "true");
     CosaDmlXtmSetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE);
  
-    CcspTraceInfo(("%s: Successfully created PTM VLAN link table for %s interface\n",PTM_MARKER_VLAN_CREATE,pEntry->Name));
+    CcspTraceInfo(("%s-%d : Successfully enabled PTM VLAN Term for %s interface\n",__FUNCTION__, __LINE__, pEntry->Name));
     
     return ANSC_STATUS_SUCCESS;
 }
@@ -429,7 +292,10 @@ ANSC_STATUS DmlPtmDeleteEthLink( char *pLowerLayer )
     char    acSetParamName[256] = { 0 };
     char    acSetParamValue[256] = { 0 };
     char    acTableName[128] = { 0 };
-    INT     iVLANInstance = -1;
+    /*TODO:
+     * Need to be Reviewed,For More Info Refer US: RDKB-48040
+     */
+    INT     iVLANInstance = 1;
 
     //Validate buffer
     if ( NULL == pLowerLayer )
@@ -437,44 +303,15 @@ ANSC_STATUS DmlPtmDeleteEthLink( char *pLowerLayer )
         CcspTraceError(("%s Invalid Memory\n", __FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
-    
-    //Get Instance for corresponding lower layer
-    CosaDmlXtmGetLowerLayersInstanceInOtherAgent(NOTIFY_TO_VLAN_AGENT, pLowerLayer, &iVLANInstance);
-    
-    //Index is not present. so no need to do anything any ETH Link instance
-    if ( -1 == iVLANInstance )
-    { 
-        CcspTraceError(("%s %d Device.Ethernet.Link Table instance not present\n", __FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
-    }
-    
-    CcspTraceInfo(("%s %d VLANAgent -> Device.Ethernet.Link Instance:%d\n", __FUNCTION__, __LINE__, iVLANInstance));
+
+    CcspTraceInfo(("%s %d VLANMgr -> Device.X_RDK_Ethernet.VLANTermination Instance:%d\n", __FUNCTION__, __LINE__, iVLANInstance));
 
     //Disable link.
-    snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_ETH_LINK_PARAM_ENABLE, iVLANInstance);
+    snprintf(acSetParamName, DATAMODEL_PARAM_LENGTH, VLAN_TERM_PARAM_ENABLE, iVLANInstance);
     snprintf(acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", "false");
     CosaDmlXtmSetParamValues(VLAN_COMPONENT_NAME, VLAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_boolean, TRUE);
 
-    //Delay - to set param.
-    sleep(2);
-
-    /*
-     * Delete Device.Ethernet.Link. Instance.
-     * VLANAgent will delete the vlan interface as part table deletion process.
-     */
-    snprintf(acTableName, sizeof(acTableName), "%s%d.", VLAN_ETH_LINK_TABLE_NAME, iVLANInstance);
-    if (CCSP_SUCCESS != CcspBaseIf_DeleteTblRow(
-                            bus_handle,
-                            VLAN_COMPONENT_NAME,
-                            VLAN_DBUS_PATH,
-                            0, /* session id */
-                            acTableName))
-    {
-        CcspTraceError(("%s Failed to delete table %s\n", __FUNCTION__, acTableName));
-        return ANSC_STATUS_FAILURE;
-    }
-    
-    CcspTraceInfo(("%s:Successfully deleted PTM VLAN link %s table\n",PTM_MARKER_VLAN_DELETE,acTableName));
+    CcspTraceInfo(("%s-%d : Successfully disabled PTM VLAN Term Table %s \n", __FUNCTION__, __LINE__, acTableName));
     
     return ANSC_STATUS_SUCCESS;
 }

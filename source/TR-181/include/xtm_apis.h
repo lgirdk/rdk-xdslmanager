@@ -37,12 +37,6 @@
 /***********************************
     Actual definition declaration
 ************************************/
-typedef enum
-_PTM_NOTIFY_ENUM
-{
-    NOTIFY_TO_VLAN_AGENT      = 1,
-} PTM_NOTIFY_ENUM;
-
 typedef  struct
 _DML_PTM_STATS
 {
