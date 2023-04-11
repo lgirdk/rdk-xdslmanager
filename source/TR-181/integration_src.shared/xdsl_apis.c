@@ -100,18 +100,29 @@
 //WAN Agent
 #define WAN_DBUS_PATH                     "/com/cisco/spvtg/ccsp/wanmanager"
 #define WAN_COMPONENT_NAME                "eRT.com.cisco.spvtg.ccsp.wanmanager"
+#if defined(WAN_MANAGER_UNIFICATION_ENABLED)
+#define WAN_NOE_PARAM_NAME                "Device.X_RDK_WanManager.InterfaceNumberOfEntries"
+#define WAN_PHY_STATUS_PARAM_NAME         "Device.X_RDK_WanManager.Interface.%d.BaseInterfaceStatus"
+#define WAN_PHY_PATH_PARAM_NAME           "Device.X_RDK_WanManager.Interface.%d.BaseInterface"
+#define WAN_LINK_STATUS_PARAM_NAME        "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.1.VlanStatus"
+#define WAN_WAN_INTERFACE_PARAM_NAME      "Device.X_RDK_WanManager.Interface.%d.VirtualInterface.1.Name"
+#define WAN_IF_NAME_PARAM_NAME            "Device.X_RDK_WanManager.Interface.%d.Name"
+#define WAN_PPP_ENABLE_PARAM_NAME        "Device.X_RDK_WanManager.Interface.%d.PPP.Enable"
+#define WAN_PPP_IPCP_PARAM_NAME           "Device.X_RDK_WanManager.Interface.%d.PPP.IPCPEnable"
+#define WAN_PPP_IPv6CP_PARAM_NAME         "Device.X_RDK_WanManager.Interface.%d.PPP.IPv6CPEnable"
+#define WAN_PPP_LINKTYPE_PARAM_NAME       "Device.X_RDK_WanManager.Interface.%d.PPP.LinkType"
+#else
 #define WAN_NOE_PARAM_NAME                "Device.X_RDK_WanManager.CPEInterfaceNumberOfEntries"
 #define WAN_PHY_STATUS_PARAM_NAME         "Device.X_RDK_WanManager.CPEInterface.%d.Phy.Status"
 #define WAN_PHY_PATH_PARAM_NAME           "Device.X_RDK_WanManager.CPEInterface.%d.Phy.Path"
 #define WAN_LINK_STATUS_PARAM_NAME        "Device.X_RDK_WanManager.CPEInterface.%d.Wan.LinkStatus"
 #define WAN_WAN_INTERFACE_PARAM_NAME      "Device.X_RDK_WanManager.CPEInterface.%d.Wan.Name"
 #define WAN_IF_NAME_PARAM_NAME            "Device.X_RDK_WanManager.CPEInterface.%d.Name"
-
 #define WAN_PPP_ENABLE_PARAM_NAME        "Device.X_RDK_WanManager.CPEInterface.%d.PPP.Enable"
 #define WAN_PPP_IPCP_PARAM_NAME           "Device.X_RDK_WanManager.CPEInterface.%d.PPP.IPCPEnable"
 #define WAN_PPP_IPv6CP_PARAM_NAME         "Device.X_RDK_WanManager.CPEInterface.%d.PPP.IPv6CPEnable"
 #define WAN_PPP_LINKTYPE_PARAM_NAME       "Device.X_RDK_WanManager.CPEInterface.%d.PPP.LinkType"
-
+#endif /* WAN_MANAGER_UNIFICATION_ENABLED */
 #if defined(FEATURE_RDKB_CONFIGURABLE_WAN_INTERFACE)
 #define WAN_INTERFACE_NAME_VDSL      "vdsl0"
 #define WAN_INTERFACE_NAME_ADSL      "pppoa0"
