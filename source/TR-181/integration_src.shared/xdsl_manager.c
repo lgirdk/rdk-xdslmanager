@@ -450,14 +450,15 @@ static dslSmState_t TransitionPhyInterfaceDown( PXDSL_SM_PRIVATE_INFO pstPrivInf
 #ifdef _HUB4_PRODUCT_REQ_
     is_adsl_allowed = isAdslAllowed();
 #endif
-    if ( is_adsl_allowed && ANSC_STATUS_SUCCESS == DmlXdslLine_GetStandardUsedByGivenIfName(pstPrivInfo->Name, StandardUsed))
+    //if ( is_adsl_allowed && ANSC_STATUS_SUCCESS == DmlXdslLine_GetStandardUsedByGivenIfName(pstPrivInfo->Name, StandardUsed))
+    if ( is_adsl_allowed )
     {
-        if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413")  ||
-           strstr(StandardUsed,"G.992.2") || strstr(StandardUsed,"G.992.3") ||
-           strstr(StandardUsed,"G.992.5")) /* ADSL */
-        {
-            DmlXdslLineSetWanStatus( 0, XDSL_LINE_WAN_DOWN );
-        }
+        //if(strstr(StandardUsed,"G.992.1") || strstr(StandardUsed,"T1.413")  ||
+        //   strstr(StandardUsed,"G.992.2") || strstr(StandardUsed,"G.992.3") ||
+        //   strstr(StandardUsed,"G.992.5"))
+        //{
+        DmlXdslLineSetWanStatus( 0, XDSL_LINE_WAN_DOWN );
+        //}
     }
 
     CcspTraceInfo(("%s - %s:IfName:%s STATE_DISCONNECTED\n",__FUNCTION__,XDSL_MARKER_SM_TRANSITION,pstPrivInfo->Name));
