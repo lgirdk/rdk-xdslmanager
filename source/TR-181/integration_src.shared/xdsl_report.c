@@ -941,7 +941,7 @@ static int harvester_report_Xdsl(XdslReportData *head)
     if (CHK_AVRO_ERR)
         CcspTraceInfo(("%s LINE %d\n", avro_strerror(), __LINE__));
     avro_value_set_branch(&adrField, 1, &optional);
-    avro_value_set_int(&optional, ptr->EchotoNoiseRatio);
+    avro_value_set_long(&optional, (long)ptr->EchotoNoiseRatio);
     CcspTraceInfo(("EchotoNoiseRatio\tType: %d\n", avro_value_get_type(&optional)));
     if (CHK_AVRO_ERR)
         CcspTraceInfo(("%s\n", avro_strerror()));
