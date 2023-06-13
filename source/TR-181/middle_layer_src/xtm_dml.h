@@ -44,8 +44,6 @@
     *  PTMLink_Synchronize
     *  PTMLink_GetEntryCount
     *  PTMLink_GetEntry
-    *  PTMLink_AddEntry
-    *  PTMLink_DelEntry
     *  PTMLink_GetParamBoolValue
     *  PTMLink_GetParamUlongValue
     *  PTMLink_GetParamStringValue
@@ -78,20 +76,6 @@ PTMLink_GetEntry
         ANSC_HANDLE                 hInsContext,
         ULONG                       nIndex,
         ULONG*                      pInsNumber
-    );
-
-ANSC_HANDLE
-PTMLink_AddEntry
-    (
-        ANSC_HANDLE                 hInsContext,
-        ULONG*                      pInsNumber
-    );
-
-ULONG
-PTMLink_DelEntry
-    (
-        ANSC_HANDLE                 hInsContext,
-        ANSC_HANDLE                 hInstance
     );
 
 BOOL
@@ -165,8 +149,6 @@ PTMLinkStats_GetParamUlongValue
     *  ATMLink_Synchronize
     *  ATMLink_GetEntryCount
     *  ATMLink_GetEntry
-    *  ATMLink_AddEntry
-    *  ATMLink_DelEntry
     *  ATMLink_GetParamBoolValue
     *  ATMLink_GetParamUlongValue
     *  ATMLink_GetParamStringValue
@@ -179,8 +161,6 @@ BOOL ATMLink_IsUpdated ( ANSC_HANDLE hInsContext );
 ULONG ATMLink_Synchronize ( ANSC_HANDLE hInsContext );
 ULONG ATMLink_GetEntryCount ( ANSC_HANDLE hInsContext );
 ANSC_HANDLE ATMLink_GetEntry ( ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pInsNumber );
-ANSC_HANDLE ATMLink_AddEntry ( ANSC_HANDLE hInsContext, ULONG* pInsNumber );
-ULONG ATMLink_DelEntry ( ANSC_HANDLE hInsContext, ANSC_HANDLE hInstance );
 BOOL ATMLink_GetParamBoolValue ( ANSC_HANDLE hInsContext, char* ParamName, BOOL* pBool );
 BOOL ATMLink_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULONG* puLong );
 ULONG ATMLink_GetParamStringValue  ( ANSC_HANDLE hInsContext, char* ParamName, char* pValue, ULONG* pUlSize );

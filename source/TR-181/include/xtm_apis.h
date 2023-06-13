@@ -77,7 +77,6 @@ _DML_PTM
     xtm_link_status_e    Status;
     CHAR                 Alias[64];
     CHAR                 Name[64];
-    CHAR                 Path[128];
     UINT                 LastChange;
     CHAR                 LowerLayers[1024];
     CHAR                 MACAddress[64];
@@ -192,7 +191,6 @@ _DML_ATM
     xtm_link_status_e    Status;
     CHAR                 Alias[64];
     CHAR                 Name[64];
-    CHAR                 Path[128];
     linktype_e           LinkType;
     encapsulation_e      Encapsulation;
     aal_e                AAL;
@@ -215,26 +213,13 @@ DML_ATM,  *PDML_ATM;
 {                                              \
     (pAtm)->Enable            = FALSE;         \
 }                                              \
-/*
-Description:
-    This callback routine is provided for backend to call middle layer
-Arguments:
-    hDml          Opaque handle passed in from DmlPtmInit.
-    pEntry        Pointer to PTM xtm mapping to receive the generated values.
-Return:
-    Status of operation
-
-
-*/
-typedef ANSC_STATUS (*PFN_DML_PTM_GEN) (ANSC_HANDLE hDml);
 
 /*************************************
     The actual function declaration
 **************************************/
 
 ANSC_STATUS DmlAddPtm(ANSC_HANDLE hContext, PDML_PTM pEntry);
-ANSC_STATUS DmlGetPtmIfEnable( BOOLEAN *pbEnable);
-ANSC_STATUS DmlSetPtmIfEnable( BOOLEAN bEnable);
+ANSC_STATUS DmlSetPtmIfEnable(PDML_PTM p_Ptm);
 ANSC_STATUS DmlGetPtmIfStatus( ANSC_HANDLE hContext, PDML_PTM p_Ptm);
 ANSC_STATUS DmlGetPtmIfStatistics (ANSC_HANDLE hContext, PDML_PTM p_Ptm);
 ANSC_STATUS DmlSetPtm (ANSC_HANDLE hContext, PDML_PTM p_Ptm);
@@ -242,17 +227,16 @@ ANSC_STATUS DmlDelPtm (ANSC_HANDLE hContext, PDML_PTM pEntry);
 ANSC_STATUS DmlAddInit (ANSC_HANDLE hContext, PDML_ATM pEntry);
 ANSC_STATUS DmlAtmDiagnosticsInit (PANSC_HANDLE phContext);
 ANSC_STATUS DmlAddAtm (ANSC_HANDLE hContext, PDML_ATM pEntry);
-ANSC_STATUS DmlGetAtmIfEnable (BOOLEAN *pbEnable);
-ANSC_STATUS DmlSetAtmIfEnable (ANSC_HANDLE hContext, PDML_ATM p_Atm);
+ANSC_STATUS DmlSetAtmIfEnable (PDML_ATM p_Atm);
 ANSC_STATUS DmlGetAtmIfStatus (ANSC_HANDLE hContext, PDML_ATM p_Atm);
 ANSC_STATUS DmlGetAtmIfStatistics (ANSC_HANDLE hContext, PDML_ATM  p_Atm);
 ANSC_STATUS DmlSetAtm (ANSC_HANDLE hContext, PDML_ATM  p_Atm);
 ANSC_STATUS DmlDelAtm (ANSC_HANDLE hContext, PDML_ATM p_Atm);
 ANSC_STATUS DmlStartAtmLoopbackDiagnostics (PDML_ATM_DIAG pDiag);
-ANSC_STATUS DmlPtmCreateEthLink (PDML_PTM pEntry);
-ANSC_STATUS DmlPtmDeleteEthLink (char *l3ifName);
-ANSC_STATUS DmlAtmCreatePPPLink( PDML_ATM pEntry );
-ANSC_STATUS DmlAtmDeletePPPLink( char *l3ifName );
-void DmlPTMLinkUpdateParams (  ANSC_HANDLE hInsContext, PDML_XDSL_LINE_GLOBALINFO pGlobalInfo, BOOL bValue);
-void DmlATMLinkUpdateParams (  ANSC_HANDLE hInsContext, PDML_XDSL_LINE_GLOBALINFO pGlobalInfo, BOOL bValue);
+int PtmLinkStatusCallback(int atm_id, char *status);
+int AtmLinkStatusCallback(int atm_id, char *status);
+void DmlPtmLinkSetEnable(PDML_PTM p_Ptm, BOOL bValue);
+void DmlPtmLinkSetStatus(PDML_PTM p_Ptm, xtm_link_status_e status);
+void DmlAtmLinkSetEnable(PDML_ATM p_Atm, BOOL bValue);
+void DmlAtmLinkSetStatus(PDML_ATM p_Atm, xtm_link_status_e status);
 #endif

@@ -106,7 +106,7 @@ char *XdslReportGetSchemaIDBuffer();
  * @param value - indicates reporting period
  * @return: TRUE if ReportingPeriod is valid FALSE if ReportingPeriod is not valid
  */
-bool XdslReportValidateReportingPeriod(UINT value);
+BOOL XdslReportValidateReportingPeriod(UINT value);
 
 /**
  * @brief API to return the XDSL Report Status

@@ -91,7 +91,6 @@ extern char                          g_Subsystem[32];
     *  Line_GetParamUlongValue
     *  Line_GetParamStringValue
     *  Line_SetParamBoolValue
-    *  Line_SetParamUlongValue
     *  Line_SetParamStringValue
     *  Line_Validate
     *  Line_Commit
@@ -236,19 +235,24 @@ Line_GetEntry
     )
 {
     PDATAMODEL_XDSL    pMyObject  = (PDATAMODEL_XDSL)g_pBEManager->hDSL;
-
+	
     if ( ( pMyObject->pXDSLLine  ) && ( nIndex < pMyObject->ulTotalNoofDSLLines ) )
     {
     	PDML_XDSL_LINE      pXDSLLine = NULL;
 		
-        pXDSLLine = pMyObject->pXDSLLine + nIndex;
+        pXDSLLine = &pMyObject->pXDSLLine[nIndex];
 
-        pXDSLLine->ulInstanceNumber = nIndex + 1;
-
+        pthread_mutex_lock(&pXDSLLine->mDataMutex);
         *pInsNumber = pXDSLLine->ulInstanceNumber;
 
+         //TODO: Need to align the index with all the others.
         //Sync with current information
+#ifdef _SR300_PRODUCT_REQ_
         DmlXdslGetLineCfg( (nIndex +1), pXDSLLine );
+#else
+        DmlXdslGetLineCfg( nIndex, pXDSLLine );
+#endif //_SR300_PRODUCT_REQ_
+	pthread_mutex_unlock(&pXDSLLine->mDataMutex);
 
         return pXDSLLine;
     }
@@ -295,31 +299,32 @@ Line_GetParamBoolValue
     )
 {
     PDML_XDSL_LINE      pXDSLLine = (PDML_XDSL_LINE)hInsContext;
+    BOOL ret = FALSE;
     
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "Enable") == 0)
+    if( AnscEqualString(ParamName, "Enable", TRUE) )
     {	
     	*pBool = pXDSLLine->Enable;
 		
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "EnableDataGathering") == 0)
+    else if( AnscEqualString(ParamName, "EnableDataGathering", TRUE) )
     {	
     	*pBool = pXDSLLine->EnableDataGathering;
 			
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "Upstream") == 0)
+    else if( AnscEqualString(ParamName, "Upstream", TRUE) )
     {
         *pBool = pXDSLLine->Upstream;
 
-        return TRUE;
+        ret = TRUE;
     }
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
 
     /* AnscTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return FALSE;
+    return ret;
 }
 
 /**********************************************************************  
@@ -370,340 +375,322 @@ Line_GetParamStringValue
     )
 {
     PDML_XDSL_LINE      pXDSLLine = (PDML_XDSL_LINE)hInsContext;
+    ULONG ret = -1;
     
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "Alias") == 0)
+    if( AnscEqualString(ParamName, "Alias", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->Alias ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->Alias );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->Alias );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "Name") == 0)
+    else if( AnscEqualString(ParamName, "Name", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->Name ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->Name );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->Name );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "LowerLayers") == 0)
+    else if( AnscEqualString(ParamName, "LowerLayers", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->LowerLayers ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->LowerLayers );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->LowerLayers );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "StandardsSupported") == 0)
+    else if( AnscEqualString(ParamName, "StandardsSupported", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->StandardsSupported ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->StandardsSupported );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->StandardsSupported );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "StandardUsed") == 0)
+    else if( AnscEqualString(ParamName, "StandardUsed", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->StandardUsed ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->StandardUsed );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->StandardUsed );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "AllowedProfiles") == 0)
+    else if( AnscEqualString(ParamName, "AllowedProfiles", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->AllowedProfiles ) - 1 ) < *pUlSize )
        {   
            AnscCopyString( pValue, pXDSLLine->AllowedProfiles );
-           return 0;
+           ret = 0;
        }
        else
        {   
            *pUlSize = sizeof( pXDSLLine->AllowedProfiles );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "CurrentProfile") == 0)
+    else if( AnscEqualString(ParamName, "CurrentProfile", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->CurrentProfile ) - 1 ) < *pUlSize )
        {   
            AnscCopyString( pValue, pXDSLLine->CurrentProfile );
-           return 0;
+           ret = 0;
        }
        else
        {   
            *pUlSize = sizeof( pXDSLLine->CurrentProfile );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "SNRMpbus") == 0)
+    else if( AnscEqualString(ParamName, "SNRMpbus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->SNRMpbus ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->SNRMpbus );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->SNRMpbus );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "SNRMpbds") == 0)
+    else if( AnscEqualString(ParamName, "SNRMpbds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->SNRMpbds ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->SNRMpbds );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->SNRMpbds );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "FirmwareVersion") == 0)
+    else if( AnscEqualString(ParamName, "FirmwareVersion", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->FirmwareVersion ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->FirmwareVersion );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->FirmwareVersion );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "XTURVendor") == 0)
+    else if( AnscEqualString(ParamName, "XTURVendor", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->XTURVendor ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->XTURVendor );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->XTURVendor );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "XTUCVendor") == 0)
+    else if( AnscEqualString(ParamName, "XTUCVendor", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->XTUCVendor ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->XTUCVendor );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->XTUCVendor );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "XTURCountry") == 0)
+    else if( AnscEqualString(ParamName, "XTURCountry", TRUE) )
     {  
        /* collect value */
        if ( ( sizeof( pXDSLLine->XTURCountry ) - 1 ) < *pUlSize )
        {   
            AnscCopyString( pValue, pXDSLLine->XTURCountry );
-           return 0;
+           ret = 0;
        }
        else
        {   
            *pUlSize = sizeof( pXDSLLine->XTURCountry );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "XTUCCountry") == 0)
+    else if( AnscEqualString(ParamName, "XTUCCountry", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->XTUCCountry ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->XTUCCountry );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->XTUCCountry );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "UPBOKLEPb") == 0)
+    else if( AnscEqualString(ParamName, "UPBOKLEPb", TRUE) )
     {
        /* collect value */
      if ( ( sizeof( pXDSLLine->UPBOKLEPb ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->UPBOKLEPb );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->UPBOKLEPb );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "UPBOKLERPb") == 0)
+    else if( AnscEqualString(ParamName, "UPBOKLERPb", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->UPBOKLERPb ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->UPBOKLERPb );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->UPBOKLERPb );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "XTSE") == 0)
+    else if( AnscEqualString(ParamName, "XTSE", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->XTSE ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->XTSE );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->XTSE );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "XTSUsed") == 0)
+    else if( AnscEqualString(ParamName, "XTSUsed", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->XTSUsed ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->XTSUsed );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->XTSUsed );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "MREFPSDds") == 0)
+    else if( AnscEqualString(ParamName, "MREFPSDds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->MREFPSDds ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->MREFPSDds );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->MREFPSDds );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "MREFPSDus") == 0)
+    else if( AnscEqualString(ParamName, "MREFPSDus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->MREFPSDus ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->MREFPSDus );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->MREFPSDus );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "VirtualNoisePSDds") == 0)
+    else if( AnscEqualString(ParamName, "VirtualNoisePSDds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->VirtualNoisePSDds ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->VirtualNoisePSDds );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->VirtualNoisePSDds );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "VirtualNoisePSDus") == 0)
+    else if( AnscEqualString(ParamName, "VirtualNoisePSDus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLine->VirtualNoisePSDus ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLine->VirtualNoisePSDus );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLine->VirtualNoisePSDus );
-           return 1;
+           ret = 1;
        }
     }
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
 
     /* AnscTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return -1;
+    return ret;
 }
 
 /**********************************************************************  
@@ -745,55 +732,45 @@ Line_SetParamBoolValue
     )
 {
     PDML_XDSL_LINE      pXDSLLine = (PDML_XDSL_LINE)hInsContext;
+    BOOL ret = FALSE;
 
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "Enable") == 0)
+    if( AnscEqualString(ParamName, "Enable", TRUE))
     {
-    	if( bValue == pXDSLLine->Enable )
-    	{
-    		return TRUE;	//No need to proceed when same value comes
+    	if( bValue != pXDSLLine->Enable )
+	{
+	    pXDSLLine->Enable  = bValue;
+	    //Process DSL enable set
+	    DmlXdslLineSetEnable( ( pXDSLLine->ulInstanceNumber - 1 ), pXDSLLine->Enable );
     	}
-		
-    	pXDSLLine->Enable  = bValue;
-		
-        //Process DSL enable set
-        DmlXdslLineSetEnable( ( pXDSLLine->ulInstanceNumber - 1 ), pXDSLLine->Enable );
 
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "EnableDataGathering") == 0)
+    else if( AnscEqualString(ParamName, "EnableDataGathering", TRUE))
     {
     	if( bValue == pXDSLLine->EnableDataGathering )
     	{
-    		return TRUE;	//No need to proceed when same value comes
+	    pXDSLLine->EnableDataGathering = bValue;
+            //Process Datagather set
+	    DmlXdslLineSetDataGatheringEnable( ( pXDSLLine->ulInstanceNumber - 1 ), pXDSLLine->EnableDataGathering );
     	}
-		
-    	pXDSLLine->EnableDataGathering = bValue;
-		
-        //Process Datagather set
-        DmlXdslLineSetDataGatheringEnable( ( pXDSLLine->ulInstanceNumber - 1 ), pXDSLLine->EnableDataGathering );
 
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "Upstream") == 0)
+    else if( AnscEqualString(ParamName, "Upstream", TRUE))
     {
-        if( bValue == pXDSLLine->Upstream )
+        if( bValue != pXDSLLine->Upstream )
         {
-            return TRUE;    //No need to proceed when same value comes
+	    pXDSLLine->Upstream = bValue;
         }
 
-        pXDSLLine->Upstream = bValue;
-
-        //Process Upstream set
-        DmlXdslLineSetUpstream( ( pXDSLLine->ulInstanceNumber - 1 ), pXDSLLine->Upstream );
-
-        return TRUE;
+        ret = TRUE;
     }
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return FALSE;
+    return ret;
 }
 
 /**********************************************************************  
@@ -835,17 +812,20 @@ Line_SetParamStringValue
     )
 {
     PDML_XDSL_LINE      pXDSLLine = (PDML_XDSL_LINE)hInsContext;
+    BOOL ret = FALSE;
 
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "Alias") == 0)
+    if( AnscEqualString(ParamName, "Alias", TRUE))
     {
         /* save update to backup */
         AnscCopyString( pXDSLLine->Alias, pString );
-        return TRUE;
+        ret = TRUE;
     }
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
 
     /* AnscTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return FALSE;
+    return ret;
 }
 
 /**********************************************************************  
@@ -887,262 +867,174 @@ Line_GetParamUlongValue
     )
 {
     PDML_XDSL_LINE      pXDSLLine = (PDML_XDSL_LINE)hInsContext;
+    BOOL ret = FALSE;
     
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "Status") == 0)
+    if( AnscEqualString(ParamName, "Status", TRUE) )
     {
     	*puLong	= pXDSLLine->Status;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "LastChange") == 0)
+    else if( AnscEqualString(ParamName, "LastChange", TRUE) )
     {
         *puLong = pXDSLLine->LastChange;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "LinkStatus") == 0)
+    else if( AnscEqualString(ParamName, "LinkStatus", TRUE) )
     {
     	*puLong	= pXDSLLine->LinkStatus;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "UpstreamMaxBitRate") == 0)
+    else if( AnscEqualString(ParamName, "UpstreamMaxBitRate", TRUE) )
     {
     	*puLong	= pXDSLLine->UpstreamMaxBitRate;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "DownstreamMaxBitRate") == 0)
+    else if( AnscEqualString(ParamName, "DownstreamMaxBitRate", TRUE) )
     {
     	*puLong	= pXDSLLine->DownstreamMaxBitRate;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "X_RDK_WanStatus") == 0)
-    {
-        *puLong = pXDSLLine->WanStatus;
-        return TRUE;
-    }
-
-    if (strcmp(ParamName, "LineEncoding") == 0)
+    else if( AnscEqualString(ParamName, "LineEncoding", TRUE) )
     {
         *puLong = pXDSLLine->LineEncoding;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "INMIATOds") == 0)
+    else if( AnscEqualString(ParamName, "INMIATOds", TRUE) )
     {
         *puLong = pXDSLLine->INMIATOds;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "INMIATSds") == 0)
+    else if( AnscEqualString(ParamName, "INMIATSds", TRUE) )
     {
         *puLong = pXDSLLine->INMIATSds;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "INMCCds") == 0)
+    else if( AnscEqualString(ParamName, "INMCCds", TRUE) )
     {
         *puLong = pXDSLLine->INMCCds;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "PowerManagementState") == 0)
+    else if( AnscEqualString(ParamName, "PowerManagementState", TRUE) )
     {
         *puLong = pXDSLLine->PowerManagementState;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "ACTSNRMODEds") == 0)
+    else if( AnscEqualString(ParamName, "ACTSNRMODEds", TRUE) )
     {
         *puLong = pXDSLLine->ACTSNRMODEds;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "ACTSNRMODEus") == 0)
+    else if( AnscEqualString(ParamName, "ACTSNRMODEus", TRUE) )
     {
         *puLong = pXDSLLine->ACTSNRMODEus;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "ACTUALCE") == 0)
+    else if( AnscEqualString(ParamName, "ACTUALCE", TRUE) )
     {
         *puLong = pXDSLLine->ACTUALCE;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "XTURANSIStd") == 0)
+    else if( AnscEqualString(ParamName, "XTURANSIStd", TRUE) )
     {
         *puLong = pXDSLLine->XTURANSIStd;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "XTURANSIRev") == 0)
+    else if( AnscEqualString(ParamName, "XTURANSIRev", TRUE) )
     {
         *puLong = pXDSLLine->XTURANSIRev;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "XTUCANSIStd") == 0)
+    else if( AnscEqualString(ParamName, "XTUCANSIStd", TRUE) )
     {
         *puLong = pXDSLLine->XTUCANSIStd;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "XTUCANSIRev") == 0)
+    else if( AnscEqualString(ParamName, "XTUCANSIRev", TRUE) )
     {
         *puLong = pXDSLLine->XTUCANSIRev;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "SuccessFailureCause") == 0)
+    else if( AnscEqualString(ParamName, "SuccessFailureCause", TRUE) )
     {
         *puLong = pXDSLLine->SuccessFailureCause;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "UPBOKLE") == 0)
+    else if( AnscEqualString(ParamName, "UPBOKLE", TRUE) )
     {
         *puLong = pXDSLLine->UPBOKLE;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "UPBOKLER") == 0)
+    else if( AnscEqualString(ParamName, "UPBOKLER", TRUE) )
     {
         *puLong = pXDSLLine->UPBOKLER;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "ACTRAMODEds") == 0)
+    else if( AnscEqualString(ParamName, "ACTRAMODEds", TRUE) )
     {
         *puLong = pXDSLLine->ACTRAMODEds;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "ACTRAMODEus") == 0)
+    else if( AnscEqualString(ParamName, "ACTRAMODEus", TRUE) )
     {
         *puLong = pXDSLLine->ACTRAMODEus;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "ACTINPROCds") == 0)
+    else if( AnscEqualString(ParamName, "ACTINPROCds", TRUE) )
     {
         *puLong = pXDSLLine->ACTINPROCds;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "ACTINPROCus") == 0)
+    else if( AnscEqualString(ParamName, "ACTINPROCus", TRUE) )
     {
         *puLong = pXDSLLine->ACTINPROCus;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "SNRMROCds") == 0)
+    else if( AnscEqualString(ParamName, "SNRMROCds", TRUE) )
     {
         *puLong = pXDSLLine->SNRMROCds;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "SNRMROCus") == 0)
+    else if( AnscEqualString(ParamName, "SNRMROCus", TRUE) )
     {
         *puLong = pXDSLLine->SNRMROCus;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "LastStateTransmittedDownstream") == 0)
+    else if( AnscEqualString(ParamName, "LastStateTransmittedDownstream", TRUE) )
     {
         *puLong = pXDSLLine->LastStateTransmittedDownstream;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "LastStateTransmittedUpstream") == 0)
+    else if( AnscEqualString(ParamName, "LastStateTransmittedUpstream", TRUE) )
     {
         *puLong = pXDSLLine->LastStateTransmittedUpstream;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "LIMITMASK") == 0)
+    else if( AnscEqualString(ParamName, "LIMITMASK", TRUE) )
     {
         *puLong = pXDSLLine->LIMITMASK;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "US0MASK") == 0)
+    else if( AnscEqualString(ParamName, "US0MASK", TRUE) )
     {
         *puLong = pXDSLLine->US0MASK;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "ACTSNRMODEds") == 0)
+    else if( AnscEqualString(ParamName, "ACTSNRMODEds", TRUE) )
     {
         *puLong = pXDSLLine->ACTSNRMODEds;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "ACTSNRMODEus") == 0)
+    else if( AnscEqualString(ParamName, "ACTSNRMODEus", TRUE) )
     {
         *puLong = pXDSLLine->ACTSNRMODEus;
-        return TRUE;
+        ret = TRUE;
     }
-
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return FALSE;
-}
-
-/**********************************************************************  
-
-    caller:     owner of this object 
-
-    prototype: 
-
-        BOOL
-        Line_SetParamUlongValue
-            (
-                ANSC_HANDLE                 hInsContext,
-                char*                       ParamName,
-                ULONG                       uValue
-            );
-
-    description:
-
-        This function is called to set ULONG parameter value; 
-
-    argument:   ANSC_HANDLE                 hInsContext,
-                The instance handle;
-
-                char*                       ParamName,
-                The parameter name;
-
-                ULONG                       uValue
-                The updated ULONG value;
-
-    return:     TRUE if succeeded.
-
-**********************************************************************/
-BOOL
-Line_SetParamUlongValue
-    (
-        ANSC_HANDLE                 hInsContext,
-        char*                       ParamName,
-        ULONG                       uValue
-    )
-{
-    PDML_XDSL_LINE      pXDSLLine = (PDML_XDSL_LINE)hInsContext;
-
-    /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "X_RDK_WanStatus") == 0)
-    {
-        DmlXdslLineSetWanStatus( pXDSLLine->ulInstanceNumber - 1, uValue );
-        pXDSLLine->WanStatus = uValue;
-
-        return TRUE;
-    }
-    
-    /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return FALSE;
+    return ret;
 }
 
 /**********************************************************************
@@ -1184,87 +1076,80 @@ Line_GetParamIntValue
     )
 {
     PDML_XDSL_LINE      pXDSLLine = (PDML_XDSL_LINE)hInsContext;
+    BOOL ret = FALSE;
 
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "UpstreamAttenuation") == 0)
+    if( AnscEqualString(ParamName, "UpstreamAttenuation", TRUE))
     {
         /* collect value */
         *pInt = pXDSLLine->UpstreamAttenuation;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "UpstreamNoiseMargin") == 0)
+    else if( AnscEqualString(ParamName, "UpstreamNoiseMargin", TRUE))
     {
         /* collect value */
         *pInt = pXDSLLine->UpstreamNoiseMargin;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "UpstreamPower") == 0)
+    else if( AnscEqualString(ParamName, "UpstreamPower", TRUE))
     {
         /* collect value */
         *pInt = pXDSLLine->UpstreamPower;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "TRELLISds") == 0)
+    else if( AnscEqualString(ParamName, "TRELLISds", TRUE))
     {
         /* collect value */
         *pInt = pXDSLLine->TRELLISds;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "TRELLISus") == 0)
+    else if( AnscEqualString(ParamName, "TRELLISus", TRUE))
     {
         /* collect value */
         *pInt = pXDSLLine->TRELLISus;
-        return TRUE;
+        ret = TRUE;
     }
-    
-    if (strcmp(ParamName, "LineNumber") == 0)
+    else if( AnscEqualString(ParamName, "LineNumber", TRUE))
     {
         /* collect value */
         *pInt = pXDSLLine->LineNumber;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "INMINPEQMODEds") == 0)
+    else if( AnscEqualString(ParamName, "INMINPEQMODEds", TRUE))
     {
         /* collect value */
         *pInt = pXDSLLine->INMINPEQMODEds;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "DownstreamAttenuation") == 0)
+    else if( AnscEqualString(ParamName, "DownstreamAttenuation", TRUE))
     {
         /* collect value */
         *pInt = pXDSLLine->DownstreamAttenuation;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "DownstreamNoiseMargin") == 0)
+    else if( AnscEqualString(ParamName, "DownstreamNoiseMargin", TRUE))
     {
         /* collect value */
         *pInt = pXDSLLine->DownstreamNoiseMargin;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "DownstreamPower") == 0)
+    else if( AnscEqualString(ParamName, "DownstreamPower", TRUE))
     {
         /* collect value */
         *pInt = pXDSLLine->DownstreamPower;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "RXTHRSHds") == 0)
+    else if( AnscEqualString(ParamName, "RXTHRSHds", TRUE))
     {
         /* collect value */
         *pInt = pXDSLLine->RXTHRSHds;
-        return TRUE;
+        ret = TRUE;
     }
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return FALSE;
+    return ret;
 }
 
 /**********************************************************************
@@ -1403,88 +1288,79 @@ LineStats_GetParamUlongValue
 {
     PDML_XDSL_LINE          pXDSLLine       = (PDML_XDSL_LINE)hInsContext;
     PDML_XDSL_LINE_STATS    pXDSLLineStats  = &(pXDSLLine->stLineStats);
+    BOOL ret = FALSE;
 
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "BytesSent") == 0)
+    if( AnscEqualString(ParamName, "BytesSent", TRUE) )
     {
         *puLong = pXDSLLineStats->BytesSent;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "BytesReceived") == 0)
+    else if( AnscEqualString(ParamName, "BytesReceived", TRUE) )
     {
         *puLong = pXDSLLineStats->BytesReceived;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "PacketsSent") == 0)
+    else if( AnscEqualString(ParamName, "PacketsSent", TRUE) )
     {
         *puLong = pXDSLLineStats->PacketsSent;
-        return TRUE;
+        ret = TRUE;
     }    
-
-    if (strcmp(ParamName, "PacketsReceived") == 0)
+    else if( AnscEqualString(ParamName, "PacketsReceived", TRUE) )
     {
         *puLong = pXDSLLineStats->PacketsReceived;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "ErrorsSent") == 0)
+    else if( AnscEqualString(ParamName, "ErrorsSent", TRUE) )
     {
         *puLong = pXDSLLineStats->ErrorsSent;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "ErrorsReceived") == 0)
+    else if( AnscEqualString(ParamName, "ErrorsReceived", TRUE) )
     {
         *puLong = pXDSLLineStats->ErrorsReceived;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "DiscardPacketsSent") == 0)
+    else if( AnscEqualString(ParamName, "DiscardPacketsSent", TRUE) )
     {
         *puLong = pXDSLLineStats->DiscardPacketsSent;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "DiscardPacketsReceived") == 0)
+    else if( AnscEqualString(ParamName, "DiscardPacketsReceived", TRUE) )
     {
         *puLong = pXDSLLineStats->DiscardPacketsReceived;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "TotalStart") == 0)
+    else if( AnscEqualString(ParamName, "TotalStart", TRUE) )
     {
         *puLong = pXDSLLineStats->TotalStart;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "ShowtimeStart") == 0)
+    else if( AnscEqualString(ParamName, "ShowtimeStart", TRUE) )
     {
         *puLong = pXDSLLineStats->ShowtimeStart;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "LastShowtimeStart") == 0)
+    else if( AnscEqualString(ParamName, "LastShowtimeStart", TRUE) )
     {
         *puLong = pXDSLLineStats->LastShowtimeStart;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "QuarterHourStart") == 0)
+    else if( AnscEqualString(ParamName, "QuarterHourStart", TRUE) )
     {
         *puLong = pXDSLLineStats->QuarterHourStart;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "CurrentDayStart") == 0)
+    else if( AnscEqualString(ParamName, "CurrentDayStart", TRUE) )
     {
         *puLong = pXDSLLineStats->CurrentDayStart;
-        return TRUE;
+        ret = TRUE;
     }
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return FALSE;
+    return ret;
 }
 
 /***********************************************************************
@@ -1537,22 +1413,24 @@ LineStatsTotal_GetParamUlongValue
     PDML_XDSL_LINE              pXDSLLine            = (PDML_XDSL_LINE)hInsContext;
     PDML_XDSL_LINE_STATS        pXDSLLineStats       = &(pXDSLLine->stLineStats);
     PDML_XDSL_LINE_STATS_TIME   pXDSLLineStatsTotal  = &(pXDSLLineStats->stTotal);
+    BOOL ret = FALSE;
 
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "ErroredSecs") == 0)
+    if( AnscEqualString(ParamName, "ErroredSecs", TRUE) )
     {   
         *puLong = pXDSLLineStatsTotal->ErroredSecs;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "SeverelyErroredSecs") == 0)
+    else if( AnscEqualString(ParamName, "SeverelyErroredSecs", TRUE) )
     {   
         *puLong = pXDSLLineStatsTotal->SeverelyErroredSecs;
-        return TRUE;
+        ret = TRUE;
     }
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return FALSE;
+    return ret;
 }
 
 /***********************************************************************
@@ -1605,22 +1483,24 @@ LineStatsShowtime_GetParamUlongValue
     PDML_XDSL_LINE              pXDSLLine               = (PDML_XDSL_LINE)hInsContext;
     PDML_XDSL_LINE_STATS        pXDSLLineStats          = &(pXDSLLine->stLineStats);
     PDML_XDSL_LINE_STATS_TIME   pXDSLLineStatsShowTime  = &(pXDSLLineStats->stShowTime);
+    BOOL ret = FALSE;
 
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "ErroredSecs") == 0)
+    if( AnscEqualString(ParamName, "ErroredSecs", TRUE) )
     {
         *puLong = pXDSLLineStatsShowTime->ErroredSecs;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "SeverelyErroredSecs") == 0)
+    else if( AnscEqualString(ParamName, "SeverelyErroredSecs", TRUE) )
     {
         *puLong = pXDSLLineStatsShowTime->SeverelyErroredSecs;
-        return TRUE;
+        ret = TRUE;
     }
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return FALSE;
+    return ret;
 }
 
 /***********************************************************************
@@ -1673,22 +1553,24 @@ LineStatsLastShowtime_GetParamUlongValue
     PDML_XDSL_LINE              pXDSLLine                   = (PDML_XDSL_LINE)hInsContext;
     PDML_XDSL_LINE_STATS        pXDSLLineStats              = &(pXDSLLine->stLineStats);
     PDML_XDSL_LINE_STATS_TIME   pXDSLLineStatsLastShowTime  = &(pXDSLLineStats->stLastShowTime);
+    BOOL ret = FALSE;
 
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "ErroredSecs") == 0)
+    if( AnscEqualString(ParamName, "ErroredSecs", TRUE) )
     {
         *puLong = pXDSLLineStatsLastShowTime->ErroredSecs;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "SeverelyErroredSecs") == 0)
+    else if( AnscEqualString(ParamName, "SeverelyErroredSecs", TRUE) )
     {
         *puLong = pXDSLLineStatsLastShowTime->SeverelyErroredSecs;
-        return TRUE;
+        ret = TRUE;
     }
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return FALSE;
+    return ret;
 }
 
 /***********************************************************************
@@ -1741,46 +1623,44 @@ LineStatsCurrentDay_GetParamUlongValue
     PDML_XDSL_LINE                    pXDSLLine                 = (PDML_XDSL_LINE)hInsContext;
     PDML_XDSL_LINE_STATS              pXDSLLineStats            = &(pXDSLLine->stLineStats);
     PDML_XDSL_LINE_STATS_CURRENTDAY   pXDSLLineStatsCurrentDay  = &(pXDSLLineStats->stCurrentDay);
+    BOOL ret = FALSE;
 
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "ErroredSecs") == 0)
+    if( AnscEqualString(ParamName, "ErroredSecs", TRUE) )
     {
         *puLong = pXDSLLineStatsCurrentDay->ErroredSecs;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "SeverelyErroredSecs") == 0)
+    else if( AnscEqualString(ParamName, "SeverelyErroredSecs", TRUE) )
     {
         *puLong = pXDSLLineStatsCurrentDay->SeverelyErroredSecs;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "X_RDK_LinkRetrain") == 0)
+    else if( AnscEqualString(ParamName, "X_RDK_LinkRetrain", TRUE) )
     {
         *puLong = pXDSLLineStatsCurrentDay->X_RDK_LinkRetrain;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "X_RDK_InitErrors") == 0)
+    else if( AnscEqualString(ParamName, "X_RDK_InitErrors", TRUE) )
     {
         *puLong = pXDSLLineStatsCurrentDay->X_RDK_InitErrors;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "X_RDK_InitTimeouts") == 0)
+    else if( AnscEqualString(ParamName, "X_RDK_InitTimeouts", TRUE) )
     {
         *puLong = pXDSLLineStatsCurrentDay->X_RDK_InitTimeouts;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "X_RDK_SuccessfulRetrains") == 0)
+    else if( AnscEqualString(ParamName, "X_RDK_SuccessfulRetrains", TRUE) )
     {
         *puLong = pXDSLLineStatsCurrentDay->X_RDK_SuccessfulRetrains;
-        return TRUE;
+        ret = TRUE;
     }
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
 
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return FALSE;
+    return ret;
 }
 
 /***********************************************************************
@@ -1833,27 +1713,29 @@ LineStatsQuarterHour_GetParamUlongValue
     PDML_XDSL_LINE                     pXDSLLine                  = (PDML_XDSL_LINE)hInsContext;
     PDML_XDSL_LINE_STATS               pXDSLLineStats             = &(pXDSLLine->stLineStats);
     PDML_XDSL_LINE_STATS_QUARTERHOUR   pXDSLLineStatsQuarterHour  = &(pXDSLLineStats->stQuarterHour);
+    BOOL ret = FALSE;
 
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "ErroredSecs") == 0)
+    if( AnscEqualString(ParamName, "ErroredSecs", TRUE) )
     {
         *puLong = pXDSLLineStatsQuarterHour->ErroredSecs;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "SeverelyErroredSecs") == 0)
+    else if( AnscEqualString(ParamName, "SeverelyErroredSecs", TRUE) )
     {
         *puLong = pXDSLLineStatsQuarterHour->SeverelyErroredSecs;
-        return TRUE;
+        ret = TRUE;
     }
-
-    if (strcmp(ParamName, "X_RDK_LinkRetrain") == 0)
+    else if( AnscEqualString(ParamName, "X_RDK_LinkRetrain", TRUE) )
     {
         *puLong = pXDSLLineStatsQuarterHour->X_RDK_LinkRetrain;
-        return TRUE;
+        ret = TRUE;
     }
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
+
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return FALSE;
+    return ret;
 }
 
 /***********************************************************************
@@ -1906,71 +1788,74 @@ LineTestParams_GetParamUlongValue
 {
     PDML_XDSL_LINE             pXDSLLine               = (PDML_XDSL_LINE)hInsContext;
     PDML_XDSL_LINE_TESTPARAMS  pXDSLLineTestParams     = &(pXDSLLine->stLineTestParams);
+    BOOL ret = FALSE;
 
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "HLOGGds") == 0)
+    if( AnscEqualString(ParamName, "HLOGGds", TRUE) )
     {
         *puLong = pXDSLLineTestParams->HLOGGds;
-        return TRUE;
+        ret = TRUE;
     }
-    if (strcmp(ParamName, "HLOGGus") == 0)
+    else if( AnscEqualString(ParamName, "HLOGGus", TRUE) )
     {
         *puLong = pXDSLLineTestParams->HLOGGus;
-        return TRUE;
+        ret = TRUE;
     }
-    if (strcmp(ParamName, "HLOGMTds") == 0)
+    else if( AnscEqualString(ParamName, "HLOGMTds", TRUE) )
     {
         *puLong = pXDSLLineTestParams->HLOGMTds;
-        return TRUE;
+        ret = TRUE;
     }
-    if (strcmp(ParamName, "HLOGMTus") == 0)
+    else if( AnscEqualString(ParamName, "HLOGMTus", TRUE) )
     {
         *puLong = pXDSLLineTestParams->HLOGMTus;
-        return TRUE;
+        ret = TRUE;
     }
-    if (strcmp(ParamName, "QLNGds") == 0)
+    else if( AnscEqualString(ParamName, "QLNGds", TRUE) )
     {
         *puLong = pXDSLLineTestParams->QLNGds;
-        return TRUE;
+        ret = TRUE;
     }
-    if (strcmp(ParamName, "QLNGus") == 0)
+    else if( AnscEqualString(ParamName, "QLNGus", TRUE) )
     {
         *puLong = pXDSLLineTestParams->QLNGus;
-        return TRUE;
+        ret = TRUE;
     }
-    if (strcmp(ParamName, "QLNMTds") == 0)
+    else if( AnscEqualString(ParamName, "QLNMTds", TRUE) )
     {
         *puLong = pXDSLLineTestParams->QLNMTds;
-        return TRUE;
+        ret = TRUE;
     }
-    if (strcmp(ParamName, "QLNMTus") == 0)
+    else if( AnscEqualString(ParamName, "QLNMTus", TRUE) )
     {
         *puLong = pXDSLLineTestParams->QLNMTus;
-        return TRUE;
+        ret = TRUE;
     }
-    if (strcmp(ParamName, "SNRGds") == 0)
+    else if( AnscEqualString(ParamName, "SNRGds", TRUE) )
     {
         *puLong = pXDSLLineTestParams->SNRGds;
-        return TRUE;
+        ret = TRUE;
     }
-    if (strcmp(ParamName, "SNRGus") == 0)
+    else if( AnscEqualString(ParamName, "SNRGus", TRUE) )
     {
         *puLong = pXDSLLineTestParams->SNRGus;
-        return TRUE;
+        ret = TRUE;
     }
-    if (strcmp(ParamName, "SNRMTds") == 0)
+    else if( AnscEqualString(ParamName, "SNRMTds", TRUE) )
     {
         *puLong = pXDSLLineTestParams->SNRMTds;
-        return TRUE;
+        ret = TRUE;
     }
-    if (strcmp(ParamName, "SNRMTus") == 0)
+    else if( AnscEqualString(ParamName, "SNRMTus", TRUE) )
     {
         *puLong = pXDSLLineTestParams->SNRMTus;
-        return TRUE;
+        ret = TRUE;
     }
 
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
     /* CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return FALSE;
+    return ret;
 }
 
 /**********************************************************************
@@ -2022,160 +1907,155 @@ LineTestParams_GetParamStringValue
 {
     PDML_XDSL_LINE              pXDSLLine              = (PDML_XDSL_LINE)hInsContext;
     PDML_XDSL_LINE_TESTPARAMS  pXDSLLineTestParams     = &(pXDSLLine->stLineTestParams);
+    ULONG ret = -1;
+
+    pthread_mutex_lock(&pXDSLLine->mDataMutex);
 
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "HLOGpsds") == 0)
+    if( AnscEqualString(ParamName, "HLOGpsds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLineTestParams->HLOGpsds ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLineTestParams->HLOGpsds );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLineTestParams->HLOGpsds );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "HLOGpsus") == 0)
+    else if( AnscEqualString(ParamName, "HLOGpsus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLineTestParams->HLOGpsus ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLineTestParams->HLOGpsus );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLineTestParams->HLOGpsus );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "QLNpsds") == 0)
+    else if( AnscEqualString(ParamName, "QLNpsds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLineTestParams->QLNpsds ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLineTestParams->QLNpsds );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLineTestParams->QLNpsds );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "QLNpsus") == 0)
+    else if( AnscEqualString(ParamName, "QLNpsus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLineTestParams->QLNpsus ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLineTestParams->QLNpsus );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLineTestParams->QLNpsus );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "SNRpsds") == 0)
+    else if( AnscEqualString(ParamName, "SNRpsds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLineTestParams->SNRpsds ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLineTestParams->SNRpsds );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLineTestParams->SNRpsds );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "SNRpsus") == 0)
+    else if( AnscEqualString(ParamName, "SNRpsus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLineTestParams->SNRpsus ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLineTestParams->SNRpsus );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLineTestParams->SNRpsus );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "LATNds") == 0)
+    else if( AnscEqualString(ParamName, "LATNds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLineTestParams->LATNds ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLineTestParams->LATNds );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLineTestParams->LATNds );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "LATNus") == 0)
+    else if( AnscEqualString(ParamName, "LATNus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLineTestParams->LATNus ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLineTestParams->LATNus );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLineTestParams->LATNus );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "SATNds") == 0)
+    else if( AnscEqualString(ParamName, "SATNds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLineTestParams->SATNds ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLineTestParams->SATNds );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLineTestParams->SATNds );
-           return 1;
+           ret = 1;
        }
     }
-
-    if (strcmp(ParamName, "SATNus") == 0)
+    else if( AnscEqualString(ParamName, "SATNus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pXDSLLineTestParams->SATNus ) - 1 ) < *pUlSize )
        {
            AnscCopyString( pValue, pXDSLLineTestParams->SATNus );
-           return 0;
+           ret = 0;
        }
        else
        {
            *pUlSize = sizeof( pXDSLLineTestParams->SATNus );
-           return 1;
+           ret = 1;
        }
     }
 
     /* AnscTraceWarning(("Unsupported parameter '%s'\n", ParamName)); */
-    return -1;
+    pthread_mutex_unlock(&pXDSLLine->mDataMutex);
+    return ret;
 }
 
 /***********************************************************************
@@ -2349,7 +2229,11 @@ Channel_GetEntry
         *pInsNumber = pDSLChannel->ulInstanceNumber;
         
         //Sync with current information
-        DmlXdslGetChannelCfg( (nIndex + 1), pDSLChannel );
+#ifdef _SR300_PRODUCT_REQ_
+        DmlXdslGetChannelCfg( pDSLChannel->LineIndex, (nIndex + 1), pDSLChannel );
+#else
+        DmlXdslGetChannelCfg( pDSLChannel->LineIndex, nIndex, pDSLChannel );
+#endif //_SR300_PRODUCT_REQ_
 
 
         return pDSLChannel;
@@ -2400,14 +2284,14 @@ Channel_GetParamBoolValue
     PDML_XDSL_CHANNEL      pDSLChannel = (PDML_XDSL_CHANNEL)hInsContext;
 
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "Enable") == 0)
+    if( AnscEqualString(ParamName, "Enable", TRUE) )
     {
         *pBool = pDSLChannel->Enable;
 
         return TRUE;
     }
 
-    if (strcmp(ParamName, "INPREPORT") == 0)
+    if( AnscEqualString(ParamName, "INPREPORT", TRUE) )
     {
         *pBool = pDSLChannel->INPREPORT;
 
@@ -2459,7 +2343,7 @@ Channel_SetParamBoolValue
     PDML_XDSL_CHANNEL      pDSLChannel = (PDML_XDSL_CHANNEL)hInsContext;
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "Enable") == 0)
+    if( AnscEqualString(ParamName, "Enable", TRUE))
     {
         if( bValue == pDSLChannel->Enable )
         {
@@ -2519,35 +2403,35 @@ Channel_GetParamIntValue
     PDML_XDSL_CHANNEL      pDSLChannel = (PDML_XDSL_CHANNEL)hInsContext;
 
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "INTLVBLOCK") == 0)
+    if( AnscEqualString(ParamName, "INTLVBLOCK", TRUE))
     {
         /* collect value */
         *pInt = pDSLChannel->INTLVBLOCK;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "ACTINP") == 0)
+    if( AnscEqualString(ParamName, "ACTINP", TRUE))
     {
         /* collect value */
         *pInt = pDSLChannel->ACTINP;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "NFEC") == 0)
+    if( AnscEqualString(ParamName, "NFEC", TRUE))
     {
         /* collect value */
         *pInt = pDSLChannel->NFEC;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "RFEC") == 0)
+    if( AnscEqualString(ParamName, "RFEC", TRUE))
     {
         /* collect value */
         *pInt = pDSLChannel->RFEC;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "LSYMB") == 0)
+    if( AnscEqualString(ParamName, "LSYMB", TRUE))
     {
         /* collect value */
         *pInt = pDSLChannel->LSYMB;
@@ -2599,55 +2483,55 @@ Channel_GetParamUlongValue
     PDML_XDSL_CHANNEL      pDSLChannel = (PDML_XDSL_CHANNEL)hInsContext;
 
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "Status") == 0)
+    if( AnscEqualString(ParamName, "Status", TRUE) )
     {
         *puLong = pDSLChannel->Status;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "LastChange") == 0)
+    if( AnscEqualString(ParamName, "LastChange", TRUE) )
     {
         *puLong = pDSLChannel->LastChange;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "LPATH") == 0)
+    if( AnscEqualString(ParamName, "LPATH", TRUE) )
     {
         *puLong = pDSLChannel->LPATH;
         return TRUE;
     }     
 
-    if (strcmp(ParamName, "INTLVDEPTH") == 0)
+    if( AnscEqualString(ParamName, "INTLVDEPTH", TRUE) )
     {
         *puLong = pDSLChannel->INTLVDEPTH;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "ActualInterleavingDelay") == 0)
+    if( AnscEqualString(ParamName, "ActualInterleavingDelay", TRUE) )
     {
         *puLong = pDSLChannel->ActualInterleavingDelay;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "UpstreamCurrRate") == 0)
+    if( AnscEqualString(ParamName, "UpstreamCurrRate", TRUE) )
     {
         *puLong = pDSLChannel->UpstreamCurrRate;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "DownstreamCurrRate") == 0)
+    if( AnscEqualString(ParamName, "DownstreamCurrRate", TRUE) )
     {
         *puLong = pDSLChannel->DownstreamCurrRate;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "ACTNDR") == 0)
+    if( AnscEqualString(ParamName, "ACTNDR", TRUE) )
     {
         *puLong = pDSLChannel->ACTNDR;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "ACTINPREIN") == 0)
+    if( AnscEqualString(ParamName, "ACTINPREIN", TRUE) )
     {
         *puLong = pDSLChannel->ACTINPREIN;
         return TRUE;
@@ -2707,7 +2591,7 @@ Channel_GetParamStringValue
     PDML_XDSL_CHANNEL      pDSLChannel = (PDML_XDSL_CHANNEL)hInsContext;
 
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "Alias") == 0)
+    if( AnscEqualString(ParamName, "Alias", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pDSLChannel->Alias ) - 1 ) < *pUlSize )
@@ -2722,7 +2606,7 @@ Channel_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "LowerLayers") == 0)
+    if( AnscEqualString(ParamName, "LowerLayers", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pDSLChannel->LowerLayers ) - 1 ) < *pUlSize )
@@ -2737,7 +2621,7 @@ Channel_GetParamStringValue
        }
     }
      
-    if (strcmp(ParamName, "Name") == 0)
+    if( AnscEqualString(ParamName, "Name", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pDSLChannel->Name ) - 1 ) < *pUlSize )
@@ -2752,7 +2636,7 @@ Channel_GetParamStringValue
        }
     }
  
-    if (strcmp(ParamName, "LinkEncapsulationSupported") == 0)
+    if( AnscEqualString(ParamName, "LinkEncapsulationSupported", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pDSLChannel->LinkEncapsulationSupported ) - 1 ) < *pUlSize )
@@ -2767,7 +2651,7 @@ Channel_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "LinkEncapsulationUsed") == 0)
+    if( AnscEqualString(ParamName, "LinkEncapsulationUsed", TRUE) )
     {  
        /* collect value */
        if ( ( sizeof( pDSLChannel->LinkEncapsulationUsed ) - 1 ) < *pUlSize )
@@ -2827,7 +2711,7 @@ Channel_SetParamStringValue
     PDML_XDSL_CHANNEL      pDSLChannel = (PDML_XDSL_CHANNEL)hInsContext;
 
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "Alias") == 0)
+    if( AnscEqualString(ParamName, "Alias", TRUE))
     {
         /* save update to backup */
         AnscCopyString( pDSLChannel->Alias, pString );
@@ -2985,79 +2869,79 @@ ChannelStats_GetParamUlongValue
     PDML_XDSL_CHANNEL_STATS    pDSLChannelStats  = &(pDSLChannel->stChannelStats);
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "BytesSent") == 0)
+    if( AnscEqualString(ParamName, "BytesSent", TRUE) )
     {
         *puLong = pDSLChannelStats->BytesSent;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "BytesReceived") == 0)
+    if( AnscEqualString(ParamName, "BytesReceived", TRUE) )
     {
         *puLong = pDSLChannelStats->BytesReceived;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "PacketsSent") == 0)
+    if( AnscEqualString(ParamName, "PacketsSent", TRUE) )
     {
         *puLong = pDSLChannelStats->PacketsSent;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "PacketsReceived") == 0)
+    if( AnscEqualString(ParamName, "PacketsReceived", TRUE) )
     {
         *puLong = pDSLChannelStats->PacketsReceived;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "ErrorsSent") == 0)
+    if( AnscEqualString(ParamName, "ErrorsSent", TRUE) )
     {
         *puLong = pDSLChannelStats->ErrorsSent;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "ErrorsReceived") == 0)
+    if( AnscEqualString(ParamName, "ErrorsReceived", TRUE) )
     {
         *puLong = pDSLChannelStats->ErrorsReceived;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "DiscardPacketsSent") == 0)
+    if( AnscEqualString(ParamName, "DiscardPacketsSent", TRUE) )
     {
         *puLong = pDSLChannelStats->DiscardPacketsSent;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "DiscardPacketsReceived") == 0)
+    if( AnscEqualString(ParamName, "DiscardPacketsReceived", TRUE) )
     {
         *puLong = pDSLChannelStats->DiscardPacketsReceived;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "TotalStart") == 0)
+    if( AnscEqualString(ParamName, "TotalStart", TRUE) )
     {
         *puLong = pDSLChannelStats->TotalStart;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "ShowtimeStart") == 0)
+    if( AnscEqualString(ParamName, "ShowtimeStart", TRUE) )
     {
         *puLong = pDSLChannelStats->ShowtimeStart;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "LastShowtimeStart") == 0)
+    if( AnscEqualString(ParamName, "LastShowtimeStart", TRUE) )
     {
         *puLong = pDSLChannelStats->LastShowtimeStart;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "QuarterHourStart") == 0)
+    if( AnscEqualString(ParamName, "QuarterHourStart", TRUE) )
     {
         *puLong = pDSLChannelStats->QuarterHourStart;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "CurrentDayStart") == 0)
+    if( AnscEqualString(ParamName, "CurrentDayStart", TRUE) )
     {
         *puLong = pDSLChannelStats->CurrentDayStart;
         return TRUE;
@@ -3119,37 +3003,37 @@ ChannelStatsTotal_GetParamUlongValue
     PDML_XDSL_CHANNEL_STATS_TIME    pDSLChannelStatsTotal  = &(pDSLChannelStats->stTotal);
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "XTURFECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURFECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsTotal->XTURFECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCFECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCFECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsTotal->XTUCFECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTURHECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURHECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsTotal->XTURHECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCHECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCHECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsTotal->XTUCHECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTURCRCErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURCRCErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsTotal->XTURCRCErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCCRCErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCCRCErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsTotal->XTUCCRCErrors;
         return TRUE;
@@ -3211,37 +3095,37 @@ ChannelStatsShowTime_GetParamUlongValue
     PDML_XDSL_CHANNEL_STATS_TIME   pDSLChannelStatsShowTime  = &(pDSLChannelStats->stShowTime);
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "XTURFECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURFECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsShowTime->XTURFECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCFECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCFECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsShowTime->XTUCFECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTURHECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURHECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsShowTime->XTURHECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCHECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCHECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsShowTime->XTUCHECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTURCRCErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURCRCErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsShowTime->XTURCRCErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCCRCErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCCRCErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsShowTime->XTUCCRCErrors;
         return TRUE;
@@ -3303,37 +3187,37 @@ ChannelStatsLastShowTime_GetParamUlongValue
     PDML_XDSL_CHANNEL_STATS_TIME   pDSLChannelStatsLastShowTime  = &(pDSLChannelStats->stLastShowTime);
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "XTURFECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURFECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsLastShowTime->XTURFECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCFECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCFECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsLastShowTime->XTUCFECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTURHECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURHECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsLastShowTime->XTURHECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCHECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCHECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsLastShowTime->XTUCHECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTURCRCErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURCRCErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsLastShowTime->XTURCRCErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCCRCErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCCRCErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsLastShowTime->XTUCCRCErrors;
         return TRUE;
@@ -3395,67 +3279,67 @@ ChannelStatsCurrentDay_GetParamUlongValue
     PDML_XDSL_CHANNEL_STATS_CURRENTDAY   pDSLChannelStatsCurrentDay    = &(pDSLChannelStats->stCurrentDay);
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "XTURFECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURFECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsCurrentDay->XTURFECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCFECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCFECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsCurrentDay->XTUCFECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTURHECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURHECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsCurrentDay->XTURHECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCHECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCHECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsCurrentDay->XTUCHECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTURCRCErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURCRCErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsCurrentDay->XTURCRCErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCCRCErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCCRCErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsCurrentDay->XTUCCRCErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "X_RDK_LinkRetrain") == 0)
+    if( AnscEqualString(ParamName, "X_RDK_LinkRetrain", TRUE) )
     {
         *puLong = pDSLChannelStatsCurrentDay->X_RDK_LinkRetrain;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "X_RDK_InitErrors") == 0)
+    if( AnscEqualString(ParamName, "X_RDK_InitErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsCurrentDay->X_RDK_InitErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "X_RDK_InitTimeouts") == 0)
+    if( AnscEqualString(ParamName, "X_RDK_InitTimeouts", TRUE) )
     {
         *puLong = pDSLChannelStatsCurrentDay->X_RDK_InitTimeouts;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "X_RDK_SeverelyErroredSecs") == 0)
+    if( AnscEqualString(ParamName, "X_RDK_SeverelyErroredSecs", TRUE) )
     {
         *puLong = pDSLChannelStatsCurrentDay->X_RDK_SeverelyErroredSecs;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "X_RDK_ErroredSecs") == 0)
+    if( AnscEqualString(ParamName, "X_RDK_ErroredSecs", TRUE) )
     {
         *puLong = pDSLChannelStatsCurrentDay->X_RDK_ErroredSecs;
         return TRUE;
@@ -3517,43 +3401,43 @@ ChannelStatsQuarterHour_GetParamUlongValue
     PDML_XDSL_CHANNEL_STATS_QUARTERHOUR    pDSLChannelStatsQuarterHour    = &(pDSLChannelStats->stQuarterHour);
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "XTURFECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURFECErrors", TRUE) )
     {   
         *puLong = pDSLChannelStatsQuarterHour->XTURFECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCFECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCFECErrors", TRUE) )
     {   
         *puLong = pDSLChannelStatsQuarterHour->XTUCFECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTURHECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURHECErrors", TRUE) )
     {   
         *puLong = pDSLChannelStatsQuarterHour->XTURHECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCHECErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCHECErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsQuarterHour->XTUCHECErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTURCRCErrors") == 0)
+    if( AnscEqualString(ParamName, "XTURCRCErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsQuarterHour->XTURCRCErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "XTUCCRCErrors") == 0)
+    if( AnscEqualString(ParamName, "XTUCCRCErrors", TRUE) )
     {
         *puLong = pDSLChannelStatsQuarterHour->XTUCCRCErrors;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "X_RDK_LinkRetrain") == 0)
+    if( AnscEqualString(ParamName, "X_RDK_LinkRetrain", TRUE) )
     {
         *puLong = pDSLChannelStatsQuarterHour->X_RDK_LinkRetrain;
         return TRUE;
@@ -3617,91 +3501,91 @@ ADSLLineTest_GetParamUlongValue
     PDML_XDSL_DIAG_ADSL_LINE_TEST    pstADSLLineTest  = (PDML_XDSL_DIAG_ADSL_LINE_TEST)&(pDSLDiag->stDiagADSLLineTest);
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "DiagnosticsState") == 0)
+    if( AnscEqualString(ParamName, "DiagnosticsState", TRUE) )
     {
         *puLong = pstADSLLineTest->DiagnosticsState;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "HLINGds") == 0)
+    if( AnscEqualString(ParamName, "HLINGds", TRUE) )
     {
         *puLong = pstADSLLineTest->HLINGds;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "HLINGus") == 0)
+    if( AnscEqualString(ParamName, "HLINGus", TRUE) )
     {
         *puLong = pstADSLLineTest->HLINGus;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "HLOGGds") == 0)
+    if( AnscEqualString(ParamName, "HLOGGds", TRUE) )
     {
         *puLong = pstADSLLineTest->HLOGGds;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "HLOGGus") == 0)
+    if( AnscEqualString(ParamName, "HLOGGus", TRUE) )
     {
         *puLong = pstADSLLineTest->HLOGGus;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "HLOGMTds") == 0)
+    if( AnscEqualString(ParamName, "HLOGMTds", TRUE) )
     {
         *puLong = pstADSLLineTest->HLOGMTds;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "HLOGMTus") == 0)
+    if( AnscEqualString(ParamName, "HLOGMTus", TRUE) )
     {
         *puLong = pstADSLLineTest->HLOGMTus;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "QLNGds") == 0)
+    if( AnscEqualString(ParamName, "QLNGds", TRUE) )
     {
         *puLong = pstADSLLineTest->QLNGds;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "QLNGus") == 0)
+    if( AnscEqualString(ParamName, "QLNGus", TRUE) )
     {
         *puLong = pstADSLLineTest->QLNGus;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "QLNMTds") == 0)
+    if( AnscEqualString(ParamName, "QLNMTds", TRUE) )
     {
         *puLong = pstADSLLineTest->QLNMTds;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "QLNMTus") == 0)
+    if( AnscEqualString(ParamName, "QLNMTus", TRUE) )
     {
         *puLong = pstADSLLineTest->QLNMTus;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "SNRGds") == 0)
+    if( AnscEqualString(ParamName, "SNRGds", TRUE) )
     {
         *puLong = pstADSLLineTest->SNRGds;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "SNRGus") == 0)
+    if( AnscEqualString(ParamName, "SNRGus", TRUE) )
     {
         *puLong = pstADSLLineTest->SNRGus;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "SNRMTds") == 0)
+    if( AnscEqualString(ParamName, "SNRMTds", TRUE) )
     {
         *puLong = pstADSLLineTest->SNRMTds;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "SNRMTus") == 0)
+    if( AnscEqualString(ParamName, "SNRMTus", TRUE) )
     {
         *puLong = pstADSLLineTest->SNRMTus;
         return TRUE;
@@ -3754,7 +3638,7 @@ ADSLLineTest_SetParamUlongValue
     PDML_XDSL_DIAG_ADSL_LINE_TEST    pstADSLLineTest  = (PDML_XDSL_DIAG_ADSL_LINE_TEST)&(pDSLDiag->stDiagADSLLineTest);
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "DiagnosticsState") == 0)
+    if(AnscEqualString(ParamName, "DiagnosticsState", TRUE))
     {
         pstADSLLineTest->DiagnosticsState = uValue;
 
@@ -3808,7 +3692,7 @@ ADSLLineTest_SetParamStringValue
     PDML_XDSL_DIAG_ADSL_LINE_TEST    pstADSLLineTest  = (PDML_XDSL_DIAG_ADSL_LINE_TEST)&(pDSLDiag->stDiagADSLLineTest);
 
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "Interface") == 0)
+    if( AnscEqualString(ParamName, "Interface", TRUE))
     {
         /* save update to backup */
         AnscCopyString( pstADSLLineTest->Interface, pString );
@@ -3870,7 +3754,7 @@ ADSLLineTest_GetParamStringValue
     PDML_XDSL_DIAGNOSTICS_FULL       pDSLDiag         = (PDML_XDSL_DIAGNOSTICS_FULL)pMyObject->pDSLDiag;
     PDML_XDSL_DIAG_ADSL_LINE_TEST    pstADSLLineTest  = (PDML_XDSL_DIAG_ADSL_LINE_TEST)&(pDSLDiag->stDiagADSLLineTest);
 
-    if (strcmp(ParamName, "Interface") == 0)
+    if( AnscEqualString(ParamName, "Interface", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->Interface ) - 1 ) < *pUlSize )
@@ -3885,7 +3769,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "HLOGpsds") == 0)
+    if( AnscEqualString(ParamName, "HLOGpsds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->HLOGpsds ) - 1 ) < *pUlSize )
@@ -3900,7 +3784,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "HLOGpsus") == 0)
+    if( AnscEqualString(ParamName, "HLOGpsus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->HLOGpsus ) - 1 ) < *pUlSize )
@@ -3915,7 +3799,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "LATNpbds") == 0)
+    if( AnscEqualString(ParamName, "LATNpbds", TRUE) )
     {
        /* collect value */ 
        if ( ( sizeof( pstADSLLineTest->LATNpbds ) - 1 ) < *pUlSize )
@@ -3930,7 +3814,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "LATNpbus") == 0)
+    if( AnscEqualString(ParamName, "LATNpbus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->LATNpbus ) - 1 ) < *pUlSize )
@@ -3945,7 +3829,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "SATNds") == 0)
+    if( AnscEqualString(ParamName, "SATNds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->SATNds ) - 1 ) < *pUlSize )
@@ -3960,7 +3844,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "SATNus") == 0)
+    if( AnscEqualString(ParamName, "SATNus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->SATNus ) - 1 ) < *pUlSize )
@@ -3975,7 +3859,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "HLINpsds") == 0)
+    if( AnscEqualString(ParamName, "HLINpsds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->HLINpsds ) - 1 ) < *pUlSize )
@@ -3990,7 +3874,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "HLINpsus") == 0)
+    if( AnscEqualString(ParamName, "HLINpsus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->HLINpsus ) - 1 ) < *pUlSize )
@@ -4005,7 +3889,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "QLNpsds") == 0)
+    if( AnscEqualString(ParamName, "QLNpsds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->QLNpsds ) - 1 ) < *pUlSize )
@@ -4020,7 +3904,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "QLNpsus") == 0)
+    if( AnscEqualString(ParamName, "QLNpsus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->QLNpsus ) - 1 ) < *pUlSize )
@@ -4035,7 +3919,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "SNRpsds") == 0)
+    if( AnscEqualString(ParamName, "SNRpsds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->SNRpsds ) - 1 ) < *pUlSize )
@@ -4050,7 +3934,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "SNRpsus") == 0)
+    if( AnscEqualString(ParamName, "SNRpsus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->SNRpsus ) - 1 ) < *pUlSize )
@@ -4065,7 +3949,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "BITSpsds") == 0)
+    if( AnscEqualString(ParamName, "BITSpsds", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->BITSpsds ) - 1 ) < *pUlSize )
@@ -4080,7 +3964,7 @@ ADSLLineTest_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "BITSpsus") == 0)
+    if( AnscEqualString(ParamName, "BITSpsus", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstADSLLineTest->BITSpsus ) - 1 ) < *pUlSize )
@@ -4141,42 +4025,42 @@ ADSLLineTest_GetParamIntValue
     PDML_XDSL_DIAGNOSTICS_FULL       pDSLDiag         = (PDML_XDSL_DIAGNOSTICS_FULL)pMyObject->pDSLDiag;
     PDML_XDSL_DIAG_ADSL_LINE_TEST    pstADSLLineTest  = (PDML_XDSL_DIAG_ADSL_LINE_TEST)&(pDSLDiag->stDiagADSLLineTest);
 
-    if (strcmp(ParamName, "ACTPSDds") == 0)
+    if( AnscEqualString(ParamName, "ACTPSDds", TRUE))
     {
         /* collect value */
         *pInt = pstADSLLineTest->ACTPSDds;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "ACTPSDus") == 0)
+    if( AnscEqualString(ParamName, "ACTPSDus", TRUE))
     {
         /* collect value */
         *pInt = pstADSLLineTest->ACTPSDus;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "ACTATPds") == 0)
+    if( AnscEqualString(ParamName, "ACTATPds", TRUE))
     {
         /* collect value */
         *pInt = pstADSLLineTest->ACTATPds;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "ACTATPus") == 0)
+    if( AnscEqualString(ParamName, "ACTATPus", TRUE))
     {
         /* collect value */
         *pInt = pstADSLLineTest->ACTATPus;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "HLINSCds") == 0)
+    if( AnscEqualString(ParamName, "HLINSCds", TRUE))
     {
         /* collect value */
         *pInt = pstADSLLineTest->HLINSCds;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "HLINSCus") == 0)
+    if( AnscEqualString(ParamName, "HLINSCus", TRUE))
     {
         /* collect value */
         *pInt = pstADSLLineTest->HLINSCus;
@@ -4242,25 +4126,25 @@ SELTUER_GetParamUlongValue
     PDML_XDSL_DIAG_SELTUER           pstSELTUERTest   = (PDML_XDSL_DIAG_SELTUER)&(pDSLDiag->stDiagSELTUER);
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "DiagnosticsState") == 0)
+    if( AnscEqualString(ParamName, "DiagnosticsState", TRUE) )
     {
         *puLong = pstSELTUERTest->DiagnosticsState;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "UERMaxMeasurementDuration") == 0)
+    if( AnscEqualString(ParamName, "UERMaxMeasurementDuration", TRUE) )
     {
         *puLong = pstSELTUERTest->UERMaxMeasurementDuration;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "UERScaleFactor") == 0)
+    if( AnscEqualString(ParamName, "UERScaleFactor", TRUE) )
     {
         *puLong = pstSELTUERTest->UERScaleFactor;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "UERGroupSize") == 0)
+    if( AnscEqualString(ParamName, "UERGroupSize", TRUE) )
     {
         *puLong = pstSELTUERTest->UERGroupSize;
         return TRUE;
@@ -4313,7 +4197,7 @@ SELTUER_SetParamUlongValue
     PDML_XDSL_DIAG_SELTUER           pstSELTUERTest   = (PDML_XDSL_DIAG_SELTUER)&(pDSLDiag->stDiagSELTUER);
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "DiagnosticsState") == 0)
+    if(AnscEqualString(ParamName, "DiagnosticsState", TRUE))
     {
         pstSELTUERTest->DiagnosticsState = uValue;
 
@@ -4375,7 +4259,7 @@ SELTUER_GetParamStringValue
     PDML_XDSL_DIAGNOSTICS_FULL       pDSLDiag         = (PDML_XDSL_DIAGNOSTICS_FULL)pMyObject->pDSLDiag;
     PDML_XDSL_DIAG_SELTUER           pstSELTUERTest   = (PDML_XDSL_DIAG_SELTUER)&(pDSLDiag->stDiagSELTUER);
 
-    if (strcmp(ParamName, "Interface") == 0)
+    if( AnscEqualString(ParamName, "Interface", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstSELTUERTest->Interface ) - 1 ) < *pUlSize )
@@ -4390,7 +4274,7 @@ SELTUER_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "UER") == 0)
+    if( AnscEqualString(ParamName, "UER", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstSELTUERTest->UER ) - 1 ) < *pUlSize )
@@ -4405,7 +4289,7 @@ SELTUER_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "UERVar") == 0)
+    if( AnscEqualString(ParamName, "UERVar", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstSELTUERTest->UERVar ) - 1 ) < *pUlSize )
@@ -4466,7 +4350,7 @@ SELTUER_GetParamBoolValue
     PDML_XDSL_DIAGNOSTICS_FULL       pDSLDiag         = (PDML_XDSL_DIAGNOSTICS_FULL)pMyObject->pDSLDiag;
     PDML_XDSL_DIAG_SELTUER           pstSELTUERTest   = (PDML_XDSL_DIAG_SELTUER)&(pDSLDiag->stDiagSELTUER);
 
-    if (strcmp(ParamName, "ExtendedBandwidthOperation") == 0)
+    if( AnscEqualString(ParamName, "ExtendedBandwidthOperation", TRUE) )
     {
         *pBool = pstSELTUERTest->ExtendedBandwidthOperation;
 
@@ -4520,7 +4404,7 @@ SELTUER_SetParamStringValue
     PDML_XDSL_DIAG_SELTUER           pstSELTUERTest   = (PDML_XDSL_DIAG_SELTUER)&(pDSLDiag->stDiagSELTUER);
 
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "Interface") == 0)
+    if( AnscEqualString(ParamName, "Interface", TRUE))
     {
         /* save update to backup */
         AnscCopyString( pstSELTUERTest->Interface, pString );
@@ -4588,19 +4472,19 @@ SELTQLN_GetParamUlongValue
     PDML_XDSL_DIAG_SELTQLN           pstSELTQLNTest   = (PDML_XDSL_DIAG_SELTQLN)&(pDSLDiag->stDiagSELTQLN);
     
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "DiagnosticsState") == 0)
+    if( AnscEqualString(ParamName, "DiagnosticsState", TRUE) )
     {
         *puLong = pstSELTQLNTest->DiagnosticsState;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "QLNMaxMeasurementDuration") == 0)
+    if( AnscEqualString(ParamName, "QLNMaxMeasurementDuration", TRUE) )
     {   
         *puLong = pstSELTQLNTest->QLNMaxMeasurementDuration;
         return TRUE;
     }
     
-    if (strcmp(ParamName, "QLNGroupSize") == 0)
+    if( AnscEqualString(ParamName, "QLNGroupSize", TRUE) )
     {   
         *puLong = pstSELTQLNTest->QLNGroupSize;
         return TRUE;
@@ -4653,14 +4537,14 @@ SELTQLN_SetParamUlongValue
     PDML_XDSL_DIAG_SELTQLN           pstSELTQLNTest   = (PDML_XDSL_DIAG_SELTQLN)&(pDSLDiag->stDiagSELTQLN);
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "DiagnosticsState") == 0)
+    if(AnscEqualString(ParamName, "DiagnosticsState", TRUE))
     {
         pstSELTQLNTest->DiagnosticsState = uValue;
 
         return TRUE;
     }
 
-    if (strcmp(ParamName, "QLNMaxMeasurementDuration") == 0)
+    if(AnscEqualString(ParamName, "QLNMaxMeasurementDuration", TRUE))
     {
         pstSELTQLNTest->QLNMaxMeasurementDuration = uValue;
 
@@ -4713,7 +4597,7 @@ SELTQLN_GetParamBoolValue
     PDML_XDSL_DIAGNOSTICS_FULL       pDSLDiag         = (PDML_XDSL_DIAGNOSTICS_FULL)pMyObject->pDSLDiag;
     PDML_XDSL_DIAG_SELTQLN           pstSELTQLNTest   = (PDML_XDSL_DIAG_SELTQLN)&(pDSLDiag->stDiagSELTQLN);
 
-    if (strcmp(ParamName, "ExtendedBandwidthOperation") == 0)
+    if( AnscEqualString(ParamName, "ExtendedBandwidthOperation", TRUE) )
     {
         *pBool = pstSELTQLNTest->ExtendedBandwidthOperation;
 
@@ -4775,7 +4659,7 @@ SELTQLN_GetParamStringValue
     PDML_XDSL_DIAGNOSTICS_FULL       pDSLDiag         = (PDML_XDSL_DIAGNOSTICS_FULL)pMyObject->pDSLDiag;
     PDML_XDSL_DIAG_SELTQLN           pstSELTQLNTest   = (PDML_XDSL_DIAG_SELTQLN)&(pDSLDiag->stDiagSELTQLN);
 
-    if (strcmp(ParamName, "Interface") == 0)
+    if( AnscEqualString(ParamName, "Interface", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstSELTQLNTest->Interface ) - 1 ) < *pUlSize )
@@ -4837,7 +4721,7 @@ SELTQLN_SetParamStringValue
     PDML_XDSL_DIAG_SELTQLN           pstSELTQLNTest   = (PDML_XDSL_DIAG_SELTQLN)&(pDSLDiag->stDiagSELTQLN);
 
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "Interface") == 0)
+    if( AnscEqualString(ParamName, "Interface", TRUE))
     {
         /* save update to backup */
         AnscCopyString( pstSELTQLNTest->Interface, pString );
@@ -4913,7 +4797,7 @@ SELTP_GetParamStringValue
     PDML_XDSL_DIAGNOSTICS_FULL       pDSLDiag         = (PDML_XDSL_DIAGNOSTICS_FULL)pMyObject->pDSLDiag;
     PDML_XDSL_DIAG_SELTP             pstSELTPTest     = (PDML_XDSL_DIAG_SELTP)&(pDSLDiag->stDiagSELTP);
 
-    if (strcmp(ParamName, "Interface") == 0)
+    if( AnscEqualString(ParamName, "Interface", TRUE) )
     {  
        /* collect value */
        if ( ( sizeof( pstSELTPTest->Interface ) - 1 ) < *pUlSize )
@@ -4928,7 +4812,7 @@ SELTP_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "CapacitySignalPSD") == 0)
+    if( AnscEqualString(ParamName, "CapacitySignalPSD", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstSELTPTest->CapacitySignalPSD ) - 1 ) < *pUlSize )
@@ -4943,7 +4827,7 @@ SELTP_GetParamStringValue
        }
     }
    
-    if (strcmp(ParamName, "CapacityNoisePSD") == 0)
+    if( AnscEqualString(ParamName, "CapacityNoisePSD", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstSELTPTest->CapacityNoisePSD ) - 1 ) < *pUlSize )
@@ -4958,7 +4842,7 @@ SELTP_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "LoopTermination") == 0)
+    if( AnscEqualString(ParamName, "LoopTermination", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstSELTPTest->LoopTermination ) - 1 ) < *pUlSize )
@@ -4973,7 +4857,7 @@ SELTP_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "LoopTopology") == 0)
+    if( AnscEqualString(ParamName, "LoopTopology", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstSELTPTest->LoopTopology ) - 1 ) < *pUlSize )
@@ -4988,7 +4872,7 @@ SELTP_GetParamStringValue
        }
     }
 
-    if (strcmp(ParamName, "AttenuationCharacteristics") == 0)
+    if( AnscEqualString(ParamName, "AttenuationCharacteristics", TRUE) )
     {
        /* collect value */
        if ( ( sizeof( pstSELTPTest->AttenuationCharacteristics ) - 1 ) < *pUlSize )
@@ -5050,21 +4934,21 @@ SELTP_SetParamStringValue
     PDML_XDSL_DIAG_SELTP             pstSELTPTest     = (PDML_XDSL_DIAG_SELTP)&(pDSLDiag->stDiagSELTP);
 
     /* check the parameter name and return the corresponding value */
-    if (strcmp(ParamName, "Interface") == 0)
+    if( AnscEqualString(ParamName, "Interface", TRUE))
     {
         /* save update to backup */
         AnscCopyString( pstSELTPTest->Interface, pString );
         return TRUE;
     }
 
-    if (strcmp(ParamName, "CapacitySignalPSD") == 0)
+    if( AnscEqualString(ParamName, "CapacitySignalPSD", TRUE))
     {
         /* save update to backup */
         AnscCopyString( pstSELTPTest->CapacitySignalPSD, pString );
         return TRUE;
     }
 
-    if (strcmp(ParamName, "CapacityNoisePSD") == 0)
+    if( AnscEqualString(ParamName, "CapacityNoisePSD", TRUE))
     {
         /* save update to backup */
         AnscCopyString( pstSELTPTest->CapacityNoisePSD, pString );
@@ -5117,14 +5001,14 @@ SELTP_GetParamBoolValue
     PDML_XDSL_DIAGNOSTICS_FULL       pDSLDiag         = (PDML_XDSL_DIAGNOSTICS_FULL)pMyObject->pDSLDiag;
     PDML_XDSL_DIAG_SELTP             pstSELTPTest     = (PDML_XDSL_DIAG_SELTP)&(pDSLDiag->stDiagSELTP);
 
-    if (strcmp(ParamName, "CapacityEstimateEnabling") == 0)
+    if( AnscEqualString(ParamName, "CapacityEstimateEnabling", TRUE) )
     {
         *pBool = pstSELTPTest->CapacityEstimateEnabling;
     
         return TRUE;
     }
    
-    if (strcmp(ParamName, "MissingFilter") == 0)
+    if( AnscEqualString(ParamName, "MissingFilter", TRUE) )
     {
         *pBool = pstSELTPTest->MissingFilter;
     
@@ -5178,7 +5062,7 @@ SELTP_SetParamBoolValue
     PDML_XDSL_DIAG_SELTP             pstSELTPTest     = (PDML_XDSL_DIAG_SELTP)&(pDSLDiag->stDiagSELTP);
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "CapacityEstimateEnabling") == 0)
+    if( AnscEqualString(ParamName, "CapacityEstimateEnabling", TRUE))
     {
         pstSELTPTest->CapacityEstimateEnabling  = bValue;
 
@@ -5232,25 +5116,25 @@ SELTP_GetParamUlongValue
     PDML_XDSL_DIAG_SELTP             pstSELTPTest     = (PDML_XDSL_DIAG_SELTP)&(pDSLDiag->stDiagSELTP);
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "DiagnosticsState") == 0)
+    if( AnscEqualString(ParamName, "DiagnosticsState", TRUE) )
     {
         *puLong = pstSELTPTest->DiagnosticsState;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "CapacityTargetMargin") == 0)
+    if( AnscEqualString(ParamName, "CapacityTargetMargin", TRUE) )
     {
         *puLong = pstSELTPTest->CapacityTargetMargin;
         return TRUE;
     }
 
-    if (strcmp(ParamName, "LoopLength") == 0)
+    if( AnscEqualString(ParamName, "LoopLength", TRUE) )
     {
         *puLong = pstSELTPTest->LoopLength;
         return TRUE;
     }
     
-    if (strcmp(ParamName, "CapacityEstimate") == 0)
+    if( AnscEqualString(ParamName, "CapacityEstimate", TRUE) )
     {   
         *puLong = pstSELTPTest->CapacityEstimate;
         return TRUE;
@@ -5302,14 +5186,14 @@ SELTP_SetParamUlongValue
     PDML_XDSL_DIAG_SELTP             pstSELTPTest     = (PDML_XDSL_DIAG_SELTP)&(pDSLDiag->stDiagSELTP);
   
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "DiagnosticsState") == 0)
+    if(AnscEqualString(ParamName, "DiagnosticsState", TRUE))
     {
         pstSELTPTest->DiagnosticsState = uValue;
 
         return TRUE;
     }
 
-    if (strcmp(ParamName, "CapacityTargetMargin") == 0)
+    if(AnscEqualString(ParamName, "CapacityTargetMargin", TRUE))
     {
         pstSELTPTest->CapacityTargetMargin = uValue;
 
@@ -5431,7 +5315,7 @@ X_RDK_Report_DSL_SetParamUlongValue
     PDML_X_RDK_REPORT_DSL            pXdslReport      = (PDML_X_RDK_REPORT_DSL)pMyObject->pDSLReport; 
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "ReportingPeriod") == 0)
+    if(AnscEqualString(ParamName, "ReportingPeriod", TRUE))
     {
         pXdslReport->bReportingPeriodChanged = TRUE;
         pXdslReport->ReportingPeriod = uValue;
@@ -5492,7 +5376,7 @@ X_RDK_Report_DSL_GetParamStringValue
     PDML_X_RDK_REPORT_DSL 			 pXdslReport 	  = (PDML_X_RDK_REPORT_DSL)pMyObject->pDSLReport; 
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "Schema") == 0)
+    if(AnscEqualString(ParamName, "Schema", TRUE))
     {
         /* collect value */
         int bufsize = XdslReportGetSchemaBufferSize();
@@ -5518,7 +5402,7 @@ X_RDK_Report_DSL_GetParamStringValue
     }
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "SchemaID") == 0)
+    if(AnscEqualString(ParamName, "SchemaID", TRUE))
     {
         /* collect value */
         int bufsize = XdslReportGetSchemaIDBufferSize();
@@ -5638,7 +5522,7 @@ X_RDK_Report_DSL_SetParamBoolValue
     PDATAMODEL_XDSL                  pMyObject        = (PDATAMODEL_XDSL)g_pBEManager->hDSL;
     PDML_X_RDK_REPORT_DSL 			 pXdslReport 	  = (PDML_X_RDK_REPORT_DSL)pMyObject->pDSLReport; 
 
-    if (strcmp(ParamName, "Enabled") == 0)
+    if(AnscEqualString(ParamName, "Enabled", TRUE))
     {
         pXdslReport->Enabled = bValue;
         pXdslReport->bEnableChanged = TRUE;
@@ -5900,7 +5784,7 @@ X_RDK_Report_DSL_Default_SetParamUlongValue
     PDML_X_RDK_REPORT_DSL_DEFAULT    pXdslReportDflt  = (PDML_X_RDK_REPORT_DSL_DEFAULT)pXdslReport->pDSLDefaultReport;
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "OverrideTTL") == 0)
+    if(AnscEqualString(ParamName, "OverrideTTL", TRUE))
     {
         pXdslReportDflt->OverrideTTL = uValue;
         XdslReportSetDefaultOverrideTTL (uValue);
@@ -5908,7 +5792,7 @@ X_RDK_Report_DSL_Default_SetParamUlongValue
     }
 
     /* check the parameter name and set the corresponding value */
-    if (strcmp(ParamName, "ReportingPeriod") == 0) 
+    if(AnscEqualString(ParamName, "ReportingPeriod", TRUE)) 
     {
         if (!XdslReportValidateReportingPeriod(uValue))
         {
@@ -6008,7 +5892,7 @@ X_RDK_NLNM_GetParamIntValue
         return FALSE;
     }
 
-    if (strcmp(ParamName, "echotonoiseratio") == 0)
+    if( AnscEqualString(ParamName, "echotonoiseratio", TRUE))
     {
         /* collect value */
         *pInt = pXdslXRdkNlm->echotonoiseratio;

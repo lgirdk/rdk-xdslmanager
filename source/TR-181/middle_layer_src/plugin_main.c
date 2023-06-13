@@ -355,7 +355,6 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "Line_GetParamStringValue",  Line_GetParamStringValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "Line_SetParamBoolValue",  Line_SetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "Line_SetParamStringValue",  Line_SetParamStringValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "Line_SetParamUlongValue",  Line_SetParamUlongValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "Line_GetParamIntValue",  Line_GetParamIntValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "Line_Commit",  Line_Commit);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "Line_Validate",  Line_Validate);

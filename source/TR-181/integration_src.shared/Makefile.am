@@ -29,6 +29,6 @@ libXdslManagerintegration_src_shared_la_CPPFLAGS = \
     -I$(top_srcdir)/source/Custom \
     -I$(top_srcdir)/source/RdkXdslManager
 
-libXdslManagerintegration_src_shared_la_SOURCES = xdsl_apis.c xdsl_manager.c xdsl_hal.c xdsl_report.c xdsl_report_webpa_intf.c xtm_apis.c
+libXdslManagerintegration_src_shared_la_SOURCES = xdsl_apis.c xdsl_event_queue.c xdsl_hal.c xdsl_report.c xdsl_report_webpa_intf.c xtm_apis.c
 
 libXdslManagerintegration_src_shared_la_LDFLAGS = -lccsp_common -lcm_mgnt -lhal_platform -lsyscfg -lsysevent -ljson_hal_client -ljson-c -lavro -luuid -ltrower-base64 -llibparodus -lutapi -lutctx -lpthread

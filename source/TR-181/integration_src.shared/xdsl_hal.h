@@ -122,7 +122,14 @@ enum dsl_xtse_bit {
  *
  * @return 0 on success. Otherwise a negative value is returned
  */
-typedef int (*dsl_link_status_callback)(char *ifname, DslLinkStatus_t dsl_status );
+typedef int (*dsl_link_status_callback)(int line_id, char *status );
+
+/**
+ * This callback sends to upper layer when it receives ATM/PTM link status from  DSL driver
+ *
+ * @return 0 on success. Otherwise a negative value is returned
+ */
+typedef int (*xtm_status_callback)(int atm_id, char *status);
 
 /**
  * This function initialize and start DSL driver
@@ -364,6 +371,46 @@ ANSC_STATUS atm_hal_setLinkInfoParam (PDML_ATM link);
 * @retval ANSC_STATUS_FAILURE if any error is detected
 */
 ANSC_STATUS atm_hal_getLinkStats(const CHAR *param_name, PDML_ATM_STATS link_stats);
+
+/**
+ * This function sets the function pointer which receives ATM link status event from driver
+ *
+ * @param[in] status_cb - The function pointer which receives link status event from driver.
+ *                        if NULL then need to deregister this callback
+ *
+ * @return 0 on success. Otherwise a negative value is returned
+ */
+
+int atm_hal_registerStatusCallback(xtm_status_callback status_cb);
+
+/**
+ * This function sets the function pointer which receives PTM link status event from driver
+ *
+ * @param[in] status_cb - The function pointer which receives link status event from driver.
+ *                        if NULL then need to deregister this callback
+ *
+ * @return 0 on success. Otherwise a negative value is returned
+ */
+
+int ptm_hal_registerStatusCallback(xtm_status_callback status_cb);
+
+/**
+ * This function subscribes for ATM link status event from driver
+ *
+ * @param[in] link_id - Instance id from Device.ATM.Link. table
+ *
+ * @return 0 on success. Otherwise a negative value is returned
+ */
+int atm_hal_subscribeStatusEvent(int link_id);
+
+/**
+ * This function subscribes for PTM link status event from driver
+ *
+ * @param[in] link_id - Instance id from Device.PTM.Link. table
+ *
+ * @return 0 on success. Otherwise a negative value is returned
+ */
+int ptm_hal_subscribeStatusEvent(int link_id);
 
 
 #endif /* _XDSL_JSON_APIS_H */

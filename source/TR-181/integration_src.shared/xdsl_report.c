@@ -126,7 +126,7 @@ char *XdslReportGetSchemaIDBuffer()
  * Returns:     TRUE if ReportingPeriod is valid
  *              FALSE if ReportingPeriod is not valid
  */
-bool XdslReportValidateReportingPeriod(UINT value)
+BOOL XdslReportValidateReportingPeriod(UINT value)
 {
     int arr[] = {0, 1, 5, 15, 30, 60, 300, 900, 1800, 3600, 10800, 21600, 43200, 86400};
     int i = 0;
@@ -134,10 +134,10 @@ bool XdslReportValidateReportingPeriod(UINT value)
     {
         if (arr[i] == value)
         {
-            return true;
+            return TRUE;
         }
     }
-    return false;
+    return FALSE;
 }
 
 /*
@@ -186,7 +186,6 @@ static ANSC_STATUS XdslPrepareReportData(int line_id, int TotalChannels, XdslRep
         strncpy(stReportData->AllowedProfiles, stLineInfo.AllowedProfiles, sizeof(stReportData->AllowedProfiles) - 1);
         strncpy(stReportData->CurrentProfile, stLineInfo.CurrentProfile, sizeof(stReportData->CurrentProfile) - 1);
 
-        stReportData->Upstream = DmlXdslLineGetUpstream(line_id);
     }
     else
     {
@@ -1074,7 +1073,7 @@ static int PrepareAndSendXdslReport()
     int ret = 0;
     int line_id = 0;
     XdslReportData ptr;
-    DML_XDSL_LINE_GLOBALINFO   stGlobalInfo   = { 0 };
+    INT link_status;
     INT iTotalLines = 0;
     INT iTotalChannels = 0;
 
@@ -1092,12 +1091,15 @@ static int PrepareAndSendXdslReport()
         return ANSC_STATUS_FAILURE;
     }
 
+    if (DmlXdslGetLineLinkStatus(line_id + 1, &link_status) == ANSC_STATUS_FAILURE)
+    {
+	    return ANSC_STATUS_FAILURE;
+    }
+
     AnscTraceInfo(("%s-%d: TotalLines=%d, TotalChannels=%d \n", __FUNCTION__, __LINE__, iTotalLines, iTotalChannels));
-    memset(&stGlobalInfo, 0, sizeof(stGlobalInfo));
-    DmlXdslLineGetCopyOfGlobalInfoForGivenIndex( (iTotalLines - 1), &stGlobalInfo );
 
     line_id = iTotalLines;
-    if( stGlobalInfo.LinkStatus == XDSL_LINK_STATUS_Up ){
+    if( link_status == XDSL_LINK_STATUS_Up ){
         memset(&ptr, 0, sizeof(XdslReportData));
 
         ret = XdslPrepareReportData(line_id, iTotalChannels, &ptr);
