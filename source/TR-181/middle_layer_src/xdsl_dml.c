@@ -247,11 +247,7 @@ Line_GetEntry
 
          //TODO: Need to align the index with all the others.
         //Sync with current information
-#ifdef _SR300_PRODUCT_REQ_
         DmlXdslGetLineCfg( (nIndex +1), pXDSLLine );
-#else
-        DmlXdslGetLineCfg( nIndex, pXDSLLine );
-#endif //_SR300_PRODUCT_REQ_
 	pthread_mutex_unlock(&pXDSLLine->mDataMutex);
 
         return pXDSLLine;
@@ -2229,12 +2225,7 @@ Channel_GetEntry
         *pInsNumber = pDSLChannel->ulInstanceNumber;
         
         //Sync with current information
-#ifdef _SR300_PRODUCT_REQ_
-        DmlXdslGetChannelCfg( pDSLChannel->LineIndex, (nIndex + 1), pDSLChannel );
-#else
-        DmlXdslGetChannelCfg( pDSLChannel->LineIndex, nIndex, pDSLChannel );
-#endif //_SR300_PRODUCT_REQ_
-
+        DmlXdslGetChannelCfg( (nIndex + 1), pDSLChannel );
 
         return pDSLChannel;
     }

@@ -557,7 +557,7 @@ ANSC_STATUS DmlXdslSetLinkStatusForWanManager( char *BaseInterface, char *LinkSt
 
 INT DmlXdslGetTotalNoofChannels( INT LineIndex );
 
-ANSC_STATUS DmlXdslGetChannelCfg( INT LineIndex, INT ChannelIndex, PDML_XDSL_CHANNEL pstChannelInfo );
+ANSC_STATUS DmlXdslGetChannelCfg( INT ChannelIndex, PDML_XDSL_CHANNEL pstChannelInfo );
 
 ANSC_STATUS DmlXdslChannelSetEnable( INT LineIndex, INT ChannelIndex, BOOL Enable );
 

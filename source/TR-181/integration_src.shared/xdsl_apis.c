@@ -1010,7 +1010,7 @@ static ANSC_STATUS DmlXdslGetChannelStaticInfo( INT LineIndex, INT ChannelIndex,
 }
 
 /* DmlXdslGetChannelCfg() */
-ANSC_STATUS DmlXdslGetChannelCfg( INT LineIndex, INT ChannelIndex, PDML_XDSL_CHANNEL pstChannelInfo )
+ANSC_STATUS DmlXdslGetChannelCfg( INT ChannelIndex, PDML_XDSL_CHANNEL pstChannelInfo )
 {
     if( NULL == pstChannelInfo )
     {
