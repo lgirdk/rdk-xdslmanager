@@ -37,6 +37,9 @@
 #define DSL_TRAINING_STATE             "rdkb_dsl_training"
 #endif
 
+#define ATM_LINK "Device.ATM.Link.%d"
+#define PTM_LINK "Device.PTM.Link.%d"
+
 extern int sysevent_fd;
 
 typedef enum
@@ -92,7 +95,7 @@ static void *DmlXdslEventHandlerThread( void *arg )
         case MSG_TYPE_LINE_LINK_STATUS:
 	    {
 	        XDSLMSGQLineStatusData *MSGQLineStatusData = (XDSLMSGQLineStatusData *)EventMsg.Msg;
-	        ULONG ulInstanceNumber;
+	        ULONG ulInstanceNumber = 0;
 	        char xtmLowerLayers[256] = { 0 };
 
 #if defined(FEATURE_RDKB_LED_MANAGER) && !defined(_HUB4_PRODUCT_REQ_)
@@ -121,7 +124,8 @@ static void *DmlXdslEventHandlerThread( void *arg )
 		        }
 	        }
 	        DmlXdslSetLineLinkStatus(MSGQLineStatusData->line_id, MSGQLineStatusData->LinkStatus);
-	        if (MSGQLineStatusData->LinkStatus == XDSL_LINK_STATUS_Initializing)
+	        if (MSGQLineStatusData->LinkStatus == XDSL_LINK_STATUS_Initializing ||
+                MSGQLineStatusData->LinkStatus == XDSL_LINK_STATUS_EstablishingLink)
             {
                 //send intializing atm
 		        PDML_ATM p_Atm = ATMLink_GetEntry(NULL, MSGQLineStatusData->line_id - 1, &ulInstanceNumber);
@@ -130,7 +134,7 @@ static void *DmlXdslEventHandlerThread( void *arg )
 		            CcspTraceError(("%s Failed to get ATM entry with index %d \n", __FUNCTION__, MSGQLineStatusData->line_id));
 		            break;
 		        }
-	            snprintf(xtmLowerLayers, sizeof(xtmLowerLayers),"Device.ATM.Link.%d", ulInstanceNumber);
+	            snprintf(xtmLowerLayers, sizeof(xtmLowerLayers), ATM_LINK, ulInstanceNumber);
 	            DmlXdslSetLinkStatusForWanManager( xtmLowerLayers, "Initializing" );
 
                 memset( xtmLowerLayers, 0, sizeof(xtmLowerLayers) );
@@ -141,54 +145,57 @@ static void *DmlXdslEventHandlerThread( void *arg )
 		            CcspTraceError(("%s Failed to get PTM entry with index %d \n", __FUNCTION__, MSGQLineStatusData->line_id));
 		            break;
 		        }
-	            snprintf(xtmLowerLayers, sizeof(xtmLowerLayers),"Device.PTM.Link.%d", ulInstanceNumber);
+	            snprintf(xtmLowerLayers, sizeof(xtmLowerLayers), PTM_LINK, ulInstanceNumber);
 	            DmlXdslSetLinkStatusForWanManager( xtmLowerLayers, "Initializing" );
-
             }
 	        break;
 	    }
         case MSG_TYPE_XTM_LINK_STATUS:
 	    {
 	        XDSLMSGQXtmStatusData *MSGQXtmStatusData = (XDSLMSGQXtmStatusData *)EventMsg.Msg;
-	        ULONG ulInstanceNumber;
-	        char xtmLowerLayers[256] = { 0 };
+	        ULONG ulInstanceNumberPtm = 0;
+	        ULONG ulInstanceNumberAtm = 0;
+	        char xtmLowerLayersPtm[256] = { 0 };
+	        char xtmLowerLayersAtm[256] = { 0 };
 	        int line_id = 0;
-	        DML_XDSL_LINE_TYPE line_type;
+            DML_XDSL_LINE_TYPE line_type;
 
-	        if (MSGQXtmStatusData->is_atm == TRUE)
+            PDML_ATM p_Atm = ATMLink_GetEntry(NULL, MSGQXtmStatusData->link_id - 1, &ulInstanceNumberAtm);
+            if (p_Atm == NULL)
+            {
+                CcspTraceError(("%s Failed to get ATM entry with index %d \n", __FUNCTION__, MSGQXtmStatusData->link_id));
+                break;
+            }
+	        snprintf(xtmLowerLayersAtm, sizeof(xtmLowerLayersAtm), ATM_LINK, ulInstanceNumberAtm);
+
+            PDML_PTM p_Ptm = PTMLink_GetEntry(NULL, MSGQXtmStatusData->link_id - 1, &ulInstanceNumberPtm);
+            if (p_Ptm == NULL)
+            {
+                CcspTraceError(("%s Failed to get PTM entry with index %d \n", __FUNCTION__, MSGQXtmStatusData->link_id));
+                break;
+            }
+	        snprintf(xtmLowerLayersPtm, sizeof(xtmLowerLayersPtm), PTM_LINK, ulInstanceNumberPtm);
+
+            if (DmlXdslLineTypeGetById( ulInstanceNumberAtm, &line_type ) == ANSC_STATUS_FAILURE)
+            {
+                CcspTraceError(("%s %d Failed to get DSL Line type\n", __FUNCTION__, __LINE__));
+                break;
+            }
+
+            if (MSGQXtmStatusData->is_atm == TRUE && line_type == DML_XDSL_LINE_ADSL)
 	        {
-		        PDML_ATM p_Atm = ATMLink_GetEntry(NULL, MSGQXtmStatusData->link_id - 1, &ulInstanceNumber);
-
-		        if (p_Atm == NULL)
-		        {
-		            CcspTraceError(("%s Failed to get ATM entry with index %d \n", __FUNCTION__, MSGQXtmStatusData->link_id));
-		            break;
-		        }
-		        DmlAtmLinkSetStatus(p_Atm, MSGQXtmStatusData->Status);
-	            snprintf(xtmLowerLayers, sizeof(xtmLowerLayers),"Device.ATM.Link.%d", ulInstanceNumber);
+                CcspTraceInfo(("%s %d ADSL Line status set \n", __FUNCTION__, __LINE__));
+                DmlAtmLinkSetStatus(p_Atm, MSGQXtmStatusData->Status);
+                DmlXdslSetLinkStatusForWanManager( xtmLowerLayersAtm, MSGQXtmStatusData->Status == Up ? "Up" : "Down" );
+                DmlXdslSetLinkStatusForWanManager( xtmLowerLayersPtm, "Down");
 	        }
-	        else
-	        {
-		        PDML_PTM p_Ptm = PTMLink_GetEntry(NULL, MSGQXtmStatusData->link_id - 1, &ulInstanceNumber);
-
-		        if (p_Ptm == NULL)
-		        {
-		            CcspTraceError(("%s Failed to get PTM entry with index %d \n", __FUNCTION__, MSGQXtmStatusData->link_id));
-		            break;
-		        }
+            else if (MSGQXtmStatusData->is_atm == FALSE && line_type == DML_XDSL_LINE_VDSL)
+            {
+                CcspTraceInfo(("%s %d VDSL Line status set \n", __FUNCTION__, __LINE__));
 		        DmlPtmLinkSetStatus(p_Ptm, MSGQXtmStatusData->Status);
-	            snprintf(xtmLowerLayers, sizeof(xtmLowerLayers),"Device.PTM.Link.%d", ulInstanceNumber);
-	        }
-	        if (DmlXdslLineTypeGetById( ulInstanceNumber, &line_type ) == ANSC_STATUS_FAILURE)
-	        {
-		        CcspTraceError(("%s %d Failed to get DSL Line type\n", __FUNCTION__, __LINE__));
-		        break;
-	        }
-	        if (MSGQXtmStatusData->is_atm == TRUE && line_type == DML_XDSL_LINE_ADSL ||
-		        MSGQXtmStatusData->is_atm == FALSE && line_type == DML_XDSL_LINE_VDSL)
-	        {
-	            DmlXdslSetLinkStatusForWanManager( xtmLowerLayers, MSGQXtmStatusData->Status == Up ? "Up" : "Down" );
-	        }
+                DmlXdslSetLinkStatusForWanManager( xtmLowerLayersPtm, MSGQXtmStatusData->Status == Up ? "Up" : "Down" );
+                DmlXdslSetLinkStatusForWanManager( xtmLowerLayersAtm, "Down");
+            }
 	        break;
 	    }
     }
