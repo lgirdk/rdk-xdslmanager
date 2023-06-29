@@ -224,7 +224,7 @@ ANSC_HANDLE PTMLink_GetEntry (ANSC_HANDLE  hInsContext, ULONG nIndex, ULONG*  pI
 {
     PDATAMODEL_PTM             pMyObject         = (PDATAMODEL_PTM)g_pBEManager->hPTM;
 
-    if ( pMyObject->PtmLink && nIndex < pMyObject->ulPtmLinkNumberOfEntries )
+    if ( pMyObject && pInsNumber && pMyObject->PtmLink && nIndex < pMyObject->ulPtmLinkNumberOfEntries )
     {
         *pInsNumber = pMyObject->PtmLink[nIndex].InstanceNumber;
          return pMyObject->PtmLink + nIndex;
@@ -830,7 +830,7 @@ ANSC_HANDLE ATMLink_GetEntry ( ANSC_HANDLE hInsContext, ULONG nIndex, ULONG* pIn
 {
     PDATAMODEL_ATM             pMyObject         = (PDATAMODEL_ATM)g_pBEManager->hATM;
 
-    if ( pMyObject->AtmLink && nIndex < pMyObject->ulAtmLinkNumberOfEntries )
+    if ( pMyObject && pInsNumber && pMyObject->AtmLink && nIndex < pMyObject->ulAtmLinkNumberOfEntries )
     {
         *pInsNumber = pMyObject->AtmLink[nIndex].InstanceNumber;
         return pMyObject->AtmLink + nIndex;
