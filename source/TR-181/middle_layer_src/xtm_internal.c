@@ -111,17 +111,23 @@ PtmLinkInitialize
 
     for (iLoopCount = 0; iLoopCount < pPtm->ulPtmLinkNumberOfEntries; iLoopCount++)
     {
-	PDML_PTM pPtmLink = pPtm->PtmLink + iLoopCount;
+        PDML_PTM pPtmLink = pPtm->PtmLink + iLoopCount;
+        memset(pPtmLink, 0, sizeof(DML_PTM));
 
-	memset(pPtmLink, 0, sizeof(DML_PTM));
-	pPtmLink->InstanceNumber = iLoopCount + 1;
-	pPtmLink->Status = Down;
-	pPtmLink->Enable = FALSE;
-	snprintf(pPtmLink->LowerLayers, sizeof(pPtmLink->LowerLayers), "Device.DSL.Line.%d", pPtmLink->InstanceNumber);
-	snprintf(pPtmLink->Alias, sizeof(pPtmLink->Alias), "dsl%d", iLoopCount);
-	snprintf(pPtmLink->Name, sizeof(pPtmLink->Alias), "ptm%d", iLoopCount);
-	DmlSetPtmIfEnable(pPtmLink);
-	ptm_hal_subscribeStatusEvent(pPtmLink->InstanceNumber);
+        pPtmLink->InstanceNumber = iLoopCount + 1;
+        pPtmLink->Status = Down;
+        pPtmLink->Enable = FALSE; 
+        xtm_hal_getLinkInfo(pPtmLink->InstanceNumber, pPtmLink);
+        snprintf(pPtmLink->LowerLayers, sizeof(pPtmLink->LowerLayers), "Device.DSL.Line.%d", pPtmLink->InstanceNumber);
+        snprintf(pPtmLink->Alias, sizeof(pPtmLink->Alias), "dsl%d", iLoopCount);
+        snprintf(pPtmLink->Name, sizeof(pPtmLink->Alias), "ptm%d", iLoopCount);
+        AnscTraceInfo(("%s-%d: Status=[%d] Enable=[%d] LowerLayers=[%s] Alias=[%s] Name=[%s] \n", __FUNCTION__, __LINE__, pPtmLink->Status, pPtmLink->Enable, pPtmLink->LowerLayers, pPtmLink->Alias, pPtmLink->Name));     
+        if(FALSE == pPtmLink->Enable)
+        {
+            AnscTraceInfo(("%s-%d: PTM ENABLE \n", __FUNCTION__, __LINE__)); 
+            DmlSetPtmIfEnable(pPtmLink);
+        }
+        ptm_hal_subscribeStatusEvent(pPtmLink->InstanceNumber);
     }
     ptm_hal_registerStatusCallback(PtmLinkStatusCallback);
 
@@ -236,10 +242,12 @@ AtmLinkInitialize
 	pAtmLink->InstanceNumber = iLoopCount + 1;
 	pAtmLink->Status = Down;
 	pAtmLink->Enable = FALSE;
+    atm_hal_getLinkInfo(pAtmLink->InstanceNumber, pAtmLink);
 	snprintf(pAtmLink->LowerLayers, sizeof(pAtmLink->LowerLayers), "Device.DSL.Line.%d", pAtmLink->InstanceNumber);
 	snprintf(pAtmLink->Alias, sizeof(pAtmLink->Alias), "dsl%d", iLoopCount);
 	snprintf(pAtmLink->Name, sizeof(pAtmLink->Name), "atm%d", iLoopCount);
 
+    AnscTraceInfo(("%s-%d: Status=[%d] Enable=[%d] LowerLayers=[%s] Alias=[%s] Name=[%s] \n", __FUNCTION__, __LINE__, pAtmLink->Status, pAtmLink->Enable, pAtmLink->LowerLayers, pAtmLink->Alias, pAtmLink->Name));     
 	/* Get ADSL Linktype */
 	_ansc_sprintf(param_name, PSM_ADSL_LINKTYPE, pAtmLink->InstanceNumber);
 	retPsmGet = PSM_Get_Record_Value2(bus_handle, g_Subsystem, param_name, NULL, &param_value);
@@ -411,7 +419,12 @@ AtmLinkInitialize
 	    ((CCSP_MESSAGE_BUS_INFO *)bus_handle)->freefunc(param_value);
 	}
 
-	DmlSetAtmIfEnable(pAtmLink);
+    if(FALSE == pAtmLink->Enable)
+    {
+        AnscTraceInfo(("%s-%d: ATM ENABLE \n", __FUNCTION__, __LINE__)); 
+        DmlSetAtmIfEnable(pAtmLink);
+    }
+
 	atm_hal_subscribeStatusEvent(pAtmLink->InstanceNumber);
     }
 

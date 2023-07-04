@@ -169,6 +169,11 @@ static ANSC_STATUS get_link_info(hal_param_t *get_param);
  */
 static ANSC_STATUS get_ptm_link_stats(const json_object *reply_msg, PDML_PTM_STATS link_stats);
 
+static ANSC_STATUS get_ptm_link_info(const json_object *reply_msg, PDML_PTM pPtmLink);
+
+static ANSC_STATUS get_atm_link_info(const json_object *reply_msg, PDML_ATM pAtmLink);
+
+static xtm_link_status_e XtmStatusStrToEnum(char *status);
 /**
  * @brief Utility API to get ATM link statistics information.
  *
@@ -1102,6 +1107,84 @@ int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
 
     FREE_JSON_OBJECT(jmsg);
     FREE_JSON_OBJECT(jreply_msg);
+
+    return rc;
+}
+
+ANSC_STATUS xtm_hal_getLinkInfo(int lineNo, PDML_PTM pPtmLink)
+{
+    CHECK(pPtmLink != NULL);
+    ANSC_STATUS rc = ANSC_STATUS_SUCCESS;
+    char parmName[128] = {'\0'};
+    json_object *jreply_msg = NULL;
+
+    snprintf(parmName, sizeof(parmName),"Device.PTM.Link.%d.", lineNo);
+    json_object *jrequest = create_json_request_message(GET_REQUEST_MESSAGE, parmName, NULL_TYPE , NULL);
+    CHECK(jrequest != NULL);
+
+    if (json_hal_client_send_and_get_reply(jrequest, &jreply_msg) == RETURN_ERR)
+    {
+        CcspTraceError(("%s - %d Failed to get reply for the json request \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    rc = get_ptm_link_info(jreply_msg, pPtmLink);
+    if (rc != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s - %d Failed to get ptm link info  \n", __FUNCTION__, __LINE__));
+    }
+
+        // Free json objects.
+    if (jrequest)
+    {
+        json_object_put(jrequest);
+        jrequest = NULL;
+    }
+
+    if (jreply_msg)
+    {
+        json_object_put(jreply_msg);
+        jreply_msg = NULL;
+    }
+
+    return rc;
+}
+
+ANSC_STATUS atm_hal_getLinkInfo(int lineNo, PDML_ATM pAtmLink)
+{
+    CHECK(pAtmLink != NULL);
+    ANSC_STATUS rc = ANSC_STATUS_SUCCESS;
+    char parmName[128] = {'\0'};
+    json_object *jreply_msg = NULL;
+
+    snprintf(parmName, sizeof(parmName),"Device.ATM.Link.%d.", lineNo);
+    json_object *jrequest = create_json_request_message(GET_REQUEST_MESSAGE, parmName, NULL_TYPE , NULL);
+    CHECK(jrequest != NULL);
+
+    if (json_hal_client_send_and_get_reply(jrequest, &jreply_msg) == RETURN_ERR)
+    {
+        CcspTraceError(("%s - %d Failed to get reply for the json request \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    rc = get_atm_link_info(jreply_msg, pAtmLink);
+    if (rc != ANSC_STATUS_SUCCESS)
+    {
+        CcspTraceError(("%s - %d Failed to get ptm link info  \n", __FUNCTION__, __LINE__));
+    }
+
+        // Free json objects.
+    if (jrequest)
+    {
+        json_object_put(jrequest);
+        jrequest = NULL;
+    }
+
+    if (jreply_msg)
+    {
+        json_object_put(jreply_msg);
+        jreply_msg = NULL;
+    }
 
     return rc;
 }
@@ -2166,6 +2249,108 @@ static ANSC_STATUS get_link_info(hal_param_t *get_param)
         jreply_msg = NULL;
     }
     return ANSC_STATUS_SUCCESS;
+}
+
+static ANSC_STATUS get_ptm_link_info(const json_object *reply_msg, PDML_PTM pPtmLink)
+{
+    ANSC_STATUS rc = ANSC_STATUS_SUCCESS;
+    int total_param_count = 0;
+
+    total_param_count = json_hal_get_total_param_count(reply_msg);
+    hal_param_t resp_param;
+
+    /**
+     * Traverse through each index and retrieve value.
+     */
+    for (int i = 0; i < total_param_count; ++i)
+    {
+        if (json_hal_get_param(reply_msg, i, GET_RESPONSE_MESSAGE, &resp_param) != RETURN_OK)
+        {
+            CcspTraceError(("%s - %d Failed to get the param from response message [index = %d] \n", __FUNCTION__, __LINE__, i));
+            continue;
+        }
+
+        if (strstr(resp_param.name, "Enable"))
+        {
+            pPtmLink->Enable = atoi(resp_param.value);
+        }
+        else if (strstr(resp_param.name, "Status"))
+        {
+            pPtmLink->Status = XtmStatusStrToEnum(resp_param.value);
+        }
+        else if (strstr(resp_param.name, "Name"))
+        {
+            snprintf(pPtmLink->Name, sizeof(pPtmLink->Name), "%s", resp_param.value);
+        }
+    }
+
+    CcspTraceInfo(("%s - %d PTM Line Information \n", __FUNCTION__, __LINE__));
+    CcspTraceInfo(("Enable = %d \n", pPtmLink->Enable));
+    CcspTraceInfo(("Status = %d \n", pPtmLink->Status));
+    CcspTraceInfo(("Name = %s \n", pPtmLink->Name));
+    return ANSC_STATUS_SUCCESS;
+}
+
+static ANSC_STATUS get_atm_link_info(const json_object *reply_msg, PDML_ATM pAtmLink)
+{
+    ANSC_STATUS rc = ANSC_STATUS_SUCCESS;
+    int total_param_count = 0;
+
+    total_param_count = json_hal_get_total_param_count(reply_msg);
+    hal_param_t resp_param;
+
+    /**
+     * Traverse through each index and retrieve value.
+     */
+    for (int i = 0; i < total_param_count; ++i)
+    {
+        if (json_hal_get_param(reply_msg, i, GET_RESPONSE_MESSAGE, &resp_param) != RETURN_OK)
+        {
+            CcspTraceError(("%s - %d Failed to get the param from response message [index = %d] \n", __FUNCTION__, __LINE__, i));
+            continue;
+        }
+
+        if (strstr(resp_param.name, "Enable"))
+        {
+            pAtmLink->Enable = atoi(resp_param.value);
+        }
+        else if (strstr(resp_param.name, "Status"))
+        {
+            pAtmLink->Status = XtmStatusStrToEnum(resp_param.value);
+        }
+        else if (strstr(resp_param.name, "Name"))
+        {
+            snprintf(pAtmLink->Name, sizeof(pAtmLink->Name), "%s", resp_param.value);
+        }
+    }
+
+    CcspTraceInfo(("%s - %d ATM Line Information \n", __FUNCTION__, __LINE__));
+    CcspTraceInfo(("Enable = %d \n", pAtmLink->Enable));
+    CcspTraceInfo(("Status = %d \n", pAtmLink->Status));
+    CcspTraceInfo(("Name = %s \n", pAtmLink->Name));
+    return ANSC_STATUS_SUCCESS;
+}
+
+static xtm_link_status_e XtmStatusStrToEnum(char *status)
+{
+    if (strncmp(status, XTM_LINK_UP, strlen(XTM_LINK_UP)) == 0)
+    {
+	return Up;
+    }
+    else if (strncmp(status, XTM_LINK_DOWN, strlen(XTM_LINK_DOWN)) == 0)
+    {
+	return Down;
+    }
+    else if (strncmp(status, XTM_LINK_UNKNOWN, strlen(XTM_LINK_UNKNOWN)) == 0)
+    {
+	return Unknown;
+    }
+    else if (strncmp(status, XTM_LINK_LOWERLAYER_DOWN, strlen(XTM_LINK_LOWERLAYER_DOWN)) == 0)
+    {
+	return LowerLayerDown;
+    }
+
+    return Error;
 }
 
 static ANSC_STATUS get_ptm_link_stats(const json_object *reply_msg, PDML_PTM_STATS link_stats)

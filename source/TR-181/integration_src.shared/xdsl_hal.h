@@ -215,6 +215,10 @@ int xdsl_hal_getTotalNoOfChannels(int lineNo);
  */
 int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo);
 
+ANSC_STATUS xtm_hal_getLinkInfo(int lineNo,  PDML_PTM pPtmLink);
+
+ANSC_STATUS atm_hal_getLinkInfo(int lineNo,  PDML_ATM pAtmLink);
+
 /*
  * This Function converts the LineEncoding string to corresponding Enum inerger.
  * @param[in] str - String returned by hal layer.
