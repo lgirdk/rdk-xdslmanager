@@ -82,7 +82,7 @@
 
 #define DATAMODEL_PARAM_LENGTH 256
 
-//WAN Agent
+//WAN Manager
 #define WAN_DBUS_PATH                     "/com/cisco/spvtg/ccsp/wanmanager"
 #define WAN_COMPONENT_NAME                "eRT.com.cisco.spvtg.ccsp.wanmanager"
 #if defined(WAN_MANAGER_UNIFICATION_ENABLED)
@@ -925,7 +925,7 @@ ANSC_STATUS DmlXdslSetLinkStatusForWanManager( char *BaseInterface, char *LinkSt
     snprintf( acSetParamValue, DATAMODEL_PARAM_LENGTH, "%s", LinkStatus );
     DmlXdslSetParamValues( WAN_COMPONENT_NAME, WAN_DBUS_PATH, acSetParamName, acSetParamValue, ccsp_string, TRUE );
 
-    CcspTraceInfo(("%s %d Successfully notified %s event to WAN Agent for %s interface\n", __FUNCTION__, __LINE__, LinkStatus, BaseInterface));
+    CcspTraceInfo(("%s %d Successfully notified %s event to WAN Manager for %s interface\n", __FUNCTION__, __LINE__, LinkStatus, BaseInterface));
 
     return ANSC_STATUS_SUCCESS;
 }
