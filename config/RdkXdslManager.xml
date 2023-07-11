@@ -1648,7 +1648,7 @@
               <name>Enable</name>
               <type>boolean</type>
               <syntax>bool</syntax>
-              <writable>true</writable>
+              <writable>false</writable>
             </parameter>
             <parameter>
               <name>Status</name>
@@ -1799,7 +1799,7 @@
               <name>Enable</name>
               <type>boolean</type>
               <syntax>bool</syntax>
-              <writable>true</writable>
+              <writable>false</writable>
             </parameter>
             <parameter>
               <name>Status</name>
