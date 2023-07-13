@@ -1113,7 +1113,12 @@ int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
 
 ANSC_STATUS xtm_hal_getLinkInfo(int lineNo, PDML_PTM pPtmLink)
 {
-    CHECK(pPtmLink != NULL);
+    if(pPtmLink == NULL)
+    {
+        CcspTraceError(("%s - %d pPtmLink is empty \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
     ANSC_STATUS rc = ANSC_STATUS_SUCCESS;
     char parmName[128] = {'\0'};
     json_object *jreply_msg = NULL;
@@ -1152,7 +1157,12 @@ ANSC_STATUS xtm_hal_getLinkInfo(int lineNo, PDML_PTM pPtmLink)
 
 ANSC_STATUS atm_hal_getLinkInfo(int lineNo, PDML_ATM pAtmLink)
 {
-    CHECK(pAtmLink != NULL);
+    if(pAtmLink == NULL)
+    {
+        CcspTraceError(("%s - %d pAtmLink is empty \n", __FUNCTION__, __LINE__));
+        return ANSC_STATUS_FAILURE;
+    }
+
     ANSC_STATUS rc = ANSC_STATUS_SUCCESS;
     char parmName[128] = {'\0'};
     json_object *jreply_msg = NULL;
