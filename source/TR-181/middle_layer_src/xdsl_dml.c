@@ -5378,7 +5378,7 @@ X_RDK_Report_DSL_GetParamUlongValue
     PDML_X_RDK_REPORT_DSL            pXdslReport      = (PDML_X_RDK_REPORT_DSL)pMyObject->pDSLReport; 
 
     /* check the parameter name and set the corresponding value */
-    if(AnscEqualString(ParamName, "ReportingPeriod", TRUE) && (puLong != NULL))
+    if ((strcmp(ParamName, "ReportingPeriod") == 0) && (puLong != NULL))
     {
         *puLong = pXdslReport->ReportingPeriod;
         return TRUE;
@@ -5587,7 +5587,7 @@ X_RDK_Report_DSL_GetParamBoolValue
     PDATAMODEL_XDSL                  pMyObject        = (PDATAMODEL_XDSL)g_pBEManager->hDSL;
     PDML_X_RDK_REPORT_DSL            pXdslReport      = (PDML_X_RDK_REPORT_DSL)pMyObject->pDSLReport; 
 
-    if(AnscEqualString(ParamName, "Enabled", TRUE) && (pBool != NULL))
+    if ((strcmp(ParamName, "Enabled") == 0) && (pBool != NULL))
     {
         *pBool = pXdslReport->Enabled;
         return TRUE;
@@ -5838,7 +5838,7 @@ X_RDK_Report_DSL_Default_GetParamUlongValue
     PDML_X_RDK_REPORT_DSL_DEFAULT    pXdslReportDflt  = (PDML_X_RDK_REPORT_DSL_DEFAULT)pXdslReport->pDSLDefaultReport;
 
     /* check the parameter name and set the corresponding value */
-    if(AnscEqualString(ParamName, "OverrideTTL", TRUE) && (puLong != NULL))
+    if ((strcmp(ParamName, "OverrideTTL") == 0) && (puLong != NULL))
     {
         pXdslReportDflt->OverrideTTL = XdslReportGetDefaultOverrideTTL();
         *puLong = pXdslReportDflt->OverrideTTL;
@@ -5846,7 +5846,7 @@ X_RDK_Report_DSL_Default_GetParamUlongValue
     }
 
     /* check the parameter name and set the corresponding value */
-    if(AnscEqualString(ParamName, "ReportingPeriod", TRUE) && (puLong != NULL))
+    if ((strcmp(ParamName, "ReportingPeriod") == 0) && (puLong != NULL))
     {
         *puLong = pXdslReportDflt->ReportingPeriod;
         return TRUE;
