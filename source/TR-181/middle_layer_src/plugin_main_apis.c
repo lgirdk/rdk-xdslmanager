@@ -65,6 +65,7 @@
 
 //#include "dml_tr181_custom_cfg.h"
 #include "plugin_main_apis.h"
+#include "xdsl_apis.h"
 
 /*PCOSA_DIAG_PLUGIN_INFO             g_pCosaDiagPluginInfo;*/
 COSAGetParamValueByPathNameProc    g_GetParamValueByPathNameProc;
@@ -198,6 +199,8 @@ BackEndManagerInitialize
 
     pMyObject->hATM           = (ANSC_HANDLE)AtmCreate();
     AnscTraceWarning(("  AtmCreate done!\n"));
+
+    xdslEventHandlerInit();
 
     return returnStatus;
 }

@@ -89,6 +89,7 @@
 #define ATM_LINK_DIAGNOSTICS_TIMEOUT     "Device.ATM.Diagnostics.F5Loopback.Timeout"
 
 #define PTM_LINK_STATUS "Device.PTM.Link.%d.Status"
+#define PTM_LINK_ENABLE "Device.PTM.Link.%d.Enable"
 
 #define RPC_GET_PARAMETERS_REQUEST "getParameters"
 #define RPC_SET_PARAMETERS_REQUEST "setParameters"
@@ -127,15 +128,11 @@ xtm_status_callback ptm_status_cb = NULL;
 static int subscribe_dsl_link_event();
 static int g_successful_retrains = -1;
 static void *eventcb(const char *msg, const int len);
-#if !defined  _DT_WAN_Manager_Enable_
-static ANSC_STATUS configure_xdsl_driver();
-#endif
 static ANSC_STATUS xtse_get_bit_position(char *StandardUsed, int *bit_position, int *bit_range);
 static ANSC_STATUS compare_with_standards_supported( char *standardsSupported, char *Xtse, int size);
 static ANSC_STATUS xdsl_hal_setXtsUsed(char *standardUsed, char *xtsUsedBuf, int size);
 static ANSC_STATUS xdsl_hal_setXtse(char *standardsSupported, char *xtseBuf, int size);
 static ANSC_STATUS getDestinationAddress(char *Interface, char *DestinationAddress);
-
 /**
  * @brief Utility API to create json request message to send to the interface manager
  *
@@ -238,16 +235,6 @@ int xdsl_hal_init( void )
         CcspTraceError(("Failed to subscribe DSL link event \n"));
     }
 
-#if !defined  _DT_WAN_Manager_Enable_
-    /**
-     * Configure xDSL driver.
-     */
-    rc = configure_xdsl_driver();
-    if (rc != ANSC_STATUS_SUCCESS)
-    {
-        CcspTraceError(("Failed to configure xDSL driver \n"));
-    }
-#endif
     return rc;
 }
 
@@ -1113,19 +1100,33 @@ int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
 
 ANSC_STATUS xtm_hal_getLinkInfo(int lineNo, PDML_PTM pPtmLink)
 {
-    if(pPtmLink == NULL)
-    {
-        CcspTraceError(("%s - %d pPtmLink is empty \n", __FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
-    }
-
+    CHECK(pPtmLink != NULL);
     ANSC_STATUS rc = ANSC_STATUS_SUCCESS;
     char parmName[128] = {'\0'};
     json_object *jreply_msg = NULL;
+    json_object *jrequest = NULL;
+    hal_param_t req_param;
 
-    snprintf(parmName, sizeof(parmName),"Device.PTM.Link.%d.", lineNo);
-    json_object *jrequest = create_json_request_message(GET_REQUEST_MESSAGE, parmName, NULL_TYPE , NULL);
-    CHECK(jrequest != NULL);
+    jrequest = json_hal_client_get_request_header(RPC_GET_PARAMETERS_REQUEST);
+    CHECK(jrequest);
+
+    memset(&req_param, 0, sizeof(req_param));
+    snprintf(req_param.name, sizeof(req_param.name), PTM_LINK_STATUS, lineNo);
+    if (json_hal_add_param(jrequest, GET_REQUEST_MESSAGE, &req_param) != RETURN_OK)
+    {
+        FREE_JSON_OBJECT(jrequest);
+        return RETURN_ERR;
+    }
+
+    memset(&req_param, 0, sizeof(req_param));
+    snprintf(req_param.name, sizeof(req_param.name), PTM_LINK_ENABLE, lineNo);
+    if (json_hal_add_param(jrequest, GET_REQUEST_MESSAGE, &req_param) != RETURN_OK)
+    {
+        FREE_JSON_OBJECT(jrequest);
+        return RETURN_ERR;
+    }
+
+    CcspTraceInfo(("%s-%d: JSON Request message = %s \n", __FUNCTION__, __LINE__, json_object_to_json_string_ext(jrequest, JSON_C_TO_STRING_PRETTY)));
 
     if (json_hal_client_send_and_get_reply(jrequest, &jreply_msg) == RETURN_ERR)
     {
@@ -1133,13 +1134,15 @@ ANSC_STATUS xtm_hal_getLinkInfo(int lineNo, PDML_PTM pPtmLink)
         return ANSC_STATUS_FAILURE;
     }
 
+    CcspTraceInfo(("%s-%d: JSON Response message = %s \n", __FUNCTION__, __LINE__, json_object_to_json_string_ext(jreply_msg,JSON_C_TO_STRING_PRETTY)));
+
     rc = get_ptm_link_info(jreply_msg, pPtmLink);
     if (rc != ANSC_STATUS_SUCCESS)
     {
         CcspTraceError(("%s - %d Failed to get ptm link info  \n", __FUNCTION__, __LINE__));
     }
 
-        // Free json objects.
+    // Free json objects.
     if (jrequest)
     {
         json_object_put(jrequest);
@@ -1157,25 +1160,41 @@ ANSC_STATUS xtm_hal_getLinkInfo(int lineNo, PDML_PTM pPtmLink)
 
 ANSC_STATUS atm_hal_getLinkInfo(int lineNo, PDML_ATM pAtmLink)
 {
-    if(pAtmLink == NULL)
-    {
-        CcspTraceError(("%s - %d pAtmLink is empty \n", __FUNCTION__, __LINE__));
-        return ANSC_STATUS_FAILURE;
-    }
-
+    CHECK(pAtmLink != NULL);
     ANSC_STATUS rc = ANSC_STATUS_SUCCESS;
     char parmName[128] = {'\0'};
     json_object *jreply_msg = NULL;
+    json_object *jrequest = NULL;
+    hal_param_t req_param;
 
-    snprintf(parmName, sizeof(parmName),"Device.ATM.Link.%d.", lineNo);
-    json_object *jrequest = create_json_request_message(GET_REQUEST_MESSAGE, parmName, NULL_TYPE , NULL);
-    CHECK(jrequest != NULL);
+    jrequest = json_hal_client_get_request_header(RPC_GET_PARAMETERS_REQUEST);
+    CHECK(jrequest);
+
+    memset(&req_param, 0, sizeof(req_param));
+    snprintf(req_param.name, sizeof(req_param.name), ATM_LINK_STATUS, lineNo);
+    if (json_hal_add_param(jrequest, GET_REQUEST_MESSAGE, &req_param) != RETURN_OK)
+    {
+        FREE_JSON_OBJECT(jrequest);
+        return RETURN_ERR;
+    }
+
+    memset(&req_param, 0, sizeof(req_param));
+    snprintf(req_param.name, sizeof(req_param.name), ATM_LINK_ENABLE, lineNo);
+    if (json_hal_add_param(jrequest, GET_REQUEST_MESSAGE, &req_param) != RETURN_OK)
+    {
+        FREE_JSON_OBJECT(jrequest);
+        return RETURN_ERR;
+    }
+
+    CcspTraceInfo(("%s-%d: JSON Request message = %s \n", __FUNCTION__, __LINE__, json_object_to_json_string_ext(jrequest, JSON_C_TO_STRING_PRETTY)));
 
     if (json_hal_client_send_and_get_reply(jrequest, &jreply_msg) == RETURN_ERR)
     {
         CcspTraceError(("%s - %d Failed to get reply for the json request \n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
     }
+
+    CcspTraceInfo(("%s-%d: JSON Response message = %s \n", __FUNCTION__, __LINE__, json_object_to_json_string_ext(jreply_msg,JSON_C_TO_STRING_PRETTY)));
 
     rc = get_atm_link_info(jreply_msg, pAtmLink);
     if (rc != ANSC_STATUS_SUCCESS)
@@ -1272,6 +1291,79 @@ static void *eventcb(const char *msg, const int len)
     }
 
     FREE_JSON_OBJECT(jobj);
+}
+
+int xdsl_hal_get_dslLinkStatus()
+{
+    int rc = RETURN_ERR;
+    json_object *jreply_msg = NULL;
+    json_object *jrequest = NULL;
+    json_object *jparams = NULL;
+    hal_param_t resp_param;
+    int total_param_count = 0;
+    char paramName[256] = {'\0'};
+
+    memset(&resp_param, 0, sizeof(resp_param));
+    for (int line_id = 1; line_id <= XDSL_MAX_LINES; line_id++)
+    {
+	    snprintf(paramName, sizeof(paramName), XDSL_LINE_LINKSTATUS, line_id);
+        
+        //get info from the hal
+        jrequest = create_json_request_message(GET_REQUEST_MESSAGE, paramName, NULL_TYPE , NULL);
+        CHECK(jrequest);
+
+        if (json_hal_client_send_and_get_reply(jrequest, &jreply_msg) == RETURN_ERR)
+        {
+            CcspTraceError(("%s - %d Failed to get reply for the json request \n", __FUNCTION__, __LINE__));
+            FREE_JSON_OBJECT(jrequest);
+            FREE_JSON_OBJECT(jreply_msg);
+            return rc;
+        }
+        if(jreply_msg == NULL)
+        {
+            FREE_JSON_OBJECT(jrequest);
+            return rc;
+        }
+
+        if (json_object_object_get_ex(jreply_msg, JSON_RPC_FIELD_PARAMS, &jparams))
+        {
+            total_param_count = json_object_array_length(jparams);
+        }
+
+        if(jparams == NULL) {
+            FREE_JSON_OBJECT(jrequest);
+            FREE_JSON_OBJECT(jreply_msg);
+            return RETURN_ERR;
+        }
+
+        for (int index = 0; index < total_param_count; index++)
+        {
+            if (json_hal_get_param(jreply_msg, index, GET_RESPONSE_MESSAGE, &resp_param) != RETURN_OK)
+            {
+                CcspTraceError(("%s - %d Failed to get required params from the response message \n", __FUNCTION__, __LINE__));
+                FREE_JSON_OBJECT(jrequest);
+                FREE_JSON_OBJECT(jreply_msg);
+                return RETURN_ERR;
+            }
+            if (strstr (resp_param.name, "LinkStatus"))
+            {
+                if (dsl_link_status_cb && resp_param.value)
+                {
+                    CcspTraceInfo(("%s - %d resp_param.value=[%s] \n", __FUNCTION__, __LINE__, resp_param.value));
+                    if(strcmp(resp_param.value, "Up") == 0)
+                    {
+                        dsl_link_status_cb(line_id, resp_param.value);
+                    }
+                    rc = RETURN_OK;
+                }
+            }
+        }
+    }
+ 
+    FREE_JSON_OBJECT(jrequest);
+    FREE_JSON_OBJECT(jreply_msg);
+
+    return rc;
 }
 
 static int subscribe_dsl_link_event()
@@ -2041,60 +2133,6 @@ int xdsl_hal_dslGetXRdk_Nlm( PDML_XDSL_X_RDK_NLNM pstNlmInfo )
     return rc;
 }
 
-#if !defined  _DT_WAN_Manager_Enable_
-static ANSC_STATUS configure_xdsl_driver()
-{
-    int rc = RETURN_OK;
-    json_object *jmsg = NULL;
-    json_object *jreply_msg = NULL;
-    json_bool status = FALSE;
-
-    jmsg = json_hal_client_get_request_header(RPC_SET_PARAMETERS_REQUEST);
-    CHECK(jmsg);
-    hal_param_t req_msg;
-    memset(&req_msg, 0,sizeof(req_msg));
-    //TODO: In case if we have 2 DSL lines the code needs to be changed.
-    strncpy(req_msg.name, XDSL_LINE_PROFILE, sizeof(req_msg.name));
-    req_msg.type = PARAM_STRING;
-    snprintf(req_msg.value, sizeof(req_msg.value), "%s,%s,%s,%s", "8b", "12a", "17a", "35b");
-    json_hal_add_param(jmsg, SET_REQUEST_MESSAGE, &req_msg);
-    CcspTraceInfo(("JSON Request message = %s \n", __FUNCTION__, __LINE__, json_object_to_json_string_ext(jmsg, JSON_C_TO_STRING_PRETTY)));
-    if (json_hal_client_send_and_get_reply(jmsg, &jreply_msg) != RETURN_OK)
-    {
-        CcspTraceError(("[%s][%d] RPC message failed \n", __FUNCTION__, __LINE__));
-        FREE_JSON_OBJECT(jmsg);
-        FREE_JSON_OBJECT(jreply_msg);
-        return RETURN_ERR;
-    }
-    CHECK(jreply_msg);
-
-    if (json_hal_get_result_status(jreply_msg, &status) == RETURN_OK)
-    {
-        if (status)
-        {
-            CcspTraceInfo(("%s - %d configure request is successful\n", __FUNCTION__, __LINE__));
-            rc = RETURN_OK;
-        }
-        else
-        {
-            CcspTraceError(("%s - %d - Set request failed \n", __FUNCTION__, __LINE__));
-            rc = RETURN_ERR;
-        }
-    }
-    else
-    {
-        CcspTraceError(("%s - %d Failed to get result status from json response, something wrong happened!!! \n", __FUNCTION__, __LINE__));
-        rc = RETURN_ERR;
-    }
-
-    // Free json objects.
-    FREE_JSON_OBJECT(jmsg);
-    FREE_JSON_OBJECT(jreply_msg);
-
-    return rc;
-}
-#endif
-
 ANSC_STATUS xtm_hal_setLinkInfoParam(hal_param_t *set_param)
 {
     CHECK(set_param != NULL);
@@ -2111,7 +2149,7 @@ ANSC_STATUS xtm_hal_setLinkInfoParam(hal_param_t *set_param)
     CHECK(jrequest != NULL);
 
     // TODO - needs improvement or recovery method if fails. The method is yet to be defined.
-    int max_count = 40; // 10 seconds
+    int max_count = 4; // 1 seconds
     while(max_count >= 0)
     {
         if (json_hal_client_send_and_get_reply(jrequest, &jreply_msg) == RETURN_ERR)
@@ -2288,16 +2326,11 @@ static ANSC_STATUS get_ptm_link_info(const json_object *reply_msg, PDML_PTM pPtm
         {
             pPtmLink->Status = XtmStatusStrToEnum(resp_param.value);
         }
-        else if (strstr(resp_param.name, "Name"))
-        {
-            snprintf(pPtmLink->Name, sizeof(pPtmLink->Name), "%s", resp_param.value);
-        }
     }
 
     CcspTraceInfo(("%s - %d PTM Line Information \n", __FUNCTION__, __LINE__));
     CcspTraceInfo(("Enable = %d \n", pPtmLink->Enable));
     CcspTraceInfo(("Status = %d \n", pPtmLink->Status));
-    CcspTraceInfo(("Name = %s \n", pPtmLink->Name));
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -2328,16 +2361,11 @@ static ANSC_STATUS get_atm_link_info(const json_object *reply_msg, PDML_ATM pAtm
         {
             pAtmLink->Status = XtmStatusStrToEnum(resp_param.value);
         }
-        else if (strstr(resp_param.name, "Name"))
-        {
-            snprintf(pAtmLink->Name, sizeof(pAtmLink->Name), "%s", resp_param.value);
-        }
     }
 
     CcspTraceInfo(("%s - %d ATM Line Information \n", __FUNCTION__, __LINE__));
     CcspTraceInfo(("Enable = %d \n", pAtmLink->Enable));
     CcspTraceInfo(("Status = %d \n", pAtmLink->Status));
-    CcspTraceInfo(("Name = %s \n", pAtmLink->Name));
     return ANSC_STATUS_SUCCESS;
 }
 

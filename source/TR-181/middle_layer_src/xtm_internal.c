@@ -124,7 +124,7 @@ PtmLinkInitialize
         AnscTraceInfo(("%s-%d: Status=[%d] Enable=[%d] LowerLayers=[%s] Alias=[%s] Name=[%s] \n", __FUNCTION__, __LINE__, pPtmLink->Status, pPtmLink->Enable, pPtmLink->LowerLayers, pPtmLink->Alias, pPtmLink->Name));     
         if(FALSE == pPtmLink->Enable)
         {
-            AnscTraceInfo(("%s-%d: PTM ENABLE \n", __FUNCTION__, __LINE__)); 
+            AnscTraceInfo(("%s-%d: PTM config set \n", __FUNCTION__, __LINE__));
             DmlSetPtmIfEnable(pPtmLink);
         }
         ptm_hal_subscribeStatusEvent(pPtmLink->InstanceNumber);
@@ -421,7 +421,7 @@ AtmLinkInitialize
 
     if(FALSE == pAtmLink->Enable)
     {
-        AnscTraceInfo(("%s-%d: ATM ENABLE \n", __FUNCTION__, __LINE__)); 
+        AnscTraceInfo(("%s-%d: ATM config set \n", __FUNCTION__, __LINE__));
         DmlSetAtmIfEnable(pAtmLink);
     }
 

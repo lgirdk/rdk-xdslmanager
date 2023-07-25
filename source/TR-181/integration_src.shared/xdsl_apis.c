@@ -176,12 +176,6 @@ DmlXdslInit
     //DSL Diagnostics init
     DmlXdslDiagnosticsInit( pMyObject );
 
-    //Trigger Event Handler thread
-    DmlXdslTriggerEventHandlerThread();
-
-    //Register linkstatus callback
-    xdsl_hal_registerDslLinkStatusCallback(DmlXdslLineLinkStatusCallback);
-
     //DSL Diagnostics init
     DmlXdslReportInit( pMyObject );
 
@@ -190,6 +184,27 @@ DmlXdslInit
 
     return ANSC_STATUS_SUCCESS;
 }
+
+void xdslEventHandlerInit()
+{
+    //Trigger Event Handler thread
+    DmlXdslTriggerEventHandlerThread();
+ 
+    //Register linkstatus callback
+    xdsl_hal_registerDslLinkStatusCallback(DmlXdslLineLinkStatusCallback);
+
+    //DSL HAL DSL Link Status Init
+    if( RETURN_OK != xdsl_hal_get_dslLinkStatus())
+    {
+        CcspTraceError(("%s Failed to get initial dsl Link Status \n", __FUNCTION__));
+    }
+    else
+    {
+        CcspTraceInfo(("%s Get initial dsl Link Status Success \n", __FUNCTION__));
+    }
+
+}
+
 
 /*DmlXdslLineInit */
 ANSC_STATUS

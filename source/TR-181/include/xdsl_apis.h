@@ -563,6 +563,8 @@ ANSC_STATUS DmlXdslChannelSetEnable( INT LineIndex, INT ChannelIndex, BOOL Enabl
 
 ANSC_STATUS DmlXdslLineTypeGetById( INT LineIndex, DML_XDSL_LINE_TYPE *LineType );
 
+void xdslEventHandlerInit();
+
 ANSC_STATUS
 DmlXdslDiagnosticsInit
     (

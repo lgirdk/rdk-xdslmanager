@@ -416,5 +416,13 @@ int atm_hal_subscribeStatusEvent(int link_id);
  */
 int ptm_hal_subscribeStatusEvent(int link_id);
 
+/**
+ * This function subscribes for PTM link status event from driver
+ *
+ * @param[in] link_id - Instance id from Device.PTM.Link. table
+ *
+ * @return 0 on success. Otherwise a negative value is returned
+ */
+int xdsl_hal_get_dslLinkStatus();
 
 #endif /* _XDSL_JSON_APIS_H */
