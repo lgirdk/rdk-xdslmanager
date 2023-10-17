@@ -269,7 +269,7 @@ BOOL PTMLink_GetParamBoolValue ( ANSC_HANDLE hInsContext, char* ParamName, BOOL*
     PDML_PTM             p_Ptm  = (PDML_PTM   )hInsContext;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Enable", TRUE))
+    if (strcmp(ParamName, "Enable") == 0)
     {
         *pBool        = p_Ptm->Enable;
         return TRUE;
@@ -357,14 +357,14 @@ BOOL PTMLink_GetParamUlongValue  ( ANSC_HANDLE  hInsContext, char*  ParamName, U
 
     /* check the parameter name and return the corresponding value */
 
-    if( AnscEqualString(ParamName, "Status", TRUE))
+    if (strcmp(ParamName, "Status") == 0)
     {
         if(ANSC_STATUS_SUCCESS == DmlGetPtmIfStatus(NULL, p_Ptm)) {
             *puLong = p_Ptm->Status;
         }
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "LastChange", TRUE))
+    if (strcmp(ParamName, "LastChange") == 0)
     {
         *puLong = p_Ptm->LastChange;
         return TRUE;
@@ -418,7 +418,7 @@ ULONG PTMLink_GetParamStringValue ( ANSC_HANDLE hInsContext, char*  ParamName, c
     PUCHAR                          pString       = NULL;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Alias", TRUE))
+    if (strcmp(ParamName, "Alias") == 0)
     {
         if ( AnscSizeOfString(p_Ptm->Alias) < *pUlSize)
         {
@@ -431,17 +431,17 @@ ULONG PTMLink_GetParamStringValue ( ANSC_HANDLE hInsContext, char*  ParamName, c
             return 1;
         }
     }
-    if( AnscEqualString(ParamName, "Name", TRUE))
+    if (strcmp(ParamName, "Name") == 0)
     {
         AnscCopyString(pValue, p_Ptm->Name);
         return 0;
     }
-    if( AnscEqualString(ParamName, "LowerLayers", TRUE))
+    if (strcmp(ParamName, "LowerLayers") == 0)
     {
         AnscCopyString(pValue, p_Ptm->LowerLayers);
         return 0;
     }
-    if( AnscEqualString(ParamName, "MACAddress", TRUE))
+    if (strcmp(ParamName, "MACAddress") == 0)
     {
         AnscCopyString(pValue, p_Ptm->MACAddress);
         return 0;
@@ -489,91 +489,91 @@ BOOL PTMLinkStats_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName,
     DmlGetPtmIfStatistics( NULL, p_Ptm );
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "BytesSent", TRUE) )
+    if (strcmp(ParamName, "BytesSent") == 0)
     {
         *puLong = p_Ptm->Statistics.BytesSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "BytesReceived", TRUE) )
+    if (strcmp(ParamName, "BytesReceived") == 0)
     {
         *puLong = p_Ptm->Statistics.BytesReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "PacketsSent", TRUE) )
+    if (strcmp(ParamName, "PacketsSent") == 0)
     {
         *puLong = p_Ptm->Statistics.PacketsSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "PacketsReceived", TRUE) )
+    if (strcmp(ParamName, "PacketsReceived") == 0)
     {
         *puLong = p_Ptm->Statistics.PacketsReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "ErrorsSent", TRUE) )
+    if (strcmp(ParamName, "ErrorsSent") == 0)
     {
         *puLong = p_Ptm->Statistics.ErrorsSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "ErrorsReceived", TRUE) )
+    if (strcmp(ParamName, "ErrorsReceived") == 0)
     {
         *puLong = p_Ptm->Statistics.ErrorsReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "UnicastPacketsSent", TRUE) )
+    if (strcmp(ParamName, "UnicastPacketsSent") == 0)
     {
         *puLong = p_Ptm->Statistics.UnicastPacketsSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "UnicastPacketsReceived", TRUE) )
+    if (strcmp(ParamName, "UnicastPacketsReceived") == 0)
     {
         *puLong = p_Ptm->Statistics.UnicastPacketsReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "DiscardPacketsSent", TRUE) )
+    if (strcmp(ParamName, "DiscardPacketsSent") == 0)
     {
         *puLong = p_Ptm->Statistics.DiscardPacketsSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "DiscardPacketsReceived", TRUE) )
+    if (strcmp(ParamName, "DiscardPacketsReceived") == 0)
     {
         *puLong = p_Ptm->Statistics.DiscardPacketsReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "MulticastPacketsSent", TRUE) )
+    if (strcmp(ParamName, "MulticastPacketsSent") == 0)
     {
         *puLong = p_Ptm->Statistics.MulticastPacketsSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "MulticastPacketsReceived", TRUE) )
+    if (strcmp(ParamName, "MulticastPacketsReceived") == 0)
     {
         *puLong = p_Ptm->Statistics.MulticastPacketsReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "BroadcastPacketsSent", TRUE) )
+    if (strcmp(ParamName, "BroadcastPacketsSent") == 0)
     {
         *puLong = p_Ptm->Statistics.BroadcastPacketsSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "BroadcastPacketsReceived", TRUE) )
+    if (strcmp(ParamName, "BroadcastPacketsReceived") == 0)
     {
         *puLong = p_Ptm->Statistics.BroadcastPacketsReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "UnknownProtoPacketsReceived", TRUE) )
+    if (strcmp(ParamName, "UnknownProtoPacketsReceived") == 0)
     {
         *puLong = p_Ptm->Statistics.UnknownProtoPacketsReceived;
         return TRUE;
@@ -875,17 +875,17 @@ BOOL ATMLink_GetParamBoolValue (  ANSC_HANDLE hInsContext, char* ParamName, BOOL
     PDML_ATM                   p_Atm      = (PDML_ATM) hInsContext;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Enable", TRUE))
+    if (strcmp(ParamName, "Enable") == 0)
     {
         *pBool        = p_Atm->Enable;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "AutoConfig", TRUE))
+    if (strcmp(ParamName, "AutoConfig") == 0)
     {
         *pBool = p_Atm->AutoConfig;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "FCSPreserved", TRUE))
+    if (strcmp(ParamName, "FCSPreserved") == 0)
     {
         *pBool = p_Atm->FCSPreserved;
         return TRUE;
@@ -933,27 +933,27 @@ BOOL ATMLink_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, ULON
 
     /* check the parameter name and return the corresponding value */
 
-    if( AnscEqualString(ParamName, "Status", TRUE))
+    if (strcmp(ParamName, "Status") == 0)
     {
 	*puLong = p_Atm->Status;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "LastChange", TRUE))
+    if (strcmp(ParamName, "LastChange") == 0)
     {
         *puLong = p_Atm->LastChange;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "LinkType", TRUE))
+    if (strcmp(ParamName, "LinkType") == 0)
     {
         *puLong = p_Atm->LinkType;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "Encapsulation", TRUE))
+    if (strcmp(ParamName, "Encapsulation") == 0)
     {
         *puLong = p_Atm->Encapsulation;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "AAL", TRUE))
+    if (strcmp(ParamName, "AAL") == 0)
     {
         *puLong = p_Atm->AAL;
         return TRUE;
@@ -1008,7 +1008,7 @@ ULONG ATMLink_GetParamStringValue ( ANSC_HANDLE hInsContext, char* ParamName, ch
     PUCHAR                     pString       = NULL;
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "Alias", TRUE))
+    if (strcmp(ParamName, "Alias") == 0)
     {
         if ( AnscSizeOfString(p_Atm->Alias) < *pUlSize)
         {
@@ -1021,22 +1021,22 @@ ULONG ATMLink_GetParamStringValue ( ANSC_HANDLE hInsContext, char* ParamName, ch
             return 1;
         }
     }
-    if( AnscEqualString(ParamName, "Name", TRUE))
+    if (strcmp(ParamName, "Name") == 0)
     {
         AnscCopyString(pValue, p_Atm->Name);
         return 0;
     }
-    if( AnscEqualString(ParamName, "LowerLayers", TRUE))
+    if (strcmp(ParamName, "LowerLayers") == 0)
     {
         AnscCopyString(pValue, p_Atm->LowerLayers);
         return 0;
     }
-    if( AnscEqualString(ParamName, "DestinationAddress", TRUE))
+    if (strcmp(ParamName, "DestinationAddress") == 0)
     {
         AnscCopyString(pValue, p_Atm->DestinationAddress);
         return 0;
     }
-    if( AnscEqualString(ParamName, "VCSearchList", TRUE))
+    if (strcmp(ParamName, "VCSearchList") == 0)
     {
         AnscCopyString(pValue, p_Atm->VCSearchList);
         return 0;
@@ -1084,115 +1084,115 @@ BOOL ATMLinkStats_GetParamUlongValue  ( ANSC_HANDLE hInsContext, char* ParamName
     DmlGetAtmIfStatistics( NULL, p_Atm );
 
     /* check the parameter name and return the corresponding value */
-    if( AnscEqualString(ParamName, "BytesSent", TRUE) )
+    if (strcmp(ParamName, "BytesSent") == 0)
     {
         *puLong = p_Atm->Statistics.BytesSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "BytesReceived", TRUE) )
+    if (strcmp(ParamName, "BytesReceived") == 0)
     {
         *puLong = p_Atm->Statistics.BytesReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "PacketsSent", TRUE) )
+    if (strcmp(ParamName, "PacketsSent") == 0)
     {
         *puLong = p_Atm->Statistics.PacketsSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "PacketsReceived", TRUE) )
+    if (strcmp(ParamName, "PacketsReceived") == 0)
     {
         *puLong = p_Atm->Statistics.PacketsReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "ErrorsSent", TRUE) )
+    if (strcmp(ParamName, "ErrorsSent") == 0)
     {
         *puLong = p_Atm->Statistics.ErrorsSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "ErrorsReceived", TRUE) )
+    if (strcmp(ParamName, "ErrorsReceived") == 0)
     {
         *puLong = p_Atm->Statistics.ErrorsReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "UnicastPacketsSent", TRUE) )
+    if (strcmp(ParamName, "UnicastPacketsSent") == 0)
     {
         *puLong = p_Atm->Statistics.UnicastPacketsSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "UnicastPacketsReceived", TRUE) )
+    if (strcmp(ParamName, "UnicastPacketsReceived") == 0)
     {
         *puLong = p_Atm->Statistics.UnicastPacketsReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "DiscardPacketsSent", TRUE) )
+    if (strcmp(ParamName, "DiscardPacketsSent") == 0)
     {
         *puLong = p_Atm->Statistics.DiscardPacketsSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "DiscardPacketsReceived", TRUE) )
+    if (strcmp(ParamName, "DiscardPacketsReceived") == 0)
     {
         *puLong = p_Atm->Statistics.DiscardPacketsReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "MulticastPacketsSent", TRUE) )
+    if (strcmp(ParamName, "MulticastPacketsSent") == 0)
     {
         *puLong = p_Atm->Statistics.MulticastPacketsSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "MulticastPacketsReceived", TRUE) )
+    if (strcmp(ParamName, "MulticastPacketsReceived") == 0)
     {
         *puLong = p_Atm->Statistics.MulticastPacketsReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "BroadcastPacketsSent", TRUE) )
+    if (strcmp(ParamName, "BroadcastPacketsSent") == 0)
     {
         *puLong = p_Atm->Statistics.BroadcastPacketsSent;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "BroadcastPacketsReceived", TRUE) )
+    if (strcmp(ParamName, "BroadcastPacketsReceived") == 0)
     {
         *puLong = p_Atm->Statistics.BroadcastPacketsReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "UnknownProtoPacketsReceived", TRUE) )
+    if (strcmp(ParamName, "UnknownProtoPacketsReceived") == 0)
     {
         *puLong = p_Atm->Statistics.UnknownProtoPacketsReceived;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "TransmittedBlocks", TRUE) )
+    if (strcmp(ParamName, "TransmittedBlocks") == 0)
     {
         *puLong = p_Atm->Statistics.TransmittedBlocks;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "ReceivedBlocks", TRUE) )
+    if (strcmp(ParamName, "ReceivedBlocks") == 0)
     {
         *puLong = p_Atm->Statistics.ReceivedBlocks;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "CRCErrors", TRUE) )
+    if (strcmp(ParamName, "CRCErrors") == 0)
     {
         *puLong = p_Atm->Statistics.CRCErrors;
         return TRUE;
     }
 
-    if( AnscEqualString(ParamName, "HECErrors", TRUE) )
+    if (strcmp(ParamName, "HECErrors") == 0)
     {
         *puLong = p_Atm->Statistics.HECErrors;
         return TRUE;
@@ -1305,22 +1305,22 @@ BOOL ATMLinkQOS_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, U
     PDML_ATM p_Atm = (PDML_ATM) hInsContext;
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "QoSClass", TRUE))
+    if (strcmp(ParamName, "QoSClass") == 0)
     {
         *puLong = p_Atm->Qos.QoSClass;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "PeakCellRate", TRUE))
+    if (strcmp(ParamName, "PeakCellRate") == 0)
     {
         *puLong = p_Atm->Qos.PeakCellRate;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "MaximumBurstSize", TRUE))
+    if (strcmp(ParamName, "MaximumBurstSize") == 0)
     {
         *puLong = p_Atm->Qos.PeakCellRate;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "SustainableCellRate", TRUE))
+    if (strcmp(ParamName, "SustainableCellRate") == 0)
     {
         *puLong = p_Atm->Qos.SustainableCellRate;
         return TRUE;
@@ -1338,7 +1338,7 @@ BOOL ATMLinkQOS_SetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, U
     char param_value[256] = {0};
 
     /* check the parameter name and set the corresponding value */
-    if( AnscEqualString(ParamName, "QoSClass", TRUE))
+    if (strcmp(ParamName, "QoSClass") == 0)
     {
         p_Atm->Qos.QoSClass = uValue;
         switch (uValue)
@@ -1368,21 +1368,21 @@ BOOL ATMLinkQOS_SetParamUlongValue ( ANSC_HANDLE hInsContext, char* ParamName, U
         _PSM_WRITE_PARAM(PSM_ADSL_QOS_CLASS);
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "PeakCellRate", TRUE))
+    if (strcmp(ParamName, "PeakCellRate") == 0)
     {
         p_Atm->Qos.PeakCellRate = uValue;
         _ansc_sprintf(param_value, "%d", p_Atm->Qos.PeakCellRate );
         _PSM_WRITE_PARAM(PSM_ADSL_QOS_PEAKCELLRATE);
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "MaximumBurstSize", TRUE))
+    if (strcmp(ParamName, "MaximumBurstSize") == 0)
     {
         p_Atm->Qos.PeakCellRate = uValue;
         _ansc_sprintf(param_value, "%d", p_Atm->Qos.PeakCellRate);
         _PSM_WRITE_PARAM(PSM_ADSL_QOS_MAXBURSTSIZE);
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "SustainableCellRate", TRUE))
+    if (strcmp(ParamName, "SustainableCellRate") == 0)
     {
         p_Atm->Qos.SustainableCellRate = uValue;
         _ansc_sprintf(param_value, "%d", p_Atm->Qos.SustainableCellRate);
@@ -1399,42 +1399,42 @@ BOOL ATMLinkDiagnostics_GetParamUlongValue ( ANSC_HANDLE hInsContext, char* Para
     PDATAMODEL_ATM pATM = (PDATAMODEL_ATM) g_pBEManager->hATM;
     PDML_ATM_DIAG pAtmDiag = (PDML_ATM_DIAG) pATM->pATMDiag;
 
-    if( AnscEqualString(ParamName, "DiagnosticsState", TRUE))
+    if (strcmp(ParamName, "DiagnosticsState") == 0)
     {
         *puLong = pAtmDiag->DiagnosticsState;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "NumberOfRepetitions", TRUE))
+    if (strcmp(ParamName, "NumberOfRepetitions") == 0)
     {
         *puLong = pAtmDiag->NumberOfRepetitions;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "Timeout", TRUE))
+    if (strcmp(ParamName, "Timeout") == 0)
     {
         *puLong = pAtmDiag->Timeout;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "SuccessCount", TRUE))
+    if (strcmp(ParamName, "SuccessCount") == 0)
     {
         *puLong = pAtmDiag->SuccessCount;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "FailureCount", TRUE))
+    if (strcmp(ParamName, "FailureCount") == 0)
     {
         *puLong = pAtmDiag->FailureCount;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "AverageResponseTime", TRUE))
+    if (strcmp(ParamName, "AverageResponseTime") == 0)
     {
         *puLong = pAtmDiag->AverageResponseTime;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "MinimumResponseTime", TRUE))
+    if (strcmp(ParamName, "MinimumResponseTime") == 0)
     {
         *puLong = pAtmDiag->MinimumResponseTime;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "MaximumResponseTime", TRUE))
+    if (strcmp(ParamName, "MaximumResponseTime") == 0)
     {
         *puLong = pAtmDiag->MaximumResponseTime;
         return TRUE;
@@ -1449,7 +1449,7 @@ BOOL ATMLinkDiagnostics_SetParamUlongValue ( ANSC_HANDLE hInsContext, char* Para
     PDATAMODEL_ATM pATM = (PDATAMODEL_ATM) g_pBEManager->hATM;
     PDML_ATM_DIAG pAtmDiag = (PDML_ATM_DIAG) pATM->pATMDiag;
 
-    if( AnscEqualString(ParamName, "DiagnosticsState", TRUE))
+    if (strcmp(ParamName, "DiagnosticsState") == 0)
     {
         if (uValue == DIAG_STATE_REQUESTED)
         {
@@ -1465,12 +1465,12 @@ BOOL ATMLinkDiagnostics_SetParamUlongValue ( ANSC_HANDLE hInsContext, char* Para
         }
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "NumberOfRepetitions", TRUE))
+    if (strcmp(ParamName, "NumberOfRepetitions") == 0)
     {
         pAtmDiag->NumberOfRepetitions = uValue;
         return TRUE;
     }
-    if( AnscEqualString(ParamName, "Timeout", TRUE))
+    if (strcmp(ParamName, "Timeout") == 0)
     {
         pAtmDiag->Timeout = uValue;
         return TRUE;
@@ -1484,7 +1484,7 @@ BOOL ATMLinkDiagnostics_SetParamStringValue ( ANSC_HANDLE hInsContext, char* Par
     PDATAMODEL_ATM pATM = (PDATAMODEL_ATM) g_pBEManager->hATM;
     PDML_ATM_DIAG pAtmDiag = (PDML_ATM_DIAG) pATM->pATMDiag;
 
-    if( AnscEqualString(ParamName, "Interface", TRUE))
+    if (strcmp(ParamName, "Interface") == 0)
     {
         AnscCopyString(pAtmDiag->Interface, pString);
         return TRUE;
@@ -1498,7 +1498,7 @@ ULONG ATMLinkDiagnostics_GetParamStringValue ( ANSC_HANDLE hInsContext, char* Pa
     PDATAMODEL_ATM pATM = (PDATAMODEL_ATM) g_pBEManager->hATM;
     PDML_ATM_DIAG pAtmDiag = (PDML_ATM_DIAG) pATM->pATMDiag;
 
-    if( AnscEqualString(ParamName, "Interface", TRUE))
+    if (strcmp(ParamName, "Interface") == 0)
     {
         if ( AnscSizeOfString(pAtmDiag->Interface) < *pUlSize)
         {
