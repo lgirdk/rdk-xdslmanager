@@ -77,7 +77,7 @@ static void *DmlXdslEventHandlerThread( void *arg )
   attr.mq_maxmsg  = MAX_QUEUE_LENGTH;
   attr.mq_msgsize = sizeof(DSLEventQData);
   attr.mq_curmsgs = 0;
- 
+
   /* create the message queue */
   mq = mq_open(XDSL_EVENT_QUEUE_NAME, O_CREAT | O_RDONLY, 0644, &attr);
 
