@@ -71,6 +71,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sysevent/sysevent.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 //Specific includes
 #include "xdsl_apis.h"
@@ -810,6 +813,39 @@ static ANSC_STATUS DmlUpdateXdslStandardUsed( PDML_XDSL_LINE pLine )
     return rc;
 }
 
+
+BOOL XTM_isIfaceUp(const char *iface)
+{
+    int sfd;
+    struct ifreq intf;
+    BOOL ifaceUP = FALSE;
+    if(iface == NULL)
+    {
+        CcspTraceError(("%s %d iface is empty \n", __FUNCTION__, __LINE__));
+        return FALSE;
+    }
+
+    if ((sfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+    {
+        CcspTraceError(("%s %d Socket creation failed \n", __FUNCTION__, __LINE__));
+        return FALSE;
+    }
+
+    memset (&intf, 0, sizeof(struct ifreq));
+    strncpy(intf.ifr_name, iface, sizeof(intf.ifr_name) - 1);
+
+    if (ioctl(sfd, SIOCGIFFLAGS, &intf) < 0)
+    {
+        CcspTraceError(("%s %d ioctl failed \n", __FUNCTION__, __LINE__));
+        close(sfd);
+        return FALSE;
+    }
+    close(sfd);
+
+    CcspTraceInfo(("%s %d iface %s is %s and %s \n", __FUNCTION__, __LINE__,iface, (intf.ifr_flags &  IFF_UP)?"UP":"DOWN" ,(intf.ifr_flags &  IFF_RUNNING)?"RUNNING":"NOT RUNNNING"));
+    return ((intf.ifr_flags & (IFF_UP | IFF_RUNNING ))== ( IFF_UP | IFF_RUNNING )) ? TRUE : FALSE;
+}
+
 ANSC_STATUS DmlConfigurePTMLink( PDML_XDSL_LINE pLine , BOOL bEnable )
 {
     PDML_PTM pPtm = NULL;
@@ -846,8 +882,25 @@ ANSC_STATUS DmlConfigurePTMLink( PDML_XDSL_LINE pLine , BOOL bEnable )
         CcspTraceError(("%s Failed to configure for PTM Link, Instance\n", __FUNCTION__));
 	return ANSC_STATUS_FAILURE;
     }
-    CcspTraceInfo(("%s %d Successfully configured PTM Link Table Entry Instance=%lu \n", __FUNCTION__,__LINE__, iPTMInstance));
 
+    int iIterator = 0;
+    while(bEnable)
+    {
+        iIterator ++;
+        usleep(200000);//Sleep for 200 milli seconds
+        if(XTM_isIfaceUp(pPtm->Name) == TRUE)
+        {
+            //XTM insterface is UP and RUNNING
+            break;
+        } 
+        else if(iIterator > 25) //Wait for (200*25)ms = 5 seconds
+        {
+            CcspTraceError(("%s %d %s is NOT READY \n", __FUNCTION__, __LINE__,pPtm->Name));
+            return ANSC_STATUS_FAILURE;
+        }
+    }
+
+    CcspTraceInfo(("%s %d Successfully configured PTM Link Table Entry Instance=%lu \n", __FUNCTION__,__LINE__, iPTMInstance));
     return ANSC_STATUS_SUCCESS;
 }
 
@@ -888,6 +941,24 @@ ANSC_STATUS DmlConfigureATMLink( PDML_XDSL_LINE pLine , BOOL bEnable )
         CcspTraceError(("%s Failed to configure ATM Link, Instance=%lu \n", __FUNCTION__, iATMInstance));
 	return ANSC_STATUS_FAILURE;
     }
+
+    int iIterator = 0;
+    while(bEnable)
+    {
+        iIterator ++;
+        usleep(200000);//Sleep for 200 milli seconds
+        if(XTM_isIfaceUp(pAtm->Name) == TRUE)
+        {
+            //XTM insterface is UP and RUNNING
+            break;
+        }
+        else if(iIterator > 25) //Wait for (200*25)ms = 5 seconds
+        {
+            CcspTraceError(("%s %d %s is NOT READY \n", __FUNCTION__, __LINE__,pAtm->Name));
+            return ANSC_STATUS_FAILURE;
+        }
+    }
+
     CcspTraceInfo(("%s %d Successfully configured ATM Link Table Entry Instance=%lu \n", __FUNCTION__,__LINE__, iATMInstance));
 
     return ANSC_STATUS_SUCCESS;

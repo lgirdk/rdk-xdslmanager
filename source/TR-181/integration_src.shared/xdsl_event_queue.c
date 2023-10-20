@@ -110,19 +110,26 @@ static void *DmlXdslEventHandlerThread( void *arg )
                 }
 	        }
 #endif
-	        if (MSGQLineStatusData->LinkStatus == XDSL_LINK_STATUS_Up)
-	        {
-		        DmlXdslCreateXTMLink(MSGQLineStatusData->line_id);
-	        }
-	        else
-	        {
-		        INT LinkStatus;
-		        if (DmlXdslGetLineLinkStatus(MSGQLineStatusData->line_id, &LinkStatus) == ANSC_STATUS_FAILURE ||
-		            LinkStatus == XDSL_LINK_STATUS_Up)
-		        {
+            if (MSGQLineStatusData->LinkStatus == XDSL_LINK_STATUS_Up)
+            {
+                int retry_count = 0;
+                while(DmlXdslCreateXTMLink(MSGQLineStatusData->line_id) != ANSC_STATUS_SUCCESS && retry_count < 10)
+                {
+                    retry_count++;
+                    CcspTraceError(("%s %d : DmlXdslCreateXTMLink failed. Retrying(%d)... \n", __FUNCTION__, __LINE__,retry_count));
+                    DmlXdslDeleteXTMLink(MSGQLineStatusData->line_id); // Delete XTM interface before creating. 
+                    usleep(500000);//Sleep for 500 milli seconds
+                }
+            }
+            else
+            {
+                INT LinkStatus;
+                if (DmlXdslGetLineLinkStatus(MSGQLineStatusData->line_id, &LinkStatus) == ANSC_STATUS_FAILURE ||
+                        LinkStatus == XDSL_LINK_STATUS_Up)
+                {
                     DmlXdslDeleteXTMLink(MSGQLineStatusData->line_id);
-		        }
-	        }
+                }
+            }
 	        DmlXdslSetLineLinkStatus(MSGQLineStatusData->line_id, MSGQLineStatusData->LinkStatus);
 	        if (MSGQLineStatusData->LinkStatus == XDSL_LINK_STATUS_Initializing ||
                 MSGQLineStatusData->LinkStatus == XDSL_LINK_STATUS_EstablishingLink)
