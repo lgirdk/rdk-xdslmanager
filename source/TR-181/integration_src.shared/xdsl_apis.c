@@ -432,7 +432,7 @@ static ANSC_STATUS DmlXdslGetParamNames( char *pComponent, char *pBus, char *pPa
                                     &retInfo);
 
     //Copy the value
-    if( CCSP_SUCCESS == ret && nval >= 1 )
+    if( CCSP_SUCCESS == ret )
     {
         int iLoopCount;
 
@@ -454,7 +454,7 @@ static ANSC_STATUS DmlXdslGetParamNames( char *pComponent, char *pBus, char *pPa
         return ANSC_STATUS_SUCCESS;
     }
 
-    if( retInfo && nval >= 1 )
+    if( retInfo )
     {
       free_parameterInfoStruct_t(bus_handle, nval, retInfo);
     }
@@ -484,7 +484,7 @@ static ANSC_STATUS DmlXdslGetParamValues( char *pComponent, char *pBus, char *pP
                                     &retVal);
 
     //Copy the value
-    if( CCSP_SUCCESS == ret && nval >= 1 )
+    if( CCSP_SUCCESS == ret )
     {
         if( NULL != retVal[0]->parameterValue )
         {
@@ -499,7 +499,7 @@ static ANSC_STATUS DmlXdslGetParamValues( char *pComponent, char *pBus, char *pP
         return ANSC_STATUS_SUCCESS;
     }
 
-    if( retVal && nval >= 1 )
+    if( retVal )
     {
        free_parameterValStruct_t (bus_handle, nval, retVal);
     }
