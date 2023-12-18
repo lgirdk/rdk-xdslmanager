@@ -1068,6 +1068,8 @@ int xdsl_hal_dslGetLineInfo(int lineNo, PDML_XDSL_LINE pstLineInfo)
             snprintf(pstLineInfo->VirtualNoisePSDus, sizeof(pstLineInfo->VirtualNoisePSDus), "%s", resp_param.value);
         }
 
+        // By default set Upstream as TRUE because it is only used as WAN Interface. (LAN Interface = FALSE)
+        pstLineInfo->Upstream = true;
     }
 
     if(strstr (pstLineInfo->XTSE, "0000000000000000"))
