@@ -60,7 +60,7 @@ typedef struct _XDSLEventQData
 #define CHECK(x) \
     do { \
         if (!(x)) { \
-            CcspTraceError(("%s:%d: ", __FUNCTION__, __LINE__)); \
+            CcspTraceError(("%s:%d: check %s failed with error %s\n....", __FUNCTION__, __LINE__, #x, strerror(errno))); \
             perror(#x); \
             return; \
         } \
@@ -77,7 +77,7 @@ static void *DmlXdslEventHandlerThread( void *arg )
   attr.mq_maxmsg  = MAX_QUEUE_LENGTH;
   attr.mq_msgsize = sizeof(DSLEventQData);
   attr.mq_curmsgs = 0;
-
+ 
   /* create the message queue */
   mq = mq_open(XDSL_EVENT_QUEUE_NAME, O_CREAT | O_RDONLY, 0644, &attr);
 
@@ -98,6 +98,7 @@ static void *DmlXdslEventHandlerThread( void *arg )
 	        ULONG ulInstanceNumber = 0;
 	        char xtmLowerLayers[256] = { 0 };
 
+            CcspTraceInfo(("%s %d Received msg LINE_LINK_STATUS  \n", __FUNCTION__, __LINE__));
 #if defined(FEATURE_RDKB_LED_MANAGER) && !defined(_HUB4_PRODUCT_REQ_)
 	        if (MSGQLineStatusData->LinkStatus == XDSL_LINK_STATUS_Initializing ||
 		        MSGQLineStatusData->LinkStatus == XDSL_LINK_STATUS_EstablishingLink)
@@ -236,8 +237,15 @@ void DmlXdslTriggerEventHandlerThread( void )
 static ANSC_STATUS SetEventToEventQueue(DSLEventQData *EventMsg, int msg_len)
 {
     mqd_t mq;
-	
-    mq = mq_open(XDSL_EVENT_QUEUE_NAME, O_WRONLY);
+    struct    mq_attr attr;
+    /* initialize the queue attributes */
+    attr.mq_flags   = 0;
+    attr.mq_maxmsg  = MAX_QUEUE_LENGTH;
+    attr.mq_msgsize = sizeof(DSLEventQData);
+    attr.mq_curmsgs = 0;
+
+    /* create the message queue */
+    mq = mq_open(XDSL_EVENT_QUEUE_NAME, O_CREAT | O_WRONLY, 0644, &attr);
     CHECK((mqd_t)-1 != mq);
 
     CHECK(0 <= mq_send(mq, EventMsg, msg_len, 0));
